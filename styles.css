@@ -1612,6 +1612,12 @@ a.footer-contact-item:hover{color:var(--gold)}
   .newsletter-form .btn-gold{border-radius:var(--radius)}
 }
 @media(max-width:480px){
+  .nav-inner{height:68px;padding-inline:12px;gap:8px}
+  .nav-logo{min-width:0;margin-right:auto}
+  .logo-main{font-size:17px;letter-spacing:.14em}
+  .logo-sub{font-size:6px;letter-spacing:.32em}
+  .nav-actions{gap:0}
+  .nav-icon,.nav-hamburger{width:40px;height:40px}
   .collections-grid{grid-template-columns:1fr}
   .brands{padding:72px 0}
   .brands-grid{grid-template-columns:1fr}
