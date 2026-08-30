@@ -1,13 +1,13 @@
-# Cloudflare deployment setup
+# Cloudflare Worker deployment setup
 
-The pickup-order API is a Cloudflare Pages Function at `/api/pickup-order`. It uses Cloudflare Email Service through the `EMAIL` binding declared in `wrangler.jsonc`.
+The storefront is deployed as a Cloudflare Worker with static assets. The Worker routes `/api/pickup-order` and `/api/cancel-pickup-order` to the order handlers and serves the website through the `ASSETS` binding. Email is delivered through the native `EMAIL` binding declared in `wrangler.jsonc`.
 
 ## Before deploying
 
 1. Add `luxeperfume.com` to the Cloudflare account used for the Pages project.
 2. In **Compute & AI → Email Service → Email Sending**, onboard `luxeperfume.com` and allow Cloudflare to add the SPF, DKIM, DMARC, and bounce-domain DNS records.
-3. Deploy from a connected Git repository or with Wrangler, using `urban-luxe` as the Pages project root. Cloudflare dashboard Direct Upload does not deploy Pages Functions.
-4. Confirm that the `EMAIL` send-email binding from `wrangler.jsonc` is present on the deployed project.
+3. Deploy from the `urban-luxe` directory with `npx wrangler@latest deploy`, or configure that command in a Workers Builds project whose root directory is `urban-luxe`.
+4. Confirm that the `EMAIL` send-email and `ASSETS` bindings from `wrangler.jsonc` are present on the deployed Worker.
 
 The Function sends from `orders@luxeperfume.com`. That mailbox does not have to exist, but the domain must finish Email Sending verification before orders can be delivered.
 

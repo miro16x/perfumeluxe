@@ -2,7 +2,12 @@
   "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
   "name": "luxe-perfume",
   "compatibility_date": "2026-08-26",
-  "pages_build_output_dir": ".",
+  "main": "worker.js",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
   "send_email": [
     {
       "name": "EMAIL",

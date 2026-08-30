@@ -1,0 +1,12 @@
+worker.js
+functions/
+wrangler.jsonc
+CLOUDFLARE-SETUP.md
+README.md
+.git/
+.gitignore
+.DS_Store
+node_modules/
+.wrangler/
+*.log
+styles 2.css
