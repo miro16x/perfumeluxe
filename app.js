@@ -1358,6 +1358,23 @@ document.addEventListener('click', (event) => {
   window.location.assign(`product.html?id=${encodeURIComponent(card.dataset.id)}`);
 });
 
+/* On touch-sized screens, reveal the preview only after the product image is
+   tapped. This avoids permanently covering the fragrance image on mobile. */
+document.addEventListener('click', (event) => {
+  const imageLink = event.target.closest('.product-link-img');
+  if (!imageLink || !window.matchMedia('(max-width: 768px)').matches) return;
+
+  const card = imageLink.closest('.product-card');
+  if (!card) return;
+
+  event.preventDefault();
+  const willOpen = !card.classList.contains('preview-open');
+  document.querySelectorAll('.product-card.preview-open').forEach((openCard) => {
+    openCard.classList.remove('preview-open');
+  });
+  card.classList.toggle('preview-open', willOpen);
+});
+
 /* ── SIZE BUTTON CLICK (global delegation) ───────────── */
 document.addEventListener('click', e => {
   const sizeBtn = e.target.closest('.size-btn');

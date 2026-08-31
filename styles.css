@@ -1602,7 +1602,16 @@ a.footer-contact-item:hover{color:var(--gold)}
   .products-grid{gap:14px}
   .product-card{flex-basis:calc((100% - 14px) / 2)}
   .product-actions{opacity:1;transform:none}
-  .product-preview{opacity:1;transform:none;left:12px;right:12px;bottom:12px}
+  .product-preview{
+    left:12px;right:12px;bottom:12px;
+    opacity:0;transform:translateY(18px);pointer-events:none;
+  }
+  .product-card:hover .product-preview{
+    opacity:0;transform:translateY(18px);pointer-events:none;
+  }
+  .product-card.preview-open .product-preview{
+    opacity:1;transform:translateY(0);pointer-events:auto;
+  }
   .product-image{height:320px}
   .footer-grid{grid-template-columns:1fr 1fr}
   .footer-contact-bar{padding:18px 0}
@@ -2268,6 +2277,11 @@ a:focus:not(:focus-visible){outline:none}
   .ai-options-4,.ai-options-8{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:900px){
+  /* The filter drawer is fixed to the viewport. content-visibility on the shop
+     section otherwise creates paint containment and traps it behind the
+     body-level overlay on mobile browsers. */
+  .shop-browse{content-visibility:visible;contain:none}
+  #shopBrowseBody{overflow:visible}
   .shop-layout{grid-template-columns:1fr}
   .filter-sidebar{
     position:fixed;top:0;left:0;bottom:0;z-index:300;
@@ -2290,12 +2304,25 @@ a:focus:not(:focus-visible){outline:none}
   .ai-options-4,.ai-options-8{grid-template-columns:repeat(2,1fr)}
   .ai-options-3{grid-template-columns:repeat(3,1fr)}
   .shop-browse .section-header{margin-bottom:40px}
+  .shop-collapse-btn{
+    position:static;
+    margin:20px auto 0;
+  }
 }
 @media(max-width:600px){
   .ai-options,.ai-options-3,.ai-options-8{grid-template-columns:1fr}
   .ai-option{flex-direction:row;text-align:left;min-height:auto;padding:16px}
   .ai-option svg{flex-shrink:0}
-  .shop-grid{grid-template-columns:1fr}
+  .shop-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .shop-grid .product-image{height:190px}
+  .shop-grid .product-info{padding:14px 12px 16px}
+  .shop-grid .product-name{font-size:18px;line-height:1.15}
+  .shop-grid .product-desc,
+  .shop-grid .product-review{display:none}
+  .shop-grid .product-sizes{gap:4px}
+  .shop-grid .size-btn{padding:5px 7px;font-size:8px}
+  .shop-grid .product-footer{gap:8px}
+  .shop-grid .btn-add-cart{padding:8px 10px;font-size:9px}
   .toast-container{bottom:16px;right:16px;left:16px}
   .toast{min-width:0;width:100%}
 }
