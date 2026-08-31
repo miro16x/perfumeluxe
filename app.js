@@ -305,7 +305,9 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
     checkoutBtn.disabled = false;
   } catch (error) {
     console.error('Unable to send pickup order:', error);
-    pickupError.textContent = 'We could not send your order. Check your connection and try again.';
+    pickupError.textContent = error instanceof TypeError
+      ? 'We could not reach the pickup-order service. Check your connection and try again.'
+      : error.message || 'We could not send your order. Please try again.';
     pickupError.hidden = false;
     checkoutBtn.textContent = 'Place Pick-Up Order';
     checkoutBtn.disabled = false;

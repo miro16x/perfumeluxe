@@ -12,7 +12,7 @@ const STORES = {
 };
 
 const ALWAYS_NOTIFY = 'amirslem679@gmail.com';
-const FROM_ADDRESS = 'Luxe Perfume Pickup <orders@luxeperfume.com>';
+const FROM_ADDRESS = { email: 'orders@luxeperfume.com', name: 'Luxe Perfume Pickup' };
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -148,7 +148,7 @@ export async function onRequestPost({ request, env }) {
       messageIds: results.map((result) => result.messageId)
     });
   } catch (error) {
-    console.error('Pickup email delivery failed', error);
+    console.error('Pickup email delivery failed', error?.code, error?.message);
     return json({ success: false, message: 'Unable to deliver pickup-order email.' }, 502);
   }
 }

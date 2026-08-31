@@ -4,7 +4,7 @@ const STORES = {
 };
 
 const ALWAYS_NOTIFY = 'amirslem679@gmail.com';
-const FROM_ADDRESS = 'Luxe Perfume Pickup <orders@luxeperfume.com>';
+const FROM_ADDRESS = { email: 'orders@luxeperfume.com', name: 'Luxe Perfume Pickup' };
 const DAY_MS = 24 * 60 * 60 * 1000;
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -47,7 +47,7 @@ export async function onRequestPost({ request, env }) {
     ]);
     return json({ success: true, orderReference: reference });
   } catch (error) {
-    console.error('Pickup cancellation email delivery failed', error);
+    console.error('Pickup cancellation email delivery failed', error?.code, error?.message);
     return json({ success: false, message: 'Unable to deliver the cancellation request.' }, 502);
   }
 }
