@@ -154,7 +154,7 @@ The project is configured for Cloudflare Pages.
 
 ### Deployment Steps
 
-1. Add `luxeperfume.com` to the appropriate Cloudflare account.
+1. Confirm `luxeperfume.uluxe.site` is active in the appropriate Cloudflare account.
 2. Open **Compute & AI → Email Service → Email Sending**.
 3. Onboard and verify the sending domain.
 4. Allow Cloudflare to configure the required SPF, DKIM, DMARC, and bounce-domain records.
@@ -187,7 +187,7 @@ The customer receives a separate confirmation at the email address entered durin
 Transactional messages are sent from:
 
 ```text
-Luxe Perfume Pickup <orders@luxeperfume.com>
+Luxe Perfume Pickup <orders@luxeperfume.uluxe.site>
 ```
 
 The sending domain must be verified before Cloudflare can deliver these messages.

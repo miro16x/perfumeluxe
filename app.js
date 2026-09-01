@@ -605,7 +605,7 @@ function updateCart() {
     terms: `
       <p class="support-kicker">Last updated August 26, 2026</p>
       <h2 id="supportTitle">Terms of Service</h2>
-      <p class="support-lead">By using luxeperfume.com or submitting a pickup request, you agree to these terms.</p>
+      <p class="support-lead">By using luxeperfume.uluxe.site or submitting a pickup request, you agree to these terms.</p>
       <div class="support-policy-list support-document">
         <h3>Website information</h3>
         <p>We aim to keep product descriptions, images, prices, and availability accurate. Fragrance appearance and packaging may vary, and errors may be corrected without notice.</p>
