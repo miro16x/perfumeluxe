@@ -83,7 +83,11 @@ export async function onRequestPost({ request, env }) {
 
   const storeHtml = `
     <h1>New Store Pick-Up Order</h1>
-    <p><strong>Order:</strong> ${escapeHtml(reference)}</p>
+    <div style="margin:20px 0;padding:18px;border:2px solid #b08d32;text-align:center">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.12em">Pickup reference</div>
+      <strong style="display:block;font-size:24px;margin-top:6px">${escapeHtml(reference)}</strong>
+      <div style="font-size:13px;margin-top:6px">Use this reference to identify the customer's pickup order.</div>
+    </div>
     <h2>Customer</h2>
     <p><strong>Name:</strong> ${escapeHtml(customerName)}<br>
     <strong>Phone:</strong> ${escapeHtml(phone)}<br>
