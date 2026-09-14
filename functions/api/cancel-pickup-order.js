@@ -1,3 +1,5 @@
+import { sendEmail } from '../../lib/email.js';
+
 const STORES = {
   'Luxe Fragrances': { email: 'luxefragrances.vi@gmail.com' },
   'Perfume World': { email: 'perfumeworldvi@gmail.com' }
@@ -13,7 +15,7 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 const validEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 export async function onRequestPost({ request, env }) {
-  if (!env.EMAIL) return json({ success: false, message: 'Email service is not configured.' }, 503);
+  if (!env.RESEND_API_KEY) return json({ success: false, message: 'Email service is not configured.' }, 503);
 
   let cancellation;
   try {
@@ -42,12 +44,12 @@ export async function onRequestPost({ request, env }) {
 
   try {
     await Promise.all([
-      env.EMAIL.send({ from: FROM_ADDRESS, to: store.email, bcc: [ALWAYS_NOTIFY], replyTo: email, subject, text }),
-      env.EMAIL.send({ from: FROM_ADDRESS, to: email, replyTo: store.email, subject: `We received your cancellation request — ${reference}`, text: `We received your request to cancel pickup order ${reference}. ${pickupStore} has been notified. Keep this message for your records.` })
+      sendEmail(env, { from: FROM_ADDRESS, to: store.email, bcc: [ALWAYS_NOTIFY], replyTo: email, subject, text }),
+      sendEmail(env, { from: FROM_ADDRESS, to: email, replyTo: store.email, subject: `We received your cancellation request — ${reference}`, text: `We received your request to cancel pickup order ${reference}. ${pickupStore} has been notified. Keep this message for your records.` })
     ]);
     return json({ success: true, orderReference: reference });
   } catch (error) {
-    console.error('Pickup cancellation email delivery failed', error?.code, error?.message);
+    console.error('Pickup cancellation email delivery failed', error?.code, error?.message, error?.providerError);
     return json({ success: false, message: 'Unable to deliver the cancellation request.' }, 502);
   }
 }

@@ -1,3 +1,5 @@
+import { sendEmail } from '../../lib/email.js';
+
 const STORES = {
   'Luxe Fragrances': {
     email: 'luxefragrances.vi@gmail.com',
@@ -29,7 +31,7 @@ const escapeHtml = (value) => String(value ?? '')
 const validEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 export async function onRequestPost({ request, env }) {
-  if (!env.EMAIL) return json({ success: false, message: 'Email service is not configured.' }, 503);
+  if (!env.RESEND_API_KEY) return json({ success: false, message: 'Email service is not configured.' }, 503);
 
   let order;
   try {
@@ -117,8 +119,7 @@ export async function onRequestPost({ request, env }) {
   const customerText = `Hi ${customerName},\n\nWe received your pickup request.\n\nPICKUP REFERENCE: ${reference}\nShow this reference when collecting your order.\n\nStore: ${pickupStore}\nAddress: ${pickupAddress}\nPhone: ${store.phone}\nPickup: ${pickupDate} at ${pickupTime}\n\n${itemText}\n\nTotal: $${calculatedTotal.toFixed(2)}\n\nYou may request cancellation within 24 hours of placing this order. Use the cancellation option on your order-confirmation screen, or contact the store with your pickup reference.\n\nThis confirms receipt of your request, not product availability. The store will contact you when it is ready. Please bring a photo ID.`;
 
   try {
-    const results = await Promise.all([
-      env.EMAIL.send({
+    const storeResult = await sendEmail(env, {
         from: FROM_ADDRESS,
         to: store.email,
         bcc: [ALWAYS_NOTIFY],
@@ -126,16 +127,23 @@ export async function onRequestPost({ request, env }) {
         subject: `New Store Pick-Up Order — ${reference}`,
         html: storeHtml,
         text: storeText
-      }),
-      env.EMAIL.send({
+      });
+
+    let customerResult;
+    let customerEmailSent = false;
+    try {
+      customerResult = await sendEmail(env, {
         from: FROM_ADDRESS,
         to: customerEmail,
         replyTo: store.email,
         subject: `We received your Luxe Perfume pickup request — ${reference}`,
         html: customerHtml,
         text: customerText
-      })
-    ]);
+      });
+      customerEmailSent = true;
+    } catch (error) {
+      console.error('Pickup customer receipt failed', reference, error?.code, error?.message, error?.providerError);
+    }
 
     return json({
       success: true,
@@ -145,11 +153,18 @@ export async function onRequestPost({ request, env }) {
       storePhone: store.phone,
       placedAt: placedAt.toISOString(),
       cancelBy: cancelBy.toISOString(),
-      messageIds: results.map((result) => result.messageId)
+      customerEmailSent,
+      messageIds: [storeResult?.messageId, customerResult?.messageId].filter(Boolean)
     });
   } catch (error) {
-    console.error('Pickup email delivery failed', error?.code, error?.message);
-    return json({ success: false, message: 'Unable to deliver pickup-order email.' }, 502);
+    console.error('Pickup email delivery failed', reference, error?.code, error?.message, error?.providerError);
+    const errorCode = /^RESEND_(HTTP_\d{3}|INVALID_RESPONSE)$/.test(error?.code || '')
+      ? error.code : 'EMAIL_SEND_FAILED';
+    return json({
+      success: false,
+      errorCode,
+      message: `Unable to send your pickup request to the store. Please contact ${pickupStore} at ${store.phone}. (${errorCode})`
+    }, 502);
   }
 }
 

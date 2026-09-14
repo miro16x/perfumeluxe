@@ -266,7 +266,9 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
         <strong style="font-family:var(--font-serif);font-size:24px;color:var(--gold);letter-spacing:.06em">${confirmedReference}</strong>
         <span>Show this reference when collecting your order.</span>
         <span><strong>${result.pickupStore}</strong><br>${result.pickupAddress}<br>${result.storePhone}</span>
-        <span>A confirmation was sent to ${pickupEmail.value.trim()}.</span>
+        <span>${result.customerEmailSent === false
+          ? 'Your request was sent to the store, but we could not email your confirmation. Please save your pickup reference.'
+          : 'A confirmation email was sent. Please check your inbox.'}</span>
         <div class="pickup-cancel-box" id="pickupCancelBox">
           <span>You may request cancellation until <strong>${cancelDeadline}</strong>.</span>
           <button type="button" class="btn-cancel-pickup" id="cancelPickupBtn">Cancel Pickup Order</button>

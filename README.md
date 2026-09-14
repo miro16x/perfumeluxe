@@ -150,7 +150,7 @@ The project is configured for Cloudflare Pages.
 - A Cloudflare Pages project
 - A verified sending domain
 - Cloudflare Email Service enabled
-- The `EMAIL` binding configured in `wrangler.jsonc`
+- The `RESEND_API_KEY` Worker secret and a verified Resend sending domain
 
 ### Deployment Steps
 
@@ -161,7 +161,7 @@ The project is configured for Cloudflare Pages.
 5. Connect the repository to Cloudflare Pages.
 6. Set `urban-luxe` as the project root.
 7. Deploy the project.
-8. Confirm that the `EMAIL` binding is available to the Pages Functions.
+8. Follow [the Worker and Resend setup guide](CLOUDFLARE-SETUP.md) for the current deployment configuration.
 
 Cloudflare dashboard Direct Upload does not deploy Pages Functions. Deploy through a connected Git repository or Wrangler.
 
