@@ -28,7 +28,7 @@ test('cancellation sends store BCC and customer confirmation through Resend', as
   assert.equal(response.status, 200);
   assert.equal((await response.json()).success, true);
   assert.equal(payloads.length, 2);
-  assert.deepEqual(payloads[0].bcc, ['amirslem679@gmail.com']);
+  assert.deepEqual(payloads[0].bcc, ['amirsslem679@gmail.com']);
   assert.deepEqual(payloads[1].to, ['customer@example.com']);
 });
 test('cancellation surfaces Resend failure', async () => {

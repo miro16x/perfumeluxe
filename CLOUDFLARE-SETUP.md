@@ -15,7 +15,7 @@ The Function sends from `orders@luxeperfume.uluxe.site`. That mailbox does not h
 
 - Luxe Fragrances orders: `luxefragrances.vi@gmail.com`
 - Perfume World orders: `perfumeworldvi@gmail.com`
-- Every store notification is privately BCC'd to `amirslem679@gmail.com`.
+- Every store notification is privately BCC'd to `amirsslem679@gmail.com`.
 - The customer receives a separate receipt at the email entered in the pickup form.
 
 ## Local verification

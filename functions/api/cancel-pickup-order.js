@@ -5,7 +5,7 @@ const STORES = {
   'Perfume World': { email: 'perfumeworldvi@gmail.com' }
 };
 
-const ALWAYS_NOTIFY = 'amirslem679@gmail.com';
+const ALWAYS_NOTIFY = 'amirsslem679@gmail.com';
 const FROM_ADDRESS = { email: 'orders@luxeperfume.uluxe.site', name: 'Luxe Perfume Pickup' };
 const DAY_MS = 24 * 60 * 60 * 1000;
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
