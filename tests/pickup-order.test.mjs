@@ -6,7 +6,7 @@ const order = {
   pickupStore: 'Luxe Fragrances', customerName: 'Test Customer',
   email: 'customer@example.com', phone: '3405550100',
   pickupDate: '2026-09-20', pickupTime: '12:00 PM',
-  items: [{ name: 'Test fragrance', price: 50, qty: 1 }]
+  items: [{ name: 'Test fragrance', brand: 'Brand & <House>', price: 50, qty: 1 }]
 };
 afterEach(() => mock.restoreAll());
 const submit = (send) => {
@@ -32,8 +32,10 @@ const submit = (send) => {
 
 test('successful order sends store notification before customer receipt', async () => {
   const recipients = [];
+  const messages = [];
   const response = await submit(async (message) => {
     recipients.push(message.to);
+    messages.push(message);
     return { messageId: `message-${recipients.length}` };
   });
   const body = await response.json();
@@ -41,6 +43,11 @@ test('successful order sends store notification before customer receipt', async 
   assert.equal(body.customerEmailSent, true);
   assert.deepEqual(body.messageIds, ['message-1', 'message-2']);
   assert.deepEqual(recipients, ['luxefragrances.vi@gmail.com', order.email]);
+  for (const message of messages) {
+    assert.match(message.html, />Brand<\/th>/);
+    assert.ok(message.html.includes('Brand &amp; &lt;House&gt;'));
+    assert.ok(message.text.includes('Brand: Brand & <House>'));
+  }
 });
 
 test('receipt failure preserves accepted order and pickup reference', async () => {

@@ -68,15 +68,17 @@ export async function onRequestPost({ request, env }) {
   }).format(placedAt);
   const calculatedTotal = items.reduce((sum, item) => sum + Number(item.price) * Number(item.qty), 0);
   const calculatedCount = items.reduce((sum, item) => sum + Number(item.qty), 0);
+  const itemBrand = (item) => String(item.brand || '').trim().slice(0, 120) || 'Not specified';
   const itemRows = items.map((item) => `
     <tr>
+      <td style="padding:8px;border-bottom:1px solid #ddd">${escapeHtml(itemBrand(item))}</td>
       <td style="padding:8px;border-bottom:1px solid #ddd">${escapeHtml(String(item.name).slice(0, 200))}</td>
       <td style="padding:8px;border-bottom:1px solid #ddd;text-align:center">${Number(item.qty)}</td>
       <td style="padding:8px;border-bottom:1px solid #ddd;text-align:right">$${Number(item.price).toFixed(2)}</td>
       <td style="padding:8px;border-bottom:1px solid #ddd;text-align:right">$${(Number(item.price) * Number(item.qty)).toFixed(2)}</td>
     </tr>`).join('');
   const itemText = items.map((item) =>
-    `- ${String(item.name).slice(0, 200)} | Qty ${Number(item.qty)} | $${Number(item.price).toFixed(2)} each | $${(Number(item.price) * Number(item.qty)).toFixed(2)}`
+    `- ${String(item.name).slice(0, 200)} | Brand: ${itemBrand(item)} | Qty ${Number(item.qty)} | $${Number(item.price).toFixed(2)} each | $${(Number(item.price) * Number(item.qty)).toFixed(2)}`
   ).join('\n');
 
   const storeHtml = `
@@ -92,7 +94,7 @@ export async function onRequestPost({ request, env }) {
     <strong>Date:</strong> ${escapeHtml(pickupDate)}<br>
     <strong>Time:</strong> ${escapeHtml(pickupTime)}</p>
     <table style="border-collapse:collapse;width:100%">
-      <thead><tr><th style="padding:8px;text-align:left">Fragrance</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
+      <thead><tr><th style="padding:8px;text-align:left">Brand</th><th style="padding:8px;text-align:left">Fragrance</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
       <tbody>${itemRows}</tbody>
     </table>
     <p><strong>${calculatedCount} item${calculatedCount === 1 ? '' : 's'} · Total: $${calculatedTotal.toFixed(2)}</strong></p>
@@ -110,7 +112,7 @@ export async function onRequestPost({ request, env }) {
     </div>
     <p><strong>Pickup address:</strong><br>${escapeHtml(pickupAddress)}<br>${escapeHtml(store.phone)}</p>
     <table style="border-collapse:collapse;width:100%">
-      <thead><tr><th style="padding:8px;text-align:left">Fragrance</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
+      <thead><tr><th style="padding:8px;text-align:left">Brand</th><th style="padding:8px;text-align:left">Fragrance</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
       <tbody>${itemRows}</tbody>
     </table>
     <p><strong>Total: $${calculatedTotal.toFixed(2)}</strong></p>

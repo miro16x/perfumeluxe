@@ -225,7 +225,7 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
         pickupDate: pickupDay.value,
         pickupDateLabel: selectedDay,
         pickupTime: pickupTime.value,
-        items: cart.map(({ id, name, price, qty }) => ({ id, name, price, qty })),
+        items: cart.map(({ id, name, brand, price, qty }) => ({ id, name, brand, price, qty })),
         itemCount,
         orderTotal,
         sourcePage: window.location.href
@@ -336,9 +336,10 @@ function addToCart(id, name, price, btn) {
   const existing = cart.find((i) => i.id === id);
   if (existing) {
     existing.qty += 1;
+    if (!existing.brand && product?.brand) existing.brand = product.brand;
     if (!existing.img && product?.img) existing.img = product.img;
   } else {
-    cart.push({ id, name, price, qty: 1, img: product?.img || '' });
+    cart.push({ id, name, brand: product?.brand || '', price, qty: 1, img: product?.img || '' });
   }
   updateCart();
   openCart();
