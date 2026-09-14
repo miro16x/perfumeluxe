@@ -4,7 +4,7 @@ The storefront is deployed as a Cloudflare Worker with static assets. The Worker
 
 ## Before deploying
 
-1. Confirm `luxeperfume.uluxe.site` is active in the Cloudflare account used for the Worker.
+1. Confirm the existing Worker is named `luxeperfume` and serves `luxeperfume.uluxe.site` in the Cloudflare account used for deployment. `wrangler.jsonc` targets this Worker. Store the `RESEND_API_KEY` secret on this Worker.
 2. Add `luxeperfume.uluxe.site` in Resend → Domains. Add the DNS records Resend provides in Cloudflare and wait until Resend shows the domain as verified. Create a sending API key and save it as a Worker secret named `RESEND_API_KEY` under Worker Settings → Variables and Secrets. Never put this key in browser JavaScript or source control.
 3. Deploy from the `urban-luxe` directory with `npx wrangler@latest deploy`, or configure that command in a Workers Builds project whose root directory is `urban-luxe`.
 4. Confirm that the deployed Worker has the `RESEND_API_KEY` secret and `ASSETS` binding. The old `EMAIL` binding is no longer used.
