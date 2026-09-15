@@ -63,7 +63,7 @@
   /* ── core info ── */
   const brandLink = document.getElementById('pdpBrand');
   brandLink.textContent = product.brand;
-  brandLink.href = `index.html?brand=${encodeURIComponent(product.brandKey)}#shop`;
+  brandLink.href = `shop.html?brand=${encodeURIComponent(product.brandKey)}`;
   brandLink.setAttribute('aria-label', `View the complete ${product.brand} catalog`);
   document.getElementById('pdpName').textContent = product.name;
 

@@ -519,8 +519,8 @@ function updateCart() {
       <p class="support-kicker">Store Policy</p>
       <h2 id="supportTitle">Pickup &amp; Returns</h2>
       <div class="support-policy-alert">
-        <strong>All sales are final.</strong>
-        <p>Returns and exchanges are not allowed.</p>
+        <strong>No returns. Exchanges at the original purchase location only.</strong>
+        <p>Returns are not allowed. Exchanges are allowed only at the store location where the product was purchased.</p>
       </div>
       <div class="support-policy-list">
         <h3>Store pickup</h3>
@@ -532,8 +532,8 @@ function updateCart() {
           <li>You may request cancellation within 24 hours of placing the order. Use the cancellation button shown after checkout, or contact the selected store with your pickup reference.</li>
           <li>Contact the selected store as soon as possible if your pickup date or time changes.</li>
         </ul>
-        <h3>Final-sale policy</h3>
-        <p>For product-integrity and hygiene reasons, purchased fragrances, body products, gift sets, and other merchandise cannot be returned or exchanged. Please confirm the fragrance, size, quantity, and pickup location before completing your purchase.</p>
+        <h3>Returns and exchanges policy</h3>
+        <p>Purchased fragrances, body products, gift sets, and other merchandise cannot be returned. Exchanges are allowed only at the location where the product was purchased. Products purchased at Luxe Fragrances may only be exchanged at Luxe Fragrances, and products purchased at Perfume World may only be exchanged at Perfume World. Please confirm the fragrance, size, quantity, and pickup location before completing your purchase.</p>
       </div>
       <div class="support-store-grid support-store-grid-compact">
         <article class="support-store"><h3>Luxe Fragrances</h3><p>9001 Havensight Mall, Suite A &amp; B<br>St. Thomas, VI 00802</p><a href="tel:+13406930039">340-693-0039</a></article>
@@ -561,7 +561,7 @@ function updateCart() {
         <h3>Local store pickup</h3>
         <p>Our pickup-first model consolidates orders at existing St. Thomas stores and avoids individual shipping packaging for local customers.</p>
         <h3>Right product, first time</h3>
-        <p>Detailed scent notes, size choices, fragrance guidance, and in-store assistance help customers make considered selections. Because products are final sale, we encourage customers to confirm the scent and size before purchasing.</p>
+        <p>Detailed scent notes, size choices, fragrance guidance, and in-store assistance help customers make considered selections. Returns are not allowed, and exchanges are available only at the original purchase location. We encourage customers to confirm the scent and size before purchasing.</p>
         <h3>Packaging and disposal</h3>
         <p>Keep fragrance bottles away from heat and direct sunlight to extend their useful life. Empty glass bottles and clean paper packaging may be recyclable where local facilities accept them. Pumps, caps, mixed materials, and containers with remaining fragrance may require separate handling; check local guidance before disposal.</p>
         <h3>Brand information</h3>
@@ -617,7 +617,7 @@ function updateCart() {
         <h3>Prices and payment</h3>
         <p>Displayed prices are in U.S. dollars and may change before the store completes the sale. Any applicable charges will be communicated at purchase. Do not submit false, misleading, or unauthorized customer information.</p>
         <h3>Returns and exchanges</h3>
-        <div class="support-policy-alert"><strong>All sales are final.</strong><p>Returns and exchanges are not allowed. Confirm the product, size, quantity, and store before purchase.</p></div>
+        <div class="support-policy-alert"><strong>No returns. Exchanges at the original purchase location only.</strong><p>Returns are not allowed. Exchanges are allowed only at the store location where the product was purchased. Confirm the product, size, quantity, and store before purchase.</p></div>
         <h3>Acceptable use</h3>
         <p>You may not misuse the website, interfere with its operation, attempt unauthorized access, submit fraudulent orders, scrape the catalog at disruptive volume, or use site content in violation of applicable law.</p>
         <h3>Intellectual property</h3>
@@ -1818,6 +1818,7 @@ const PRICE_LABELS = {
 
 /* ── BRAND TILE → FILTER ─────────────────────────────── */
 (function initBrandTiles() {
+  if (!document.getElementById('shopGrid')) return;
   document.querySelectorAll('.brand-tile[data-filter-brand]').forEach(tile => {
     tile.addEventListener('click', (e) => {
       e.preventDefault();
@@ -2046,8 +2047,7 @@ const PRICE_LABELS = {
   });
 
   viewAllBtn.addEventListener('click', () => {
-    closeSearch();
-    document.getElementById('shop')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.location.href = 'shop.html';
   });
 })();
 

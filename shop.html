@@ -3,23 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shop Fragrance | Luxe Perfume</title>
-  <meta name="description" content="Discover this fragrance from Luxe Perfume — luxury fragrances for men, women, and unisex.">
-  <meta name="keywords" content="luxury perfume, fragrance, parfum, oud, floral, woody, niche perfume, designer fragrance">
-  <meta name="author" content="Luxe Perfume">
-  <meta name="theme-color" content="#070605" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#faf8f4" media="(prefers-color-scheme: light)">
-  <meta property="og:type" content="product">
-  <meta property="og:title" content="Luxe Perfume | Luxury Fragrances">
-  <meta property="og:description" content="Exclusive luxury fragrances.">
-  <meta name="robots" content="noindex, follow">
+  <title>Shop | Luxe Perfume</title>
+  <meta name="description" content="Shop the complete Luxe Perfume catalog. Browse fragrances by brand, scent, price, and more.">
   <script>try{var t=localStorage.getItem('ul-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="shop-page">
   <a class="skip-link" href="#main-content">Skip to main content</a>
 
   <!-- ── CART SIDEBAR ─────────────────────────────── -->
@@ -200,7 +192,7 @@
       <!-- Links — centre -->
       <ul class="nav-links" id="navLinks">
         <li><a href="index.html#hero">Home</a></li>
-        <li><a href="shop.html">Shop</a></li>
+        <li><a href="shop.html" class="nav-active" aria-current="page">Shop</a></li>
         <li><a href="index.html#new-arrivals">New Arrivals</a></li>
         <li><a href="index.html#bestsellers">Best Sellers</a></li>
         <li><a href="index.html#collections">Collections</a></li>
@@ -241,7 +233,7 @@
     <div class="mobile-menu" id="mobileMenu">
       <ul>
         <li><a href="index.html#hero">Home</a></li>
-        <li><a href="shop.html">Shop</a></li>
+        <li><a href="shop.html" class="nav-active" aria-current="page">Shop</a></li>
         <li><a href="index.html#new-arrivals">New Arrivals</a></li>
         <li><a href="index.html#bestsellers">Best Sellers</a></li>
         <li><a href="index.html#collections">Collections</a></li>
@@ -261,96 +253,198 @@
       </div>
     </div>
   </nav>
-  <!-- ── PRODUCT DETAIL ───────────────────────────────── -->
+
   <main id="main-content">
-    <div class="pdp-breadcrumb container">
-      <a href="index.html">Home</a>
-      <span aria-hidden="true">/</span>
-      <a href="shop.html">Shop</a>
-      <span aria-hidden="true">/</span>
-      <span id="pdpBrandCrumb"></span>
-    </div>
-
-    <section class="pdp" id="pdpRoot" hidden>
-      <div class="container pdp-grid">
-        <div class="pdp-gallery">
-          <div class="pdp-gallery-main">
-            <div class="product-badge pdp-badge" id="pdpBadge" hidden></div>
-            <img class="pdp-main-img" id="pdpMainImg" src="" alt="">
-          </div>
-          <div class="pdp-thumbs" id="pdpThumbs"></div>
+  <section class="shop-browse" id="shop" aria-labelledby="shopTitle">
+    <div class="container">
+      <div class="section-header reveal shop-browse-header">
+        <div>
+          <p class="section-eyebrow">Explore Everything</p>
+          <h1 class="section-title" id="shopTitle">Browse the <em>Collection</em></h1>
         </div>
+        <button class="shop-collapse-btn" id="shopCollapseBtn" type="button" aria-expanded="true" aria-controls="shopBrowseBody">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
+          <span>Collapse</span>
+        </button>
+      </div>
+      <div id="shopBrowseBody">
+      <div class="shop-layout">
 
-        <div class="pdp-info">
-          <a class="pdp-brand" id="pdpBrand" href="shop.html"></a>
-          <h1 class="pdp-name" id="pdpName"></h1>
-          <div class="pdp-rating" id="pdpRating"></div>
-          <div class="product-notes pdp-notes" id="pdpNotes"></div>
-          <p class="pdp-desc" id="pdpDesc"></p>
-          <blockquote class="pdp-review" id="pdpReview"></blockquote>
-          <div class="pdp-sizes" id="pdpSizes"></div>
-          <div class="pdp-footer">
-            <span class="pdp-price" id="pdpPrice"></span>
-            <div class="pdp-actions">
-              <button class="pdp-wish" id="pdpWish" type="button" aria-label="Add to wishlist" aria-pressed="false">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              </button>
-              <button class="btn-gold" id="pdpAddToCart" type="button">Add to Cart</button>
+        <!-- Filter sidebar -->
+        <aside class="filter-sidebar" id="filterSidebar" aria-label="Product filters">
+          <div class="filter-sidebar-header">
+            <span class="filter-sidebar-title">Filters</span>
+            <button class="filter-clear-all" id="filterClearAll" type="button">Clear Filters</button>
+          </div>
+
+          <div class="filter-group open">
+            <button class="filter-group-btn" aria-expanded="true" type="button">Category <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="filter-group-body">
+              <label class="filter-check"><input type="checkbox" name="category" value="fragrance"><span>Fragrances</span></label>
+              <label class="filter-check"><input type="checkbox" name="category" value="mist"><span>Perfume Mist</span></label>
+              <label class="filter-check"><input type="checkbox" name="category" value="body-care"><span>Body Care</span></label>
             </div>
           </div>
-          <ul class="pdp-perks">
-            <li>Available for in-store pickup</li>
-          </ul>
-        </div>
-      </div>
-    </section>
 
-    <div class="pdp-not-found" id="pdpNotFound" hidden>
-      <div class="container">
-        <p>We couldn't find that fragrance.</p>
-        <a href="shop.html" class="btn-gold">Back to Shop</a>
+          <div class="filter-group open">
+            <button class="filter-group-btn" aria-expanded="true" type="button">Brand <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="filter-group-body">
+              <label class="filter-check"><input type="checkbox" name="brand" value="dior"><span>DIOR</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="chanel"><span>CHANEL</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="ysl"><span>YSL</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="givenchy"><span>GIVENCHY</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="hermes"><span>HERMÈS</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="bvlgari"><span>BVLGARI</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="sol-de-janeiro"><span>SOL DE JANEIRO</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="narciso-rodriguez"><span>NARCISO RODRIGUEZ</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="issey-miyake"><span>ISSEY MIYAKE</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="dolce-gabbana"><span>DOLCE &amp; GABBANA</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="versace"><span>VERSACE</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="coach"><span>COACH</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="moschino"><span>MOSCHINO</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="kate-spade"><span>KATE SPADE</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="montblanc"><span>MONTBLANC</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="jimmy-choo"><span>JIMMY CHOO</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="tory-burch"><span>TORY BURCH</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="rabanne"><span>RABANNE</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="carolina-herrera"><span>CAROLINA HERRERA</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="jean-paul-gaultier"><span>JEAN PAUL GAULTIER</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="valentino"><span>VALENTINO</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="prada"><span>PRADA</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="mugler"><span>MUGLER</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="miu-miu"><span>MIU MIU</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="viktor-rolf"><span>VIKTOR &amp; ROLF</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="azzaro"><span>AZZARO</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="armani"><span>ARMANI</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="ralph-lauren"><span>RALPH LAUREN</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="lancome"><span>LANCÔME</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="gucci"><span>GUCCI</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="burberry"><span>BURBERRY</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="marc-jacobs"><span>MARC JACOBS</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="chloe"><span>CHLOÉ</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="tiffany-co"><span>TIFFANY &amp; CO.</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="hugo-boss"><span>HUGO BOSS</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="ck"><span>CALVIN KLEIN</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="michael-kors"><span>MICHAEL KORS</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="salvatore-ferragamo"><span>SALVATORE FERRAGAMO</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="kenzo"><span>KENZO</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="lacoste"><span>LACOSTE</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="guess"><span>GUESS</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="abercrombie-fitch"><span>ABERCROMBIE &amp; FITCH</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="oscar-de-la-renta"><span>OSCAR DE LA RENTA</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="karl-lagerfeld"><span>KARL LAGERFELD</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="cartier"><span>CARTIER</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="guerlain"><span>GUERLAIN</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="estee-lauder"><span>ESTEE LAUDER</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="elizabeth-arden"><span>ELIZABETH ARDEN</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="elizabeth-taylor"><span>ELIZABETH TAYLOR</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="ariana-grande"><span>ARIANA GRANDE</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="billie-eilish"><span>BILLIE EILISH</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="sabrina-carpenter"><span>SABRINA CARPENTER</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="paris-hilton"><span>PARIS HILTON</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="shakira"><span>SHAKIRA</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="antonio-banderas"><span>ANTONIO BANDERAS</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="lattafa"><span>LATTAFA</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="armaf"><span>ARMAF</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="afnan"><span>AFNAN</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="alharamain"><span>AL HARAMAIN</span></label>
+              <label class="filter-check"><input type="checkbox" name="brand" value="bond-no-9"><span>BOND NO. 9</span></label>
+            </div>
+          </div>
+
+          <div class="filter-group open">
+            <button class="filter-group-btn" aria-expanded="true" type="button">Price <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="filter-group-body">
+              <label class="filter-check"><input type="checkbox" name="price" value="under-60"><span>Under $60</span></label>
+              <label class="filter-check"><input type="checkbox" name="price" value="61-100"><span>$61 – $100</span></label>
+              <label class="filter-check"><input type="checkbox" name="price" value="101-200"><span>$101 – $200</span></label>
+              <label class="filter-check"><input type="checkbox" name="price" value="201-plus"><span>$201 &amp; above</span></label>
+            </div>
+          </div>
+
+          <div class="filter-group open">
+            <button class="filter-group-btn" aria-expanded="true" type="button">Scent Family <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="filter-group-body">
+              <label class="filter-check"><input type="checkbox" name="scent" value="fresh"><span>Fresh &amp; Aquatic</span></label>
+              <label class="filter-check"><input type="checkbox" name="scent" value="floral"><span>Floral</span></label>
+              <label class="filter-check"><input type="checkbox" name="scent" value="oriental"><span>Oriental &amp; Spiced</span></label>
+              <label class="filter-check"><input type="checkbox" name="scent" value="woody"><span>Woody</span></label>
+              <label class="filter-check"><input type="checkbox" name="scent" value="gourmand"><span>Gourmand</span></label>
+            </div>
+          </div>
+
+          <div class="filter-group open">
+            <button class="filter-group-btn" aria-expanded="true" type="button">Gender <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="filter-group-body">
+              <label class="filter-check"><input type="checkbox" name="gender" value="men"><span>Men</span></label>
+              <label class="filter-check"><input type="checkbox" name="gender" value="women"><span>Women</span></label>
+              <label class="filter-check"><input type="checkbox" name="gender" value="unisex"><span>Unisex</span></label>
+            </div>
+          </div>
+
+          <div class="filter-group open">
+            <button class="filter-group-btn" aria-expanded="true" type="button">Size <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="filter-group-body">
+              <label class="filter-check"><input type="checkbox" name="size" value="30ml"><span>30ml / 1.0 oz</span></label>
+              <label class="filter-check"><input type="checkbox" name="size" value="35ml"><span>35ml / 1.2 oz</span></label>
+              <label class="filter-check"><input type="checkbox" name="size" value="50ml"><span>50ml / 1.7 oz</span></label>
+              <label class="filter-check"><input type="checkbox" name="size" value="60ml"><span>60ml / 2.0 oz</span></label>
+              <label class="filter-check"><input type="checkbox" name="size" value="75ml"><span>75ml / 2.5 oz</span></label>
+              <label class="filter-check"><input type="checkbox" name="size" value="80ml"><span>80ml / 2.7 oz</span></label>
+              <label class="filter-check"><input type="checkbox" name="size" value="90ml"><span>90ml / 3.0 oz</span></label>
+              <label class="filter-check"><input type="checkbox" name="size" value="100ml"><span>100ml / 3.4 oz</span></label>
+              <label class="filter-check"><input type="checkbox" name="size" value="125ml"><span>125ml / 4.2 oz</span></label>
+              <label class="filter-check"><input type="checkbox" name="size" value="200ml"><span>200ml / 6.8 oz</span></label>
+              <label class="filter-check"><input type="checkbox" name="size" value="236ml"><span>236ml / 8.0 oz</span></label>
+            </div>
+          </div>
+
+          <div class="filter-group open">
+            <button class="filter-group-btn" aria-expanded="true" type="button">Rating <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="filter-group-body">
+              <label class="filter-check"><input type="checkbox" name="rating" value="4.6"><span>4.6+ ★</span></label>
+              <label class="filter-check"><input type="checkbox" name="rating" value="4.8"><span>4.8+ ★</span></label>
+              <label class="filter-check"><input type="checkbox" name="rating" value="5.0"><span>5.0 ★</span></label>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Products area -->
+        <div class="shop-products">
+          <div class="shop-toolbar">
+            <button class="shop-filter-btn" id="shopFilterBtn" type="button" aria-expanded="false" aria-controls="filterSidebar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+              Filters
+              <span class="filter-count-badge" id="filterCountBadge" hidden>0</span>
+            </button>
+            <span class="shop-count" id="shopCount" aria-live="polite">10 products</span>
+            <div class="shop-sort-wrap">
+              <label for="shopSort" class="sr-only">Sort products</label>
+              <select class="shop-sort" id="shopSort">
+                <option value="featured">Featured</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="rating">Top Rated</option>
+                <option value="name">Name A–Z</option>
+              </select>
+            </div>
+          </div>
+          <div class="shop-active-filters" id="shopActiveFilters" role="group" aria-label="Active filters"></div>
+          <div class="shop-grid" id="shopGrid" aria-label="Product catalogue"></div>
+          <div class="shop-empty" id="shopEmpty" hidden>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <p>No products match your filters.</p>
+            <button class="btn-ghost" type="button" onclick="document.getElementById('filterClearAll').click()">Clear Filters</button>
+          </div>
+        </div>
+
       </div>
+      </div><!-- /#shopBrowseBody -->
     </div>
-
-    <section class="pdp-related" id="pdpRelated" hidden>
-      <div class="container">
-        <div class="section-header">
-          <p class="section-eyebrow">You May Also Like</p>
-          <h2 class="section-title">More from <em id="pdpRelatedBrand"></em></h2>
-        </div>
-        <div class="new-arrivals-grid" id="pdpRelatedGrid"></div>
-      </div>
-    </section>
+  </section>
   </main>
 
   <footer class="footer">
-
-    <!-- Contact bar -->
-    <div class="footer-contact-bar">
-      <div class="container">
-        <div class="footer-contact-inner">
-          <a href="tel:+13406930039" class="footer-contact-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.89a16 16 0 0 0 6 6l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            <span>340-693-0039</span>
-          </a>
-          <span class="footer-contact-sep" aria-hidden="true">◆</span>
-          <a href="mailto:luxefragrances.vi@gmail.com" class="footer-contact-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            <span>luxefragrances.vi@gmail.com</span>
-          </a>
-          <span class="footer-contact-sep" aria-hidden="true">◆</span>
-          <div class="footer-contact-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span>Mon. – Sat. 10am – 7pm EST · Sun. 11am – 4pm</span>
-          </div>
-          <span class="footer-contact-sep" aria-hidden="true">◆</span>
-          <div class="footer-contact-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span>9001 Havensight Mall Suite A &amp; B, St. Thomas, VI 00802</span>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <div class="container">
       <div class="footer-grid">
@@ -410,6 +504,13 @@
               <strong>Luxe Fragrances</strong>
               <span>9001 Havensight Mall Suite A &amp; B</span>
               <span>St. Thomas, VI 00802</span>
+              <a href="tel:+13406930039">340-693-0039</a>
+            </li>
+            <li class="footer-location">
+              <strong>Perfume World</strong>
+              <span>4605 Tutu Park Mall</span>
+              <span>St. Thomas, VI 00802</span>
+              <a href="tel:+13407775504">340-777-5504</a>
             </li>
           </ul>
         </div>
@@ -443,6 +544,5 @@
   <script src="products-data.js"></script>
   <script src="app.js"></script>
   <script src="auth.js"></script>
-  <script src="product.js"></script>
 </body>
 </html>

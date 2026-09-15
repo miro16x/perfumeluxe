@@ -2585,3 +2585,11 @@ a:focus:not(:focus-visible){outline:none}
 @media(max-width:1000px){.collection-product-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:720px){.collection-page-hero{padding:118px 0 70px}.collection-breadcrumb{justify-content:flex-start}.collection-product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.collection-product-copy{padding:14px}.collection-product-copy h3{font-size:18px}.collection-product-copy em{display:none}}
 @media(max-width:440px){.collection-product-grid{grid-template-columns:1fr}.collection-product-image{aspect-ratio:5/4}.collection-catalog{padding-top:56px}}
+
+/* Standalone catalog clears the fixed navigation. */
+.shop-page .shop-browse{padding-top:150px;content-visibility:visible;contain:none}
+@media(max-width:720px){.shop-page .shop-browse{padding-top:110px}}
+
+/* Give standalone story and contact content room below the fixed navigation. */
+.about-page .story,.contact-page .store-visit{padding-top:150px;content-visibility:visible;contain:none}
+@media(max-width:720px){.about-page .story,.contact-page .store-visit{padding-top:110px}}

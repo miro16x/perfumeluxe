@@ -3,23 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shop Fragrance | Luxe Perfume</title>
-  <meta name="description" content="Discover this fragrance from Luxe Perfume — luxury fragrances for men, women, and unisex.">
-  <meta name="keywords" content="luxury perfume, fragrance, parfum, oud, floral, woody, niche perfume, designer fragrance">
-  <meta name="author" content="Luxe Perfume">
-  <meta name="theme-color" content="#070605" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#faf8f4" media="(prefers-color-scheme: light)">
-  <meta property="og:type" content="product">
-  <meta property="og:title" content="Luxe Perfume | Luxury Fragrances">
-  <meta property="og:description" content="Exclusive luxury fragrances.">
-  <meta name="robots" content="noindex, follow">
+  <title>About Us | Luxe Perfume</title>
+  <meta name="description" content="Meet the family behind Luxe Perfume, Luxe Fragrances, and Perfume World in St. Thomas.">
   <script>try{var t=localStorage.getItem('ul-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="about-page">
   <a class="skip-link" href="#main-content">Skip to main content</a>
 
   <!-- ── CART SIDEBAR ─────────────────────────────── -->
@@ -204,7 +196,7 @@
         <li><a href="index.html#new-arrivals">New Arrivals</a></li>
         <li><a href="index.html#bestsellers">Best Sellers</a></li>
         <li><a href="index.html#collections">Collections</a></li>
-        <li><a href="about.html">About Us</a></li>
+        <li><a href="about.html" class="nav-active" aria-current="page">About Us</a></li>
         <li><a href="contact.html">Contact</a></li>
       </ul>
 
@@ -245,7 +237,7 @@
         <li><a href="index.html#new-arrivals">New Arrivals</a></li>
         <li><a href="index.html#bestsellers">Best Sellers</a></li>
         <li><a href="index.html#collections">Collections</a></li>
-        <li><a href="about.html">About Us</a></li>
+        <li><a href="about.html" class="nav-active" aria-current="page">About Us</a></li>
         <li><a href="contact.html">Contact</a></li>
       </ul>
       <div class="mobile-menu-icons">
@@ -261,96 +253,82 @@
       </div>
     </div>
   </nav>
-  <!-- ── PRODUCT DETAIL ───────────────────────────────── -->
+
   <main id="main-content">
-    <div class="pdp-breadcrumb container">
-      <a href="index.html">Home</a>
-      <span aria-hidden="true">/</span>
-      <a href="shop.html">Shop</a>
-      <span aria-hidden="true">/</span>
-      <span id="pdpBrandCrumb"></span>
-    </div>
-
-    <section class="pdp" id="pdpRoot" hidden>
-      <div class="container pdp-grid">
-        <div class="pdp-gallery">
-          <div class="pdp-gallery-main">
-            <div class="product-badge pdp-badge" id="pdpBadge" hidden></div>
-            <img class="pdp-main-img" id="pdpMainImg" src="" alt="">
+  <section class="story" id="story">
+    <div class="container">
+      <div class="story-grid">
+        <div class="story-visual reveal">
+          <div class="story-frame">
+            <div class="story-store-gallery" id="storyStoreGallery" tabindex="0" role="region" aria-label="Our St. Thomas store locations">
+              <figure class="story-store-photo story-store-photo-luxe">
+                <img src="images/luxefragrances.png" alt="Entrance to Luxe Fragrances at Havensight Mall in St. Thomas" loading="lazy" decoding="async">
+                <figcaption><strong>Luxe Fragrances</strong><span>Havensight Mall</span></figcaption>
+              </figure>
+              <figure class="story-store-photo story-store-photo-world">
+                <img src="images/perfumeworld.png" alt="Entrance to Perfume World at Tutu Park Mall in St. Thomas" loading="lazy" decoding="async">
+                <figcaption><strong>Perfume World</strong><span>Tutu Park Mall</span></figcaption>
+              </figure>
+            </div>
+            <button type="button" class="story-gallery-btn story-gallery-prev" id="storyGalleryPrev" aria-label="Show Luxe Fragrances">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <button type="button" class="story-gallery-btn story-gallery-next" id="storyGalleryNext" aria-label="Show Perfume World">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+            <div class="story-gallery-dots" id="storyGalleryDots" aria-label="Choose a store image">
+              <button type="button" class="active" aria-label="Show Luxe Fragrances" aria-current="true"></button>
+              <button type="button" aria-label="Show Perfume World" aria-current="false"></button>
+            </div>
+            <div class="story-frame-border"></div>
           </div>
-          <div class="pdp-thumbs" id="pdpThumbs"></div>
+          <div class="story-stat-card reveal">
+            <span class="stat-number">Family</span>
+            <span class="stat-label">Owned &amp; Operated</span>
+          </div>
         </div>
-
-        <div class="pdp-info">
-          <a class="pdp-brand" id="pdpBrand" href="shop.html"></a>
-          <h1 class="pdp-name" id="pdpName"></h1>
-          <div class="pdp-rating" id="pdpRating"></div>
-          <div class="product-notes pdp-notes" id="pdpNotes"></div>
-          <p class="pdp-desc" id="pdpDesc"></p>
-          <blockquote class="pdp-review" id="pdpReview"></blockquote>
-          <div class="pdp-sizes" id="pdpSizes"></div>
-          <div class="pdp-footer">
-            <span class="pdp-price" id="pdpPrice"></span>
-            <div class="pdp-actions">
-              <button class="pdp-wish" id="pdpWish" type="button" aria-label="Add to wishlist" aria-pressed="false">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              </button>
-              <button class="btn-gold" id="pdpAddToCart" type="button">Add to Cart</button>
+        <div class="story-text reveal">
+          <p class="section-eyebrow">Our Family, Our Heritage</p>
+          <h1 class="section-title">Palestinian Roots.<br><em>St. Thomas Home.</em></h1>
+          <p>Luxe Perfume is a Palestinian family-owned business proudly rooted in St. Thomas, United States Virgin Islands. Our story is shaped by the values we grew up with: family, resilience, generosity, and welcoming every guest with genuine hospitality.</p>
+          <p>We bring those values to every customer who walks into Luxe Fragrances and Perfume World. Whether you call St. Thomas home or are visiting our islands, our family is here to help you find a fragrance that feels personal, memorable, and entirely your own.</p>
+          <div class="story-pillars">
+            <div class="pillar">
+              <div class="pillar-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div>
+                <strong>Family-Owned</strong>
+                <span>Personal service guided by care, trust, and lasting relationships</span>
+              </div>
+            </div>
+            <div class="pillar">
+              <div class="pillar-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              </div>
+              <div>
+                <strong>Palestinian Heritage</strong>
+                <span>Proudly shaped by a culture of hospitality, resilience, and family</span>
+              </div>
+            </div>
+            <div class="pillar">
+              <div class="pillar-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              </div>
+              <div>
+                <strong>St. Thomas Community</strong>
+                <span>Serving residents and visitors across the U.S. Virgin Islands</span>
+              </div>
             </div>
           </div>
-          <ul class="pdp-perks">
-            <li>Available for in-store pickup</li>
-          </ul>
+          <a href="contact.html" class="btn-gold">Visit Our Stores</a>
         </div>
-      </div>
-    </section>
-
-    <div class="pdp-not-found" id="pdpNotFound" hidden>
-      <div class="container">
-        <p>We couldn't find that fragrance.</p>
-        <a href="shop.html" class="btn-gold">Back to Shop</a>
       </div>
     </div>
-
-    <section class="pdp-related" id="pdpRelated" hidden>
-      <div class="container">
-        <div class="section-header">
-          <p class="section-eyebrow">You May Also Like</p>
-          <h2 class="section-title">More from <em id="pdpRelatedBrand"></em></h2>
-        </div>
-        <div class="new-arrivals-grid" id="pdpRelatedGrid"></div>
-      </div>
-    </section>
+  </section>
   </main>
 
   <footer class="footer">
-
-    <!-- Contact bar -->
-    <div class="footer-contact-bar">
-      <div class="container">
-        <div class="footer-contact-inner">
-          <a href="tel:+13406930039" class="footer-contact-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.89a16 16 0 0 0 6 6l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            <span>340-693-0039</span>
-          </a>
-          <span class="footer-contact-sep" aria-hidden="true">◆</span>
-          <a href="mailto:luxefragrances.vi@gmail.com" class="footer-contact-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            <span>luxefragrances.vi@gmail.com</span>
-          </a>
-          <span class="footer-contact-sep" aria-hidden="true">◆</span>
-          <div class="footer-contact-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span>Mon. – Sat. 10am – 7pm EST · Sun. 11am – 4pm</span>
-          </div>
-          <span class="footer-contact-sep" aria-hidden="true">◆</span>
-          <div class="footer-contact-item">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span>9001 Havensight Mall Suite A &amp; B, St. Thomas, VI 00802</span>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <div class="container">
       <div class="footer-grid">
@@ -410,6 +388,13 @@
               <strong>Luxe Fragrances</strong>
               <span>9001 Havensight Mall Suite A &amp; B</span>
               <span>St. Thomas, VI 00802</span>
+              <a href="tel:+13406930039">340-693-0039</a>
+            </li>
+            <li class="footer-location">
+              <strong>Perfume World</strong>
+              <span>4605 Tutu Park Mall</span>
+              <span>St. Thomas, VI 00802</span>
+              <a href="tel:+13407775504">340-777-5504</a>
             </li>
           </ul>
         </div>
@@ -443,6 +428,5 @@
   <script src="products-data.js"></script>
   <script src="app.js"></script>
   <script src="auth.js"></script>
-  <script src="product.js"></script>
 </body>
 </html>
