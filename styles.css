@@ -810,12 +810,48 @@ input{font-family:inherit}
     linear-gradient(90deg,transparent 0 42%,rgba(255,255,255,.08) 44%,transparent 49%),
     radial-gradient(ellipse at 50% 76%,rgba(201,168,76,.18) 0%,transparent 58%);
 }
-.collection-men{background:linear-gradient(155deg,#111827 0%,#10100d 44%,#070605 100%)}
-.collection-women{background:linear-gradient(155deg,#3d1a2a 0%,#1a0f15 45%,#090608 100%)}
-.collection-unisex{background:linear-gradient(155deg,#17241f 0%,#111511 45%,#070605 100%)}
-.collection-niche{background:linear-gradient(155deg,#2a1a0a 0%,#15100a 45%,#070605 100%)}
-.collection-gifts{background:linear-gradient(155deg,#301319 0%,#1b1012 45%,#080505 100%)}
-.collection-seasonal{background:linear-gradient(155deg,#0a1f27 0%,#091317 45%,#040607 100%)}
+/* Le Male Elixir hover image (product 447), darkened so the card text stays legible. */
+.collection-men{
+  background:
+    linear-gradient(155deg,rgba(17,24,39,.35) 0%,rgba(16,16,13,.25) 44%,rgba(7,6,5,.55) 100%),
+    url('images/lemaleelixir2.jpg.avif') center/cover no-repeat,
+    #070605;
+}
+/* Very Good Girl hover image (product 411), darkened so the card text stays legible. */
+.collection-women{
+  background:
+    linear-gradient(155deg,rgba(61,26,42,.35) 0%,rgba(26,15,21,.25) 45%,rgba(9,6,8,.55) 100%),
+    url('images/verygoodgirl2.avif') center/cover no-repeat,
+    #090608;
+}
+/* CK Be hover image (product 715), darkened so the card text stays legible. */
+.collection-unisex{
+  background:
+    linear-gradient(155deg,rgba(23,36,31,.35) 0%,rgba(17,21,17,.25) 45%,rgba(7,6,5,.55) 100%),
+    url('images/ckbe2.webp') center/cover no-repeat,
+    #070605;
+}
+/* Bond No. 9 Madison Avenue hover image (product 936), darkened so the card text stays legible. */
+.collection-niche{
+  background:
+    linear-gradient(155deg,rgba(42,26,10,.35) 0%,rgba(21,16,10,.25) 45%,rgba(7,6,5,.55) 100%),
+    url('images/bondno9madisonave2.jpeg') center/cover no-repeat,
+    #070605;
+}
+/* Sol de Janeiro Bum Bum Jet Set hover image (product 833), darkened so the card text stays legible. */
+.collection-gifts{
+  background:
+    linear-gradient(155deg,rgba(48,19,25,.35) 0%,rgba(27,16,18,.25) 45%,rgba(8,5,5,.55) 100%),
+    url('images/FY25_BBJetSet_PPage_4_Routine.webp') center/cover no-repeat,
+    #080505;
+}
+/* BOSS Bottled Striking Lavendar hover image (product 694), darkened so the card text stays legible. */
+.collection-seasonal{
+  background:
+    linear-gradient(155deg,rgba(10,31,39,.35) 0%,rgba(9,19,23,.25) 45%,rgba(4,6,7,.55) 100%),
+    url('images/hbbossstrikinglavendar2.jpg.webp') center/cover no-repeat,
+    #040607;
+}
 .collection-content{
   position:absolute;inset:0;display:flex;flex-direction:column;
   justify-content:flex-end;padding:28px;
@@ -832,24 +868,12 @@ input{font-family:inherit}
 }
 .collection-card:hover .collection-link{gap:10px}
 
-/* Pointer-following spotlight cards, adapted from components/spotlightcard.txt */
+/* Featured Collection cards (the pointer-following spotlight glow was removed) */
 .spotlight-card{
-  --radius:14px;--border-size:2px;--spotlight-size:260px;
-  display:block;color:var(--ivory);touch-action:none;isolation:isolate;
-  background:
-    radial-gradient(var(--spotlight-size) var(--spotlight-size) at var(--local-x,50%) var(--local-y,50%),hsla(var(--hue,35),92%,67%,.18),transparent 70%),
-    linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
-  box-shadow:0 1.5rem 3rem -1.5rem rgba(0,0,0,.9),inset 0 0 0 1px rgba(255,255,255,.025);
+  --radius:14px;
+  display:block;color:var(--ivory);isolation:isolate;
+  box-shadow:0 1.5rem 3rem -1.5rem rgba(0,0,0,.9);
 }
-.spotlight-card::before,.spotlight-card::after{
-  content:'';position:absolute;inset:-2px;z-index:-1;pointer-events:none;border-radius:inherit;
-  background:radial-gradient(calc(var(--spotlight-size) * .75) calc(var(--spotlight-size) * .75) at var(--local-x,50%) var(--local-y,50%),hsla(var(--hue,35),100%,68%,.95),transparent 72%);
-  padding:2px;
-  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  mask-composite:exclude;
-}
-.spotlight-card::after{background:radial-gradient(calc(var(--spotlight-size) * .42) calc(var(--spotlight-size) * .42) at var(--local-x,50%) var(--local-y,50%),rgba(255,255,255,.95),transparent 75%)}
-.spotlight-glow{position:absolute;inset:0;border-radius:inherit;filter:blur(24px);opacity:.22;background:radial-gradient(150px 150px at var(--local-x,50%) var(--local-y,50%),hsla(var(--hue,35),100%,60%,.8),transparent);pointer-events:none}
 .spotlight-card .collection-content{z-index:2;background:linear-gradient(0deg,rgba(5,4,3,.92),rgba(5,4,3,.18) 72%,transparent)}
 .spotlight-card .collection-tag{margin-bottom:auto;width:44px;height:44px;border:1px solid rgba(201,168,76,.35);border-radius:50%;display:grid;place-items:center;background:rgba(5,4,3,.45)}
 .spotlight-card:focus-visible{outline:2px solid var(--gold);outline-offset:5px}
@@ -1589,7 +1613,7 @@ a.footer-contact-item:hover{color:var(--gold)}
 }
 @media(max-width:768px){
   .nav-links{display:none}
-  .nav-search,.nav-account,.nav-divider{display:none}
+  .nav-account,.nav-divider{display:none}
   .nav-theme{display:flex}
   .nav-hamburger{display:flex}
   .mobile-menu{display:none}
@@ -2323,6 +2347,19 @@ a:focus:not(:focus-visible){outline:none}
   .shop-grid .size-btn{padding:5px 7px;font-size:8px}
   .shop-grid .product-footer{gap:8px}
   .shop-grid .btn-add-cart{padding:8px 10px;font-size:9px}
+  /* Signature Scent results: two compact cards per row, matching the Shop grid on mobile. */
+  .new-arrivals-grid.ai-results{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
+  .ai-results .product-image{height:190px}
+  .ai-results .product-info{padding:14px 12px 16px}
+  .ai-results .product-name{font-size:18px;line-height:1.15}
+  .ai-results .product-desc,
+  .ai-results .product-review{display:none}
+  .ai-results .product-sizes{gap:4px}
+  .ai-results .size-btn{padding:5px 7px;font-size:8px}
+  .ai-results .product-footer{gap:8px}
+  .ai-results .btn-add-cart{padding:8px 10px;font-size:9px}
+  .ai-results .ai-match-meta{flex-direction:column;align-items:flex-start;gap:6px}
+  .ai-results .ai-match-meta span{text-align:left}
   .toast-container{bottom:16px;right:16px;left:16px}
   .toast{min-width:0;width:100%}
 }
@@ -2473,6 +2510,20 @@ a:focus:not(:focus-visible){outline:none}
 
 .pdp-related{padding:80px 0 100px;background:var(--bg-1)}
 .pdp-related .section-header{margin-bottom:40px}
+/* Mobile: "You May Also Like" becomes a swipeable row. The track bleeds into
+   the container's 24px gutter so cards slide off the screen edge, and the
+   next card peeks in to signal there is more to scroll. */
+@media(max-width:768px){
+  .new-arrivals-grid.pdp-related-grid{
+    grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:min(72%,300px);
+    gap:14px;overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory;scroll-padding-inline:24px;
+    margin-inline:-24px;padding:8px 24px 14px;
+    scrollbar-width:none;
+  }
+  .pdp-related-grid::-webkit-scrollbar{display:none}
+  .pdp-related-grid .product-card{scroll-snap-align:start}
+}
 
 @media(max-width:900px){
   .pdp-grid{grid-template-columns:1fr;gap:32px}
@@ -2503,8 +2554,13 @@ a:focus:not(:focus-visible){outline:none}
   background:repeating-linear-gradient(90deg,transparent 0 99px,rgba(255,255,255,.018) 100px);
   opacity:.7;
 }
-.stream-corridor{position:absolute;inset:0;z-index:1;transform-style:preserve-3d;pointer-events:none;opacity:0}
-.stream-corridor-ready{opacity:1;transition:opacity .45s ease}
+/* Never fade the corridor itself: opacity below 1 forces a preserve-3d element
+   flat, so every card would collapse into an overlapping 2D stack until the
+   fade finished. Hide it outright, then fade the individual cards instead. */
+.stream-corridor{position:absolute;inset:0;z-index:1;transform-style:preserve-3d;pointer-events:none;visibility:hidden}
+.stream-corridor-ready{visibility:visible}
+.stream-corridor .stream-card{opacity:0;transition:opacity .45s ease}
+.stream-corridor-ready .stream-card{opacity:1}
 .stream-card{
   position:absolute;left:50%;top:55%;overflow:hidden;margin:0;
   border-radius:.45cqw;border:1px solid rgba(232,211,167,.28);
@@ -2546,7 +2602,7 @@ a:focus:not(:focus-visible){outline:none}
 [data-theme="light"] .stream-footer-copy{background:rgba(247,242,233,.8);border-color:rgba(139,99,31,.2)}
 @media(max-width:700px){
   .stream-hero{min-height:780px;perspective:28cqw}
-  .stream-card{opacity:.76}
+  .stream-corridor-ready .stream-card{opacity:.76}
   .stream-hero-content{height:780px;padding:105px 14px 72px;width:100%}
   .stream-hero-content h1{font-size:clamp(2.8rem,13vw,4.5rem);line-height:.92}
   .stream-hero-content h1 span,.stream-hero-content h1 em{white-space:normal;width:100%}
@@ -2567,9 +2623,10 @@ a:focus:not(:focus-visible){outline:none}
 .collection-page-hero h1 em{color:var(--gold-light);font-weight:300}
 .collection-page-hero> .container>p:last-child{max-width:620px;margin:auto;color:var(--ivory-muted);font-size:14px;line-height:1.8}
 .collection-catalog{padding:80px 0 110px}
-.collection-catalog-head{display:flex;align-items:end;justify-content:space-between;padding-bottom:22px;margin-bottom:28px;border-bottom:1px solid var(--border)}
-.collection-catalog-head h2{font-family:var(--font-serif);font-size:34px;font-weight:400}
-.collection-catalog-head span{color:var(--ivory-muted);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+.collection-catalog-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-bottom:22px;margin-bottom:28px;border-bottom:1px solid var(--border)}
+.collection-catalog-tools{display:flex;align-items:center;gap:16px;margin-left:auto}
+.collection-catalog-head .shop-sort-wrap{margin-left:0}
+.collection-catalog-head #collectionCount{color:var(--ivory-muted);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
 .collection-product-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
 .collection-product{display:flex;flex-direction:column;min-width:0;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-1);color:var(--ivory);transition:transform var(--transition-slow),border-color var(--transition)}
 .collection-product:hover{transform:translateY(-5px);border-color:var(--border-hover)}
@@ -2583,6 +2640,11 @@ a:focus:not(:focus-visible){outline:none}
 .collection-product-copy em{color:var(--ivory-muted);font-size:9px;line-height:1.5;font-style:normal;text-transform:uppercase;letter-spacing:.04em}
 .collection-product-copy strong{flex:none;color:var(--gold-light);font-family:var(--font-serif);font-size:20px;font-weight:500}
 @media(max-width:1000px){.collection-product-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* Collection pages reuse Shop cards; no sidebar here, so one extra column keeps card widths close to the Shop's. */
+.collection-shop-grid{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:0}
+.collection-shop-grid[hidden]{display:none}
+@media(max-width:1100px){.collection-shop-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){.collection-shop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.collection-page-hero{padding:118px 0 70px}.collection-breadcrumb{justify-content:flex-start}.collection-product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.collection-product-copy{padding:14px}.collection-product-copy h3{font-size:18px}.collection-product-copy em{display:none}}
 @media(max-width:440px){.collection-product-grid{grid-template-columns:1fr}.collection-product-image{aspect-ratio:5/4}.collection-catalog{padding-top:56px}}
 

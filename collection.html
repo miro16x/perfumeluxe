@@ -270,13 +270,23 @@
         <p id="collectionDescription"></p>
       </div>
     </header>
-    <section class="collection-catalog" aria-labelledby="catalogTitle">
+    <section class="collection-catalog" aria-label="Fragrances in this collection">
       <div class="container">
         <div class="collection-catalog-head">
-          <h2 id="catalogTitle">The Grand Fragrance Collection</h2>
-          <span id="collectionCount"></span>
+          <!-- Filter pills are rendered by collection.js (they differ per collection). -->
+          <div class="new-arrivals-filters" id="collectionFilters" role="group"></div>
+          <div class="collection-catalog-tools">
+            <span id="collectionCount"></span>
+            <div class="shop-sort-wrap">
+              <label for="collectionSort" class="sr-only">Sort fragrances</label>
+              <select class="shop-sort" id="collectionSort">
+                <option value="featured">Featured</option>
+                <option value="newest">Newest Launched</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div class="collection-product-grid" id="collectionProductGrid"></div>
+        <div class="shop-grid collection-shop-grid" id="collectionProductGrid" aria-label="Product catalogue"></div>
         <div class="shop-empty" id="collectionEmpty" hidden>
           <h3>This collection is being composed.</h3>
           <p>Return to our complete catalog to discover more fragrances.</p>

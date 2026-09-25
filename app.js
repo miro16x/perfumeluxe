@@ -943,26 +943,6 @@ document.querySelector('.shard-stage')?.addEventListener('click', (event) => {
   history.pushState(null, '', hash);
 });
 
-/* ── FEATURED COLLECTION SPOTLIGHT ─────────────────── */
-(function initCollectionSpotlights() {
-  document.querySelectorAll('.spotlight-card[data-glow]').forEach((card) => {
-    card.addEventListener('pointermove', (event) => {
-      const rect = card.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const hue = Number(card.style.getPropertyValue('--base') || 35)
-        + (event.clientX / window.innerWidth) * Number(card.style.getPropertyValue('--spread') || 60);
-      card.style.setProperty('--local-x', `${x}px`);
-      card.style.setProperty('--local-y', `${y}px`);
-      card.style.setProperty('--hue', hue.toFixed(2));
-    });
-    card.addEventListener('pointerleave', () => {
-      card.style.removeProperty('--local-x');
-      card.style.removeProperty('--local-y');
-    });
-  });
-})();
-
 /* ── IMAGE STREAM HERO ──────────────────────────────── */
 (function initImageStreamHero() {
   const corridor = document.getElementById('streamCorridor');
@@ -1401,6 +1381,25 @@ function priceInRange(price, range) {
   return false;
 }
 
+/* ── SHARED SEARCH MATCHING (search panel + Shop ?q=) ──
+   Lower score = better match; -1 = no match. `term` must be lowercase. */
+function searchMatchScore(product, term) {
+  const name   = product.name.toLowerCase();
+  const brand  = product.brand.toLowerCase();
+  const notes  = product.notes.join(' ').toLowerCase();
+  const scents = product.scents.join(' ').toLowerCase();
+  if (name.startsWith(term))  return 0;
+  if (name.includes(term))    return 1;
+  if (brand.includes(term))   return 2;
+  if (notes.includes(term))   return 3;
+  if (scents.includes(term))  return 4;
+  return -1;
+}
+
+function escapeHTML(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
 const PRICE_LABELS = {
   'under-60': 'Under $60',
   '61-100':   '$61 – $100',
@@ -1420,6 +1419,10 @@ const PRICE_LABELS = {
 
   let currentSort = 'featured';
   let currentList = [];
+  /* "View all results in Shop" from the search panel arrives as ?q=term. */
+  const params = new URLSearchParams(window.location.search);
+  let searchRaw  = (params.get('q') || '').trim();
+  let searchTerm = searchRaw.toLowerCase();
   let renderedCount = 0;
   const BATCH_SIZE = window.matchMedia('(max-width: 700px)').matches ? 12 : 24;
   const loadSentinel = document.createElement('div');
@@ -1490,6 +1493,7 @@ const PRICE_LABELS = {
     const sizes   = getChecked('size');
 
     const filtered = PRODUCTS.filter(p => {
+      if (searchTerm && searchMatchScore(p, searchTerm) === -1)                  return false;
       if (categories.length && !categories.includes(p.category))                 return false;
       if (brands.length  && !brands.includes(p.brandKey))                        return false;
       if (prices.length  && !prices.some(r => p.sizes.some(s => priceInRange(s.price, r)))) return false;
@@ -1510,6 +1514,7 @@ const PRICE_LABELS = {
 
     /* Active filter chips */
     const allActive = [
+      ...(searchTerm ? [{ cat:'search', val:searchTerm, label:`Search: “${escapeHTML(searchRaw)}”` }] : []),
       ...categories.map(v => ({ cat:'category', val:v, label:CATEGORY_LABELS[v] || v })),
       ...brands.map(v  => ({ cat:'brand',  val:v, label:v.charAt(0).toUpperCase()+v.slice(1) })),
       ...prices.map(v  => ({ cat:'price',  val:v, label:PRICE_LABELS[v] || v })),
@@ -1521,13 +1526,14 @@ const PRICE_LABELS = {
     activeEl.innerHTML = allActive.map(f => `
       <span class="filter-chip">
         ${f.label}
-        <button type="button" data-cat="${f.cat}" data-val="${f.val}" aria-label="Remove ${f.label} filter">
+        <button type="button" data-cat="${f.cat}" data-val="${escapeHTML(f.val)}" aria-label="Remove ${f.label} filter">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </span>`).join('');
 
     activeEl.querySelectorAll('button').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (btn.dataset.cat === 'search') { clearSearchTerm(); applyFilters(); return; }
         const input = document.querySelector(`input[name="${btn.dataset.cat}"][value="${btn.dataset.val}"]`);
         if (input) { input.checked = false; applyFilters(); }
       });
@@ -1544,11 +1550,22 @@ const PRICE_LABELS = {
     if (mode === 'price-desc') return copy.sort((a,b) => b.price - a.price);
     if (mode === 'rating')     return copy.sort((a,b) => b.rating - a.rating);
     if (mode === 'name')       return copy.sort((a,b) => a.name.localeCompare(b.name));
-    return copy; /* featured = original order */
+    /* featured = original order, or best search match first (same order as the search panel) */
+    if (searchTerm) return copy.sort((a,b) => searchMatchScore(a, searchTerm) - searchMatchScore(b, searchTerm));
+    return copy;
+  }
+
+  /* Removing the search chip also drops ?q= so a refresh doesn't bring it back. */
+  function clearSearchTerm() {
+    searchRaw = '';
+    searchTerm = '';
+    const url = new URL(window.location.href);
+    url.searchParams.delete('q');
+    history.replaceState(null, '', url);
   }
 
   /* A product detail page can link directly to a brand's complete catalog. */
-  const requestedBrand = new URLSearchParams(window.location.search).get('brand');
+  const requestedBrand = params.get('brand');
   if (requestedBrand) {
     const brandInput = Array.from(document.querySelectorAll('input[name="brand"]'))
       .find((input) => input.value === requestedBrand);
@@ -1565,6 +1582,7 @@ const PRICE_LABELS = {
 
   document.getElementById('filterClearAll')?.addEventListener('click', () => {
     document.querySelectorAll('#filterSidebar input[type="checkbox"]').forEach(i => i.checked = false);
+    clearSearchTerm();
     applyFilters();
   });
 
@@ -1614,6 +1632,17 @@ const PRICE_LABELS = {
 
   const RESULTS_COUNT   = 12;
   const MAX_PER_BRAND   = 2;
+  const RECENT_ROUNDS   = 2;   /* avoid repeating picks from this many previous rounds */
+  const RECENT_KEY      = 'ul-ai-recent';
+
+  /* IDs shown in recent rounds, newest round first. Kept for the browser tab
+     session so retaking the quiz (even after a reload) surfaces new picks. */
+  let recentRounds = [];
+  try { recentRounds = JSON.parse(sessionStorage.getItem(RECENT_KEY)) || []; } catch (e) { recentRounds = []; }
+  function rememberRound(ids) {
+    recentRounds = [ids, ...recentRounds].slice(0, RECENT_ROUNDS);
+    try { sessionStorage.setItem(RECENT_KEY, JSON.stringify(recentRounds)); } catch (e) { /* storage unavailable */ }
+  }
 
   const panels  = Array.from(quiz.querySelectorAll('.ai-panel[data-step]')).filter(p => p.dataset.step !== 'results');
   const resultP = quiz.querySelector('.ai-panel[data-step="results"]');
@@ -1789,7 +1818,32 @@ const PRICE_LABELS = {
       .sort((a, b) => b.score - a.score || b.p.rating - a.p.rating);
 
     const topScore = scored[0]?.score || 1;
-    const explained = scored.map(({ p, score, reasons }) => ({
+
+    /* Variety: draw from every strong match rather than always the same top
+       12. Only widen to weaker matches when the strong pool is too small. */
+    const strong = scored.filter(m => m.score >= topScore * 0.6);
+    let pool = strong.length >= RESULTS_COUNT * 2 ? strong : scored.slice(0, RESULTS_COUNT * 3);
+
+    /* Not enough unseen picks among the strong matches? Widen the pool once. */
+    const recentIds = new Set(recentRounds.flat());
+    if (pool.filter(m => !recentIds.has(m.p.id)).length < RESULTS_COUNT) {
+      pool = scored.slice(0, Math.max(pool.length, RESULTS_COUNT * 4));
+    }
+
+    /* Random jitter reshuffles similar matches while better matches still
+       tend to rank first. Anything shown recently is pushed down (the last
+       round hardest), so repeats only appear when nothing fresh is left.
+       Confidence below uses the real score. */
+    const jitter = topScore * 0.35;
+    const recencyPenalty = (id) => {
+      const round = recentRounds.findIndex(ids => ids.includes(id));
+      return round === -1 ? 0 : topScore * (RECENT_ROUNDS - round);
+    };
+    const shuffled = pool
+      .map(m => ({ ...m, rank: m.score + Math.random() * jitter - recencyPenalty(m.p.id) }))
+      .sort((a, b) => b.rank - a.rank);
+
+    const explained = shuffled.map(({ p, score, reasons }) => ({
       ...p,
       _aiMatch: {
         confidence: Math.max(72, Math.min(97, Math.round(72 + (score / topScore) * 25))),
@@ -1797,7 +1851,16 @@ const PRICE_LABELS = {
       }
     }));
 
-    return diversify(explained, RESULTS_COUNT, MAX_PER_BRAND);
+    /* Avoiding repeats outranks the per-brand cap: diversify among unseen
+       picks first, then top up with the least-recently shown if still short. */
+    let picks = diversify(explained.filter(p => !recentIds.has(p.id)), RESULTS_COUNT, MAX_PER_BRAND);
+    if (picks.length < RESULTS_COUNT) {
+      const pickedIds = new Set(picks.map(p => p.id));
+      picks = picks.concat(explained.filter(p => !pickedIds.has(p.id)).slice(0, RESULTS_COUNT - picks.length));
+    }
+    picks.sort((a, b) => b._aiMatch.confidence - a._aiMatch.confidence);
+    rememberRound(picks.map(p => p.id));
+    return picks;
   }
 
   retakeBtn?.addEventListener('click', () => {
@@ -1912,19 +1975,6 @@ const PRICE_LABELS = {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && panel.classList.contains('open')) closeSearch(); });
   form.addEventListener('submit', (e) => e.preventDefault());
 
-  function matchScore(product, term) {
-    const name   = product.name.toLowerCase();
-    const brand  = product.brand.toLowerCase();
-    const notes  = product.notes.join(' ').toLowerCase();
-    const scents = product.scents.join(' ').toLowerCase();
-    if (name.startsWith(term))  return 0;
-    if (name.includes(term))    return 1;
-    if (brand.includes(term))   return 2;
-    if (notes.includes(term))   return 3;
-    if (scents.includes(term))  return 4;
-    return -1;
-  }
-
   function highlight(text, term) {
     if (!term) return text;
     const i = text.toLowerCase().indexOf(term.toLowerCase());
@@ -1988,7 +2038,7 @@ const PRICE_LABELS = {
     }
 
     matches = PRODUCTS
-      .map((p) => ({ p, score: matchScore(p, term) }))
+      .map((p) => ({ p, score: searchMatchScore(p, term) }))
       .filter((m) => m.score !== -1)
       .sort((a, b) => a.score - b.score)
       .map((m) => m.p);
@@ -2046,8 +2096,10 @@ const PRICE_LABELS = {
     });
   });
 
+  /* Carry the search into the Shop, where it becomes a removable filter. */
   viewAllBtn.addEventListener('click', () => {
-    window.location.href = 'shop.html';
+    const term = input.value.trim();
+    window.location.href = term ? `shop.html?q=${encodeURIComponent(term)}` : 'shop.html';
   });
 })();
 
@@ -2094,7 +2146,6 @@ document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
 /* ── NEW ARRIVALS: gender filter, sort, see more ─────── */
 (function initNewArrivalsControls() {
   const grid       = document.getElementById('newArrivalsGrid');
-  const seeMoreBtn = document.getElementById('newArrivalsSeeMore');
   const filterBtns = document.querySelectorAll('#newArrivalsFilters .gender-pill');
   const sortSelect = document.getElementById('newArrivalsSort');
   if (!grid) return;
@@ -2125,7 +2176,6 @@ document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
 
   let currentGender = 'all';
   let currentSort   = 'featured';
-  let showAll       = false;
 
   function apply() {
     let matching = cards.filter((c) => currentGender === 'all' || c.dataset.gender === currentGender);
@@ -2134,11 +2184,9 @@ document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
       ? parseInt(b.dataset.id, 10) - parseInt(a.dataset.id, 10)
       : parseInt(a.dataset.order, 10) - parseInt(b.dataset.order, 10));
 
-    const limit = showAll ? matching.length : INITIAL_VISIBLE;
-
     cards.forEach((card) => {
       const idx = matching.indexOf(card);
-      if (idx === -1 || idx >= limit) {
+      if (idx === -1 || idx >= INITIAL_VISIBLE) {
         card.classList.add('na-hidden');
       } else {
         card.classList.remove('na-hidden');
@@ -2146,7 +2194,6 @@ document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
       }
     });
 
-    if (seeMoreBtn) seeMoreBtn.hidden = showAll || matching.length <= INITIAL_VISIBLE;
     grid.dispatchEvent(new CustomEvent('coverflow:refresh'));
   }
 
@@ -2155,19 +2202,12 @@ document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
       filterBtns.forEach((b) => b.classList.remove('gender-pill-active'));
       btn.classList.add('gender-pill-active');
       currentGender = btn.dataset.filterGender;
-      showAll = false;
       apply();
     });
   });
 
   sortSelect?.addEventListener('change', () => {
     currentSort = sortSelect.value;
-    showAll = false;
-    apply();
-  });
-
-  seeMoreBtn?.addEventListener('click', () => {
-    showAll = true;
     apply();
   });
 
