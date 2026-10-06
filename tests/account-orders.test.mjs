@@ -2,6 +2,7 @@ import { test, mock, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { onRequestPost as createOrder } from '../functions/api/pickup-order.js';
 import { onRequestPost as cancelOrder } from '../functions/api/cancel-pickup-order.js';
+import { signCancellation } from '../lib/cancel-token.js';
 
 const SUPABASE = 'https://bvffpffnyjfufprcdskb.supabase.co';
 const order = {
@@ -97,15 +98,20 @@ test('Supabase outage does not fail an order the store already received', async 
 
 test('cancellation marks the matching account order cancelled', async () => {
   const calls = mockNetwork();
+  const env = { RESEND_API_KEY: 'test-key', SUPABASE_SERVICE_ROLE_KEY: 'secret-key', CANCEL_SIGNING_SECRET: 'test-signing-secret' };
+  const details = {
+    reference: 'LP-20261002-AB12CD34', email: 'Customer@Example.com',
+    pickupStore: 'Perfume World', placedAt: new Date().toISOString()
+  };
   const response = await cancelOrder({
     request: new Request('https://example.com/api/cancel-pickup-order', {
       method: 'POST',
       body: JSON.stringify({
-        orderReference: 'LP-20261002-AB12CD34', email: 'Customer@Example.com',
-        pickupStore: 'Perfume World', placedAt: new Date().toISOString()
+        orderReference: details.reference, email: details.email, pickupStore: details.pickupStore,
+        placedAt: details.placedAt, cancelToken: await signCancellation(env, details)
       })
     }),
-    env: { RESEND_API_KEY: 'test-key', SUPABASE_SERVICE_ROLE_KEY: 'secret-key' }
+    env
   });
   assert.equal(response.status, 200);
 

@@ -1,5 +1,6 @@
 import { sendEmail } from '../../lib/email.js';
 import { accountOrdersEnabled, markAccountOrderCancelled } from '../../lib/supabase.js';
+import { cancelSigningEnabled, verifyCancellation } from '../../lib/cancel-token.js';
 
 const STORES = {
   'Luxe Fragrances': { email: 'luxefragrances.vi@gmail.com' },
@@ -23,6 +24,9 @@ const escapeHtml = (value) => String(value ?? '')
 
 export async function onRequestPost({ request, env, waitUntil }) {
   if (!env.RESEND_API_KEY) return json({ success: false, message: 'Email service is not configured.' }, 503);
+  if (!cancelSigningEnabled(env)) {
+    return json({ success: false, message: 'Online cancellation is unavailable. Please contact the store with your pickup reference.' }, 503);
+  }
 
   let cancellation;
   try {
@@ -41,6 +45,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
   if (!/^LP-\d{8}-[A-F0-9-]{8,}$/i.test(reference) || !validEmail(email) || !store ||
       !Number.isFinite(placedAt.getTime())) {
     return json({ success: false, message: 'Order details are missing or invalid.' }, 400);
+  }
+  /* placedAt decides the window below, so it is only trusted once the
+     signature proves these exact details were issued by /api/pickup-order. */
+  const signed = await verifyCancellation(env, {
+    reference, email, pickupStore, placedAt: String(cancellation.placedAt)
+  }, cancellation.cancelToken);
+  if (!signed) {
+    return json({ success: false, message: 'This order could not be verified. Please contact the store with your pickup reference.' }, 403);
   }
   if (age < 0 || age > DAY_MS) {
     return json({ success: false, message: 'The 24-hour cancellation window has closed.' }, 409);

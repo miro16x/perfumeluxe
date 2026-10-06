@@ -1,5 +1,6 @@
 import { sendEmail } from '../../lib/email.js';
 import { accountOrdersEnabled, getSignedInUser, saveAccountOrder } from '../../lib/supabase.js';
+import { cancelSigningEnabled, signCancellation } from '../../lib/cancel-token.js';
 
 const STORES = {
   'Luxe Fragrances': {
@@ -181,6 +182,12 @@ export async function onRequestPost({ request, env, waitUntil }) {
       else await saveToAccount;
     }
 
+    /* Proof for /api/cancel-pickup-order that these details came from us.
+       Without the secret, online cancellation is off (the store can still cancel). */
+    const cancelToken = cancelSigningEnabled(env)
+      ? await signCancellation(env, { reference, email: customerEmail, pickupStore, placedAt: placedAt.toISOString() })
+      : null;
+
     return json({
       success: true,
       orderReference: reference,
@@ -189,6 +196,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
       storePhone: store.phone,
       placedAt: placedAt.toISOString(),
       cancelBy: cancelBy.toISOString(),
+      cancelToken,
       customerEmailSent,
       messageIds: [storeResult?.messageId, customerResult?.messageId].filter(Boolean)
     });

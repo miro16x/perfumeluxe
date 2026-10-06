@@ -238,6 +238,7 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
       pickupStore: result.pickupStore,
       placedAt: result.placedAt,
       cancelBy: result.cancelBy,
+      cancelToken: result.cancelToken,   /* server's signature over the details above */
       status: 'active'
     };
     try {
@@ -264,9 +265,11 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
           ? 'Your request was sent to the store, but we could not email your confirmation. Please save your pickup reference.'
           : 'A confirmation email was sent. Please check your inbox.'}</span>
         <div class="pickup-cancel-box" id="pickupCancelBox">
-          <span>You may request cancellation until <strong>${cancelDeadline}</strong>.</span>
+          ${result.cancelToken
+            ? `<span>You may request cancellation until <strong>${cancelDeadline}</strong>.</span>
           <button type="button" class="btn-cancel-pickup" id="cancelPickupBtn">Cancel Pickup Order</button>
-          <span class="pickup-cancel-status" id="pickupCancelStatus" role="status"></span>
+          <span class="pickup-cancel-status" id="pickupCancelStatus" role="status"></span>`
+            : `<span>To cancel before <strong>${cancelDeadline}</strong>, call ${result.pickupStore} at ${result.storePhone} with your pickup reference.</span>`}
         </div>
       </div>`;
     document.getElementById('cancelPickupBtn')?.addEventListener('click', async (event) => {

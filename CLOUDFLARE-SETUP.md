@@ -8,6 +8,7 @@ The storefront is deployed as a Cloudflare Worker with static assets. The Worker
 2. Add `luxeperfume.uluxe.site` in Resend → Domains. Add the DNS records Resend provides in Cloudflare and wait until Resend shows the domain as verified. Create a sending API key and save it as a Worker secret named `RESEND_API_KEY` under Worker Settings → Variables and Secrets. Never put this key in browser JavaScript or source control.
 3. Deploy from the `urban-luxe` directory with `npx wrangler@latest deploy`, or configure that command in a Workers Builds project whose root directory is `urban-luxe`.
 4. Confirm that the deployed Worker has the `RESEND_API_KEY` secret and `ASSETS` binding. The old `EMAIL` binding is no longer used.
+5. Add a Worker secret named `CANCEL_SIGNING_SECRET` set to a long random value (for example, the output of `openssl rand -base64 32`). The pickup endpoint signs each order with it, and the cancellation endpoint rejects any request whose details (reference, email, store, time placed) don't match that signature, so the 24-hour window can't be bypassed. Without it, online cancellation is turned off and customers are told to call the store. Changing it invalidates the cancel buttons of orders placed in the previous 24 hours.
 
 The Function sends from `orders@luxeperfume.uluxe.site`. That mailbox does not have to exist, but the subdomain must finish verification in Resend before orders can be delivered.
 
