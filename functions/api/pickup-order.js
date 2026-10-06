@@ -1,4 +1,5 @@
 import { sendEmail } from '../../lib/email.js';
+import { accountOrdersEnabled, getSignedInUser, saveAccountOrder } from '../../lib/supabase.js';
 
 const STORES = {
   'Luxe Fragrances': {
@@ -30,7 +31,7 @@ const escapeHtml = (value) => String(value ?? '')
 
 const validEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   if (!env.RESEND_API_KEY) return json({ success: false, message: 'Email service is not configured.' }, 503);
 
   let order;
@@ -149,6 +150,35 @@ export async function onRequestPost({ request, env }) {
       customerEmailSent = true;
     } catch (error) {
       console.error('Pickup customer receipt failed', reference, error?.code, error?.message, error?.providerError);
+    }
+
+    /* Signed-in customers get the order added to their account history. This
+       is best-effort: the order is already accepted, so a failure here is
+       logged and never turns a sent order into an error for the customer. */
+    if (accountOrdersEnabled(env) && request.headers.get('Authorization')) {
+      const saveToAccount = (async () => {
+        const user = await getSignedInUser(request, env);
+        if (!user) return;
+        await saveAccountOrder(env, user.id, {
+          reference,
+          email: customerEmail.toLowerCase(),
+          pickup_store: pickupStore,
+          pickup_date: pickupDate,
+          pickup_time: pickupTime,
+          items: items.map((item) => ({
+            id: item.id ?? null,
+            name: String(item.name).slice(0, 200),
+            brand: itemBrand(item),
+            price: Number(item.price),
+            qty: Number(item.qty)
+          })),
+          item_count: calculatedCount,
+          total: Number(calculatedTotal.toFixed(2)),
+          placed_at: placedAt.toISOString()
+        });
+      })().catch((error) => console.error('Pickup order account save failed', reference, error?.message));
+      if (typeof waitUntil === 'function') waitUntil(saveToAccount);
+      else await saveToAccount;
     }
 
     return json({

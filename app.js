@@ -70,21 +70,8 @@ let cart = [];
 function prefillPickupFromAccount() {
   if (!pickupName || !pickupEmail) return;
 
-  let user = null;
-  try {
-    if (typeof ulCurrentUser === 'function') {
-      user = ulCurrentUser();
-    } else {
-      const sessionEmail = localStorage.getItem('ul-session');
-      const users = JSON.parse(localStorage.getItem('ul-users') || '[]');
-      user = sessionEmail && Array.isArray(users)
-        ? users.find((candidate) => String(candidate.email || '').toLowerCase() === sessionEmail.toLowerCase())
-        : null;
-    }
-  } catch (error) {
-    console.warn('Unable to prefill pickup information:', error);
-  }
-
+  /* auth.js loads after this file, so look the account up at call time. */
+  const user = typeof ulCurrentUser === 'function' ? ulCurrentUser() : null;
   if (!user) return;
   if (!pickupName.value.trim() && user.name) pickupName.value = user.name;
   if (!pickupEmail.value.trim() && user.email) pickupEmail.value = user.email;
@@ -214,9 +201,16 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
   checkoutBtn.disabled = true;
 
   try {
+    /* Signed-in customers send their access token so the Worker can add the
+       order to their account history. Ordering never depends on it. */
+    const accessToken = await window.ulGetAccessToken?.().catch(() => null);
     const response = await fetch('/api/pickup-order', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+      },
       body: JSON.stringify({
         customerName: pickupName.value.trim(),
         phone: pickupPhone.value.trim(),
@@ -818,12 +812,23 @@ function saveWishlist() {
   renderWishlist();
 }
 
+/* Account sync (auth.js): read this device's likes, or replace them with the
+   signed-in account's list. */
+window.ulWishlist = {
+  ids: () => [...wishlist],
+  replace(ids) {
+    wishlist = new Set(ids.map(Number).filter(Number.isFinite));
+    saveWishlist();
+  }
+};
+
 function toggleWishlist(id) {
   const product = typeof PRODUCTS !== 'undefined' ? PRODUCTS.find((item) => item.id === id) : null;
   if (!product) return;
   const removing = wishlist.has(id);
   removing ? wishlist.delete(id) : wishlist.add(id);
   saveWishlist();
+  window.ulOnWishlistToggle?.(id, !removing);
   showToast(removing ? 'Removed from likes' : 'Saved to your likes', product.name, removing ? 'info' : 'success');
 }
 
@@ -1755,6 +1760,13 @@ const PRICE_LABELS = {
         });
       });
     }
+
+    /* Offer to save these answers as the account's scent profile (auth.js). */
+    window.ulOfferQuizProfile?.({
+      scents: answers.style || [],
+      genders: { masculine: ['men'], feminine: ['women'] }[answers.gender] || [],
+      bodyCare: answers.category === 'body-care'
+    });
   }
 
   function scoreProducts(acctPrefs) {
@@ -2345,6 +2357,8 @@ document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
 
   setup(document.getElementById('newArrivalsGrid'), document.getElementById('newArrivalsPrev'), document.getElementById('newArrivalsNext'), document.getElementById('newArrivalsDots'));
   setup(document.getElementById('productsGrid'), document.getElementById('bestPrev'), document.getElementById('bestNext'), document.getElementById('bestDots'));
+  /* Filled later by auth.js (renderRecommendations), which fires coverflow:refresh. */
+  setup(document.getElementById('recommendedGrid'), document.getElementById('recommendedPrev'), document.getElementById('recommendedNext'), document.getElementById('recommendedDots'));
 })();
 
 /* ── CROSS-PAGE ANCHOR LANDING ───────────────────────── *

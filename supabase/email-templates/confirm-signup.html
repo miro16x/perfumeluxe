@@ -1,0 +1,57 @@
+<!--
+  Supabase → Authentication → Emails → Templates → "Confirm signup"
+  Subject:  Confirm your Luxe Perfume account
+  Paste everything below this comment into the "Message body" (Source) field.
+  {{ .Data.name }} is the name entered at sign-up; {{ .ConfirmationURL }} is the one-time link.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Confirm your Luxe Perfume account</title>
+</head>
+<body style="margin:0;padding:0;background:#070605;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">One click to confirm your email and start your personalized fragrance profile.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#070605;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#12100d;border:1px solid #3a3022;border-radius:12px;">
+          <tr>
+            <td align="center" style="padding:40px 40px 8px;">
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:26px;letter-spacing:6px;color:#f5f0e8;">LUXE PERFUME</div>
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:4px;color:#c9a84c;margin-top:6px;">ST. THOMAS</div>
+              <div style="width:64px;height:1px;background:#c9a84c;margin:28px auto 0;line-height:1px;font-size:1px;">&nbsp;</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 40px 8px;font-family:Arial,Helvetica,sans-serif;color:#d8cfc2;font-size:15px;line-height:1.7;">
+              <h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-weight:normal;font-size:28px;line-height:1.3;color:#f5f0e8;">Welcome{{ if .Data.name }}, {{ .Data.name }}{{ end }}</h1>
+              <p style="margin:0 0 16px;">Thank you for creating your Luxe Perfume account. Please confirm your email address to finish setting it up.</p>
+              <p style="margin:0 0 28px;">Once confirmed, tell us the fragrance families and houses you love and we’ll handpick perfumes matched to your taste. Your likes and pickup orders will follow you to any device.</p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:0 40px 32px;">
+              <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:15px 34px;background:#c9a84c;border-radius:4px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#070605;text-decoration:none;">Confirm My Email</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px 36px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#8c8174;">
+              <p style="margin:0 0 12px;">If the button doesn’t work, copy this link into your browser:<br><a href="{{ .ConfirmationURL }}" style="color:#c9a84c;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+              <p style="margin:0;">Didn’t create an account? You can safely ignore this email.</p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:20px 40px 28px;border-top:1px solid #2a241b;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.7;color:#6f665b;">
+              Luxe Fragrances · Havensight Mall &nbsp;|&nbsp; Perfume World · Tutu Park Mall<br>
+              St. Thomas, U.S. Virgin Islands
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import { sendEmail } from '../../lib/email.js';
+import { accountOrdersEnabled, markAccountOrderCancelled } from '../../lib/supabase.js';
 
 const STORES = {
   'Luxe Fragrances': { email: 'luxefragrances.vi@gmail.com' },
@@ -20,7 +21,7 @@ const escapeHtml = (value) => String(value ?? '')
   .replaceAll('"', '&quot;')
   .replaceAll("'", '&#039;');
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   if (!env.RESEND_API_KEY) return json({ success: false, message: 'Email service is not configured.' }, 503);
 
   let cancellation;
@@ -81,6 +82,16 @@ export async function onRequestPost({ request, env }) {
       sendEmail(env, { from: FROM_ADDRESS, to: store.email, bcc: [ALWAYS_NOTIFY], replyTo: email, subject, html: storeHtml, text }),
       sendEmail(env, { from: FROM_ADDRESS, to: email, replyTo: store.email, subject: `We received your cancellation request — ${reference}`, html: customerHtml, text: `We received your request to cancel pickup order ${reference}. ${pickupStore} has been notified. Keep this message for your records.` })
     ]);
+
+    /* Best-effort: reflect the cancellation in the customer's account history
+       (a no-op for orders placed without an account). */
+    if (accountOrdersEnabled(env)) {
+      const markCancelled = markAccountOrderCancelled(env, reference, email)
+        .catch((error) => console.error('Pickup cancellation account update failed', reference, error?.message));
+      if (typeof waitUntil === 'function') waitUntil(markCancelled);
+      else await markCancelled;
+    }
+
     return json({ success: true, orderReference: reference });
   } catch (error) {
     console.error('Pickup cancellation email delivery failed', error?.code, error?.message, error?.providerError);

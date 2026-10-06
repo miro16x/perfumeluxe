@@ -191,7 +191,7 @@
           <button type="submit" class="btn-gold btn-full">Create Account</button>
         </form>
 
-        <p class="account-note">Your account lives on this device only — a personalized preview, not a live store login.</p>
+        <p class="account-note">Your preferences, likes and order history are saved to your account and follow you to any device.</p>
       </div>
 
       <!-- TASTE PREFERENCES -->
@@ -355,85 +355,271 @@
   </div>
 
   <!-- ── RECOMMENDED FOR YOU (signed-in, personalized) ── -->
-  <section class="new-arrivals recommended-section" id="recommendedSection" hidden>
+  <section class="bestsellers recommended-section" id="recommendedSection" hidden>
     <div class="container">
       <div class="section-header reveal">
         <p class="section-eyebrow">Picked For You</p>
         <h2 class="section-title">Recommended for <em id="recommendedName">You</em></h2>
       </div>
-      <p class="new-arrivals-sub reveal">Based on the fragrance families, brands, and body care you told us you love.</p>
-      <div class="new-arrivals-grid" id="recommendedGrid"></div>
+      <div class="carousel-shell reveal">
+        <div class="carousel-topline">
+          <p>A fresh selection on every visit, matched to the fragrance families, houses and styles you love.</p>
+          <div class="carousel-controls" aria-label="Recommended fragrances carousel controls">
+            <button class="carousel-btn" id="recommendedPrev" type="button" aria-label="Previous recommendation">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <button class="carousel-btn" id="recommendedNext" type="button" aria-label="Next recommendation">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="products-carousel" aria-label="Fragrances recommended for you">
+          <div class="products-grid coverflow-track" id="recommendedGrid" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Recommended fragrances coverflow"></div>
+        </div>
+        <div class="carousel-dots" id="recommendedDots" aria-label="Recommended fragrances carousel pages"></div>
+      </div>
     </div>
   </section>
 
-  <!-- ── BRANDS ─────────────────────────────────────── -->
-  <section class="brands" id="brands">
+  <!-- ── PERSONALIZE INVITE (shown until the visitor has a scent profile) ── -->
+  <section class="personalize" id="personalizeSection" aria-labelledby="personalizeTitle" hidden>
     <div class="container">
-      <div class="section-header reveal">
-        <p class="section-eyebrow">Designer Houses</p>
-        <h2 class="section-title">Shop by Brand</h2>
+      <div class="personalize-card reveal">
+        <div class="personalize-copy">
+          <p class="section-eyebrow" id="personalizeEyebrow">Your Scent Profile</p>
+          <h2 class="section-title" id="personalizeTitle">A Collection Curated <em>Just for You</em></h2>
+          <p class="personalize-sub" id="personalizeSub">Create a free account, tell us the fragrance families and houses you love, and we’ll handpick perfumes matched to your taste every time you visit.</p>
+          <div class="personalize-actions">
+            <button type="button" class="btn-gold" id="personalizeCta">Create Free Account</button>
+            <button type="button" class="personalize-signin" id="personalizeSignIn">Already a member? <span>Sign in</span></button>
+          </div>
+        </div>
+        <ul class="personalize-perks">
+          <li>
+            <span class="personalize-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z"/></svg></span>
+            <div><strong>Personalized recommendations</strong><span>Picks matched to your favorite scent families, brands and style.</span></div>
+          </li>
+          <li>
+            <span class="personalize-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
+            <div><strong>Likes on every device</strong><span>Save fragrances you love and find them on your phone or laptop.</span></div>
+          </li>
+          <li>
+            <span class="personalize-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+            <div><strong>Order history</strong><span>Every pickup order, its store and status, in one place.</span></div>
+          </li>
+        </ul>
       </div>
-      <div class="brands-grid">
-        <a href="shop.html?brand=dior" class="brand-tile reveal" style="--delay:0ms" data-filter-brand="dior">DIOR</a>
-        <a href="shop.html?brand=chanel" class="brand-tile reveal" style="--delay:20ms" data-filter-brand="chanel">CHANEL</a>
-        <a href="shop.html?brand=ysl" class="brand-tile reveal" style="--delay:40ms" data-filter-brand="ysl">YVES SAINT LAURENT</a>
-        <a href="shop.html?brand=givenchy" class="brand-tile reveal" style="--delay:60ms" data-filter-brand="givenchy">GIVENCHY</a>
-        <a href="shop.html?brand=hermes" class="brand-tile reveal" style="--delay:80ms" data-filter-brand="hermes">HERMÈS</a>
-        <a href="shop.html?brand=bvlgari" class="brand-tile reveal" style="--delay:100ms" data-filter-brand="bvlgari">BVLGARI</a>
-        <a href="shop.html?brand=sol-de-janeiro" class="brand-tile reveal" style="--delay:160ms" data-filter-brand="sol-de-janeiro">SOL DE JANEIRO</a>
-        <a href="shop.html?brand=narciso-rodriguez" class="brand-tile reveal" style="--delay:180ms" data-filter-brand="narciso-rodriguez">NARCISO RODRIGUEZ</a>
-        <a href="shop.html?brand=issey-miyake" class="brand-tile reveal" style="--delay:200ms" data-filter-brand="issey-miyake">ISSEY MIYAKE</a>
-        <a href="shop.html?brand=dolce-gabbana" class="brand-tile reveal" style="--delay:220ms" data-filter-brand="dolce-gabbana">DOLCE &amp; GABBANA</a>
-        <a href="shop.html?brand=versace" class="brand-tile reveal" style="--delay:240ms" data-filter-brand="versace">VERSACE</a>
-        <a href="shop.html?brand=coach" class="brand-tile reveal" style="--delay:260ms" data-filter-brand="coach">COACH</a>
-        <a href="shop.html?brand=moschino" class="brand-tile reveal" style="--delay:280ms" data-filter-brand="moschino">MOSCHINO</a>
-        <a href="shop.html?brand=kate-spade" class="brand-tile reveal" style="--delay:300ms" data-filter-brand="kate-spade">KATE SPADE</a>
-        <a href="shop.html?brand=montblanc" class="brand-tile reveal" style="--delay:320ms" data-filter-brand="montblanc">MONTBLANC</a>
-        <a href="shop.html?brand=jimmy-choo" class="brand-tile reveal" style="--delay:340ms" data-filter-brand="jimmy-choo">JIMMY CHOO</a>
-        <a href="shop.html?brand=tory-burch" class="brand-tile reveal" style="--delay:360ms" data-filter-brand="tory-burch">TORY BURCH</a>
-        <a href="shop.html?brand=rabanne" class="brand-tile reveal" style="--delay:380ms" data-filter-brand="rabanne">RABANNE</a>
-        <a href="shop.html?brand=carolina-herrera" class="brand-tile reveal" style="--delay:400ms" data-filter-brand="carolina-herrera">CAROLINA HERRERA</a>
-        <a href="shop.html?brand=jean-paul-gaultier" class="brand-tile reveal" style="--delay:420ms" data-filter-brand="jean-paul-gaultier">JEAN PAUL GAULTIER</a>
-        <a href="shop.html?brand=valentino" class="brand-tile reveal" style="--delay:440ms" data-filter-brand="valentino">VALENTINO</a>
-        <a href="shop.html?brand=prada" class="brand-tile reveal" style="--delay:460ms" data-filter-brand="prada">PRADA</a>
-        <a href="shop.html?brand=mugler" class="brand-tile reveal" style="--delay:480ms" data-filter-brand="mugler">MUGLER</a>
-        <a href="shop.html?brand=miu-miu" class="brand-tile reveal" style="--delay:500ms" data-filter-brand="miu-miu">MIU MIU</a>
-        <a href="shop.html?brand=viktor-rolf" class="brand-tile reveal" style="--delay:520ms" data-filter-brand="viktor-rolf">VIKTOR &amp; ROLF</a>
-        <a href="shop.html?brand=azzaro" class="brand-tile reveal" style="--delay:540ms" data-filter-brand="azzaro">AZZARO</a>
-        <a href="shop.html?brand=armani" class="brand-tile reveal" style="--delay:560ms" data-filter-brand="armani">ARMANI</a>
-        <a href="shop.html?brand=ralph-lauren" class="brand-tile reveal" style="--delay:580ms" data-filter-brand="ralph-lauren">RALPH LAUREN</a>
-        <a href="shop.html?brand=lancome" class="brand-tile reveal" style="--delay:600ms" data-filter-brand="lancome">LANCÔME</a>
-        <a href="shop.html?brand=gucci" class="brand-tile reveal" style="--delay:620ms" data-filter-brand="gucci">GUCCI</a>
-        <a href="shop.html?brand=burberry" class="brand-tile reveal" style="--delay:640ms" data-filter-brand="burberry">BURBERRY</a>
-        <a href="shop.html?brand=marc-jacobs" class="brand-tile reveal" style="--delay:660ms" data-filter-brand="marc-jacobs">MARC JACOBS</a>
-        <a href="shop.html?brand=chloe" class="brand-tile reveal" style="--delay:680ms" data-filter-brand="chloe">CHLOE</a>
-        <a href="shop.html?brand=tiffany-co" class="brand-tile reveal" style="--delay:700ms" data-filter-brand="tiffany-co">TIFFANY &amp; CO.</a>
-        <a href="shop.html?brand=hugo-boss" class="brand-tile reveal" style="--delay:720ms" data-filter-brand="hugo-boss">HUGO BOSS</a>
-        <a href="shop.html?brand=ck" class="brand-tile reveal" style="--delay:740ms" data-filter-brand="ck">CALVIN KLEIN</a>
-        <a href="shop.html?brand=michael-kors" class="brand-tile reveal" style="--delay:760ms" data-filter-brand="michael-kors">MICHAEL KORS</a>
-        <a href="shop.html?brand=salvatore-ferragamo" class="brand-tile reveal" style="--delay:780ms" data-filter-brand="salvatore-ferragamo">SALVATORE FERRAGAMO</a>
-        <a href="shop.html?brand=kenzo" class="brand-tile reveal" style="--delay:800ms" data-filter-brand="kenzo">KENZO</a>
-        <a href="shop.html?brand=lacoste" class="brand-tile reveal" style="--delay:820ms" data-filter-brand="lacoste">LACOSTE</a>
-        <a href="shop.html?brand=guess" class="brand-tile reveal" style="--delay:840ms" data-filter-brand="guess">GUESS</a>
-        <a href="shop.html?brand=abercrombie-fitch" class="brand-tile reveal" style="--delay:860ms" data-filter-brand="abercrombie-fitch">ABERCROMBIE &amp; FITCH</a>
-        <a href="shop.html?brand=oscar-de-la-renta" class="brand-tile reveal" style="--delay:880ms" data-filter-brand="oscar-de-la-renta">OSCAR DE LA RENTA</a>
-        <a href="shop.html?brand=karl-lagerfeld" class="brand-tile reveal" style="--delay:900ms" data-filter-brand="karl-lagerfeld">KARL LAGERFELD</a>
-        <a href="shop.html?brand=cartier" class="brand-tile reveal" style="--delay:910ms" data-filter-brand="cartier">CARTIER</a>
-        <a href="shop.html?brand=guerlain" class="brand-tile reveal" style="--delay:920ms" data-filter-brand="guerlain">GUERLAIN</a>
-        <a href="shop.html?brand=estee-lauder" class="brand-tile reveal" style="--delay:920ms" data-filter-brand="estee-lauder">ESTEE LAUDER</a>
-        <a href="shop.html?brand=elizabeth-arden" class="brand-tile reveal" style="--delay:940ms" data-filter-brand="elizabeth-arden">ELIZABETH ARDEN</a>
-        <a href="shop.html?brand=elizabeth-taylor" class="brand-tile reveal" style="--delay:960ms" data-filter-brand="elizabeth-taylor">ELIZABETH TAYLOR</a>
-        <a href="shop.html?brand=ariana-grande" class="brand-tile reveal" style="--delay:980ms" data-filter-brand="ariana-grande">ARIANA GRANDE</a>
-        <a href="shop.html?brand=billie-eilish" class="brand-tile reveal" style="--delay:1000ms" data-filter-brand="billie-eilish">BILLIE EILISH</a>
-        <a href="shop.html?brand=sabrina-carpenter" class="brand-tile reveal" style="--delay:1020ms" data-filter-brand="sabrina-carpenter">SABRINA CARPENTER</a>
-        <a href="shop.html?brand=paris-hilton" class="brand-tile reveal" style="--delay:1030ms" data-filter-brand="paris-hilton">PARIS HILTON</a>
-        <a href="shop.html?brand=shakira" class="brand-tile reveal" style="--delay:1035ms" data-filter-brand="shakira">SHAKIRA</a>
-        <a href="shop.html?brand=antonio-banderas" class="brand-tile reveal" style="--delay:1038ms" data-filter-brand="antonio-banderas">ANTONIO BANDERAS</a>
-        <a href="shop.html?brand=lattafa" class="brand-tile reveal" style="--delay:1040ms" data-filter-brand="lattafa">LATTAFA</a>
-        <a href="shop.html?brand=armaf" class="brand-tile reveal" style="--delay:1060ms" data-filter-brand="armaf">ARMAF</a>
-        <a href="shop.html?brand=afnan" class="brand-tile reveal" style="--delay:1080ms" data-filter-brand="afnan">AFNAN</a>
-        <a href="shop.html?brand=alharamain" class="brand-tile reveal" style="--delay:1100ms" data-filter-brand="alharamain">AL HARAMAIN</a>
-        <a href="shop.html?brand=bond-no-9" class="brand-tile reveal" style="--delay:1120ms" data-filter-brand="bond-no-9">BOND NO. 9</a>
+    </div>
+  </section>
+
+  <!-- ── AI FRAGRANCE FINDER ─────────────────────────── -->
+  <section class="ai-finder" id="finder" aria-labelledby="aiFinderTitle">
+    <div class="ai-finder-bg" aria-hidden="true">
+      <div class="ai-orb ai-orb-1"></div>
+      <div class="ai-orb ai-orb-2"></div>
+    </div>
+    <div class="container">
+      <div class="ai-finder-inner">
+
+        <div class="ai-header reveal" id="aiHeader">
+          <p class="section-eyebrow">Powered by Intelligence</p>
+          <h2 class="section-title" id="aiFinderTitle">Find Your <em>Signature Scent</em></h2>
+          <p class="ai-intro">Answer six quick questions and our scent-matching intelligence will build a curated shortlist from our entire collection—refined with your saved preferences if you're signed in.</p>
+          <button class="btn-gold" id="aiStart" type="button">Begin the Discovery</button>
+        </div>
+
+        <div class="ai-quiz" id="aiQuiz" aria-live="polite" hidden>
+          <div class="ai-progress-row">
+            <div class="ai-progress-bar" role="progressbar" aria-valuenow="17" aria-valuemin="0" aria-valuemax="100">
+              <div class="ai-progress-fill" id="aiProgressFill" style="width:17%"></div>
+            </div>
+            <span class="ai-progress-label" id="aiProgressLabel">Step 1 of 6</span>
+          </div>
+
+          <div class="ai-panel" data-step="0">
+            <h3 class="ai-question">When do you typically wear fragrance?</h3>
+            <div class="ai-options">
+              <button class="ai-option" type="button" data-key="when" data-val="day">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                <strong>Daytime &amp; Work</strong>
+                <em>Fresh, light, professional</em>
+              </button>
+              <button class="ai-option" type="button" data-key="when" data-val="evening">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                <strong>Evening &amp; Occasions</strong>
+                <em>Rich, deep, memorable</em>
+              </button>
+              <button class="ai-option" type="button" data-key="when" data-val="any">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                <strong>All Day, Any Occasion</strong>
+                <em>Versatile and balanced</em>
+              </button>
+            </div>
+          </div>
+
+          <div class="ai-panel" data-step="1" hidden>
+            <h3 class="ai-question">Which scent characters speak to you? <span class="ai-question-hint">(pick as many as you like)</span></h3>
+            <div class="ai-options ai-options-8" data-multi="true">
+              <button class="ai-option" type="button" data-key="style" data-val="fresh">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 9 9"/><path d="M12 3c-2 4-2 14 0 18"/><path d="M3 12c4-2 14-2 18 0"/></svg>
+                <strong>Fresh</strong>
+                <em>Crisp citrus, clean air</em>
+              </button>
+              <button class="ai-option" type="button" data-key="style" data-val="floral">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="3"/><path d="M12 9a3 3 0 0 1 0-6 3 3 0 0 1 0 6z"/><path d="M12 15a3 3 0 0 1 0 6 3 3 0 0 1 0-6z"/><path d="M9 12a3 3 0 0 1-6 0 3 3 0 0 1 6 0z"/><path d="M15 12a3 3 0 0 1 6 0 3 3 0 0 1-6 0z"/></svg>
+                <strong>Floral</strong>
+                <em>Rose, jasmine, soft petals</em>
+              </button>
+              <button class="ai-option" type="button" data-key="style" data-val="oriental">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 2a9 9 0 0 1 0 18 9 9 0 0 1 0-18"/><path d="M12 6v6l3 3"/></svg>
+                <strong>Oriental</strong>
+                <em>Spice, amber, incense</em>
+              </button>
+              <button class="ai-option" type="button" data-key="style" data-val="woody">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 2 4 14h5l-3 8 12-14h-5l3-6z"/></svg>
+                <strong>Woody</strong>
+                <em>Cedar, sandalwood, vetiver</em>
+              </button>
+              <button class="ai-option" type="button" data-key="style" data-val="gourmand">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M4 12a8 8 0 0 1 16 0z"/><path d="M2 12h20"/><path d="M4 12v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+                <strong>Gourmand</strong>
+                <em>Vanilla, caramel, sweetness</em>
+              </button>
+              <button class="ai-option" type="button" data-key="style" data-val="fruity">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="9" cy="14" r="6"/><circle cx="17" cy="14" r="4"/><path d="M9 8V4c0-1 1-2 3-2"/></svg>
+                <strong>Fruity</strong>
+                <em>Berries, stone fruit, zest</em>
+              </button>
+              <button class="ai-option" type="button" data-key="style" data-val="aquatic">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 16c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/><path d="M2 20c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/><path d="M12 3v9"/></svg>
+                <strong>Aquatic</strong>
+                <em>Ocean air, sea salt, rain</em>
+              </button>
+              <button class="ai-option" type="button" data-key="style" data-val="chypre">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <strong>Chypre</strong>
+                <em>Moss, patchouli, bergamot</em>
+              </button>
+            </div>
+            <button class="btn-gold ai-panel-continue" type="button" disabled>Continue</button>
+          </div>
+
+          <div class="ai-panel" data-step="2" hidden>
+            <h3 class="ai-question">What is your preferred investment?</h3>
+            <div class="ai-options ai-options-4">
+              <button class="ai-option" type="button" data-key="budget" data-val="under-60">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                <strong>Under $60</strong>
+                <em>Everyday discovery</em>
+              </button>
+              <button class="ai-option" type="button" data-key="budget" data-val="61-100">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
+                <strong>$61 – $100</strong>
+                <em>Everyday luxury</em>
+              </button>
+              <button class="ai-option" type="button" data-key="budget" data-val="101-200">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <strong>$101 – $200</strong>
+                <em>Refined collector</em>
+              </button>
+              <button class="ai-option" type="button" data-key="budget" data-val="201-plus">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 2 4 14h5l-3 8 12-14h-5l3-6z"/></svg>
+                <strong>$201 &amp; Above</strong>
+                <em>Rare &amp; exclusive</em>
+              </button>
+            </div>
+          </div>
+
+          <div class="ai-panel" data-step="3" hidden>
+            <h3 class="ai-question">What are you shopping for?</h3>
+            <div class="ai-options ai-options-4">
+              <button class="ai-option" type="button" data-key="category" data-val="fragrance">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M9 2h6v4l2 2v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8l2-2z"/><path d="M9 8h6"/></svg>
+                <strong>Fragrance</strong>
+                <em>Eau de parfum &amp; toilette</em>
+              </button>
+              <button class="ai-option" type="button" data-key="category" data-val="mist">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 3v6"/><path d="M8 6l1.5 3M16 6l-1.5 3"/><path d="M6 21c0-4 2.7-6 6-6s6 2 6 6"/></svg>
+                <strong>Perfume Mist</strong>
+                <em>Hair &amp; body sprays</em>
+              </button>
+              <button class="ai-option" type="button" data-key="category" data-val="body-care">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="7" y="8" width="10" height="14" rx="2"/><path d="M10 8V5a2 2 0 0 1 4 0v3"/></svg>
+                <strong>Body Care</strong>
+                <em>Lotions, creams &amp; oils</em>
+              </button>
+              <button class="ai-option" type="button" data-key="category" data-val="any">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+                <strong>Surprise Me</strong>
+                <em>Show me everything</em>
+              </button>
+            </div>
+          </div>
+
+          <div class="ai-panel" data-step="4" hidden>
+            <h3 class="ai-question">Which fragrance profile suits you?</h3>
+            <div class="ai-options ai-options-3">
+              <button class="ai-option" type="button" data-key="gender" data-val="masculine">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="10" cy="14" r="6"/><path d="M20 4l-6 6"/><path d="M14 4h6v6"/></svg>
+                <strong>Masculine</strong>
+                <em>Bold and confident</em>
+              </button>
+              <button class="ai-option" type="button" data-key="gender" data-val="feminine">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="9" r="6"/><path d="M12 15v6"/><path d="M9 18h6"/></svg>
+                <strong>Feminine</strong>
+                <em>Elegant and radiant</em>
+              </button>
+              <button class="ai-option" type="button" data-key="gender" data-val="any">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+                <strong>Unisex</strong>
+                <em>Beyond convention</em>
+              </button>
+            </div>
+          </div>
+
+          <div class="ai-panel" data-step="5" hidden>
+            <h3 class="ai-question">What impression should your scent leave?</h3>
+            <div class="ai-options ai-options-4">
+              <button class="ai-option" type="button" data-key="impression" data-val="clean">
+                <strong>Clean &amp; Effortless</strong>
+                <em>Bright, airy, polished</em>
+              </button>
+              <button class="ai-option" type="button" data-key="impression" data-val="romantic">
+                <strong>Romantic &amp; Magnetic</strong>
+                <em>Soft petals, warm skin</em>
+              </button>
+              <button class="ai-option" type="button" data-key="impression" data-val="bold">
+                <strong>Bold &amp; Mysterious</strong>
+                <em>Dark woods, spice, depth</em>
+              </button>
+              <button class="ai-option" type="button" data-key="impression" data-val="cozy">
+                <strong>Warm &amp; Addictive</strong>
+                <em>Vanilla, amber, comfort</em>
+              </button>
+            </div>
+          </div>
+
+          <div class="ai-panel ai-panel-results" data-step="results" hidden>
+            <h3 class="ai-question">Your Curated Matches</h3>
+            <p class="ai-results-sub" id="aiResultsSub">Based on your preferences, we recommend:</p>
+            <div class="new-arrivals-grid ai-results" id="aiResults"></div>
+            <div class="ai-save-profile" id="aiSaveProfile" hidden>
+              <span class="personalize-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
+              <div class="ai-save-copy">
+                <strong id="aiSaveTitle">Save Your Scent Profile</strong>
+                <span id="aiSaveText">Create a free account and we’ll keep these answers, so personalized recommendations are waiting every time you visit.</span>
+              </div>
+              <button type="button" class="btn-gold" id="aiSaveBtn">Create Free Account</button>
+            </div>
+            <div class="ai-result-actions">
+              <button class="btn-ghost ai-retake" id="aiRetake" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                Retake the Quiz
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -3823,206 +4009,74 @@
     </div>
   </section>
 
-  <!-- ── AI FRAGRANCE FINDER ─────────────────────────── -->
-  <section class="ai-finder" id="finder" aria-labelledby="aiFinderTitle">
-    <div class="ai-finder-bg" aria-hidden="true">
-      <div class="ai-orb ai-orb-1"></div>
-      <div class="ai-orb ai-orb-2"></div>
-    </div>
+  <!-- ── BRANDS ─────────────────────────────────────── -->
+  <section class="brands" id="brands">
     <div class="container">
-      <div class="ai-finder-inner">
-
-        <div class="ai-header reveal" id="aiHeader">
-          <p class="section-eyebrow">Powered by Intelligence</p>
-          <h2 class="section-title" id="aiFinderTitle">Find Your <em>Signature Scent</em></h2>
-          <p class="ai-intro">Answer six quick questions and our scent-matching intelligence will build a curated shortlist from our entire collection—refined with your saved preferences if you're signed in.</p>
-          <button class="btn-gold" id="aiStart" type="button">Begin the Discovery</button>
-        </div>
-
-        <div class="ai-quiz" id="aiQuiz" aria-live="polite" hidden>
-          <div class="ai-progress-row">
-            <div class="ai-progress-bar" role="progressbar" aria-valuenow="17" aria-valuemin="0" aria-valuemax="100">
-              <div class="ai-progress-fill" id="aiProgressFill" style="width:17%"></div>
-            </div>
-            <span class="ai-progress-label" id="aiProgressLabel">Step 1 of 6</span>
-          </div>
-
-          <div class="ai-panel" data-step="0">
-            <h3 class="ai-question">When do you typically wear fragrance?</h3>
-            <div class="ai-options">
-              <button class="ai-option" type="button" data-key="when" data-val="day">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                <strong>Daytime &amp; Work</strong>
-                <em>Fresh, light, professional</em>
-              </button>
-              <button class="ai-option" type="button" data-key="when" data-val="evening">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                <strong>Evening &amp; Occasions</strong>
-                <em>Rich, deep, memorable</em>
-              </button>
-              <button class="ai-option" type="button" data-key="when" data-val="any">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                <strong>All Day, Any Occasion</strong>
-                <em>Versatile and balanced</em>
-              </button>
-            </div>
-          </div>
-
-          <div class="ai-panel" data-step="1" hidden>
-            <h3 class="ai-question">Which scent characters speak to you? <span class="ai-question-hint">(pick as many as you like)</span></h3>
-            <div class="ai-options ai-options-8" data-multi="true">
-              <button class="ai-option" type="button" data-key="style" data-val="fresh">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 9 9"/><path d="M12 3c-2 4-2 14 0 18"/><path d="M3 12c4-2 14-2 18 0"/></svg>
-                <strong>Fresh</strong>
-                <em>Crisp citrus, clean air</em>
-              </button>
-              <button class="ai-option" type="button" data-key="style" data-val="floral">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="3"/><path d="M12 9a3 3 0 0 1 0-6 3 3 0 0 1 0 6z"/><path d="M12 15a3 3 0 0 1 0 6 3 3 0 0 1 0-6z"/><path d="M9 12a3 3 0 0 1-6 0 3 3 0 0 1 6 0z"/><path d="M15 12a3 3 0 0 1 6 0 3 3 0 0 1-6 0z"/></svg>
-                <strong>Floral</strong>
-                <em>Rose, jasmine, soft petals</em>
-              </button>
-              <button class="ai-option" type="button" data-key="style" data-val="oriental">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 2a9 9 0 0 1 0 18 9 9 0 0 1 0-18"/><path d="M12 6v6l3 3"/></svg>
-                <strong>Oriental</strong>
-                <em>Spice, amber, incense</em>
-              </button>
-              <button class="ai-option" type="button" data-key="style" data-val="woody">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 2 4 14h5l-3 8 12-14h-5l3-6z"/></svg>
-                <strong>Woody</strong>
-                <em>Cedar, sandalwood, vetiver</em>
-              </button>
-              <button class="ai-option" type="button" data-key="style" data-val="gourmand">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M4 12a8 8 0 0 1 16 0z"/><path d="M2 12h20"/><path d="M4 12v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-                <strong>Gourmand</strong>
-                <em>Vanilla, caramel, sweetness</em>
-              </button>
-              <button class="ai-option" type="button" data-key="style" data-val="fruity">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="9" cy="14" r="6"/><circle cx="17" cy="14" r="4"/><path d="M9 8V4c0-1 1-2 3-2"/></svg>
-                <strong>Fruity</strong>
-                <em>Berries, stone fruit, zest</em>
-              </button>
-              <button class="ai-option" type="button" data-key="style" data-val="aquatic">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 16c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/><path d="M2 20c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/><path d="M12 3v9"/></svg>
-                <strong>Aquatic</strong>
-                <em>Ocean air, sea salt, rain</em>
-              </button>
-              <button class="ai-option" type="button" data-key="style" data-val="chypre">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                <strong>Chypre</strong>
-                <em>Moss, patchouli, bergamot</em>
-              </button>
-            </div>
-            <button class="btn-gold ai-panel-continue" type="button" disabled>Continue</button>
-          </div>
-
-          <div class="ai-panel" data-step="2" hidden>
-            <h3 class="ai-question">What is your preferred investment?</h3>
-            <div class="ai-options ai-options-4">
-              <button class="ai-option" type="button" data-key="budget" data-val="under-60">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                <strong>Under $60</strong>
-                <em>Everyday discovery</em>
-              </button>
-              <button class="ai-option" type="button" data-key="budget" data-val="61-100">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
-                <strong>$61 – $100</strong>
-                <em>Everyday luxury</em>
-              </button>
-              <button class="ai-option" type="button" data-key="budget" data-val="101-200">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                <strong>$101 – $200</strong>
-                <em>Refined collector</em>
-              </button>
-              <button class="ai-option" type="button" data-key="budget" data-val="201-plus">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 2 4 14h5l-3 8 12-14h-5l3-6z"/></svg>
-                <strong>$201 &amp; Above</strong>
-                <em>Rare &amp; exclusive</em>
-              </button>
-            </div>
-          </div>
-
-          <div class="ai-panel" data-step="3" hidden>
-            <h3 class="ai-question">What are you shopping for?</h3>
-            <div class="ai-options ai-options-4">
-              <button class="ai-option" type="button" data-key="category" data-val="fragrance">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M9 2h6v4l2 2v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8l2-2z"/><path d="M9 8h6"/></svg>
-                <strong>Fragrance</strong>
-                <em>Eau de parfum &amp; toilette</em>
-              </button>
-              <button class="ai-option" type="button" data-key="category" data-val="mist">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 3v6"/><path d="M8 6l1.5 3M16 6l-1.5 3"/><path d="M6 21c0-4 2.7-6 6-6s6 2 6 6"/></svg>
-                <strong>Perfume Mist</strong>
-                <em>Hair &amp; body sprays</em>
-              </button>
-              <button class="ai-option" type="button" data-key="category" data-val="body-care">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="7" y="8" width="10" height="14" rx="2"/><path d="M10 8V5a2 2 0 0 1 4 0v3"/></svg>
-                <strong>Body Care</strong>
-                <em>Lotions, creams &amp; oils</em>
-              </button>
-              <button class="ai-option" type="button" data-key="category" data-val="any">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
-                <strong>Surprise Me</strong>
-                <em>Show me everything</em>
-              </button>
-            </div>
-          </div>
-
-          <div class="ai-panel" data-step="4" hidden>
-            <h3 class="ai-question">Which fragrance profile suits you?</h3>
-            <div class="ai-options ai-options-3">
-              <button class="ai-option" type="button" data-key="gender" data-val="masculine">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="10" cy="14" r="6"/><path d="M20 4l-6 6"/><path d="M14 4h6v6"/></svg>
-                <strong>Masculine</strong>
-                <em>Bold and confident</em>
-              </button>
-              <button class="ai-option" type="button" data-key="gender" data-val="feminine">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="9" r="6"/><path d="M12 15v6"/><path d="M9 18h6"/></svg>
-                <strong>Feminine</strong>
-                <em>Elegant and radiant</em>
-              </button>
-              <button class="ai-option" type="button" data-key="gender" data-val="any">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
-                <strong>Unisex</strong>
-                <em>Beyond convention</em>
-              </button>
-            </div>
-          </div>
-
-          <div class="ai-panel" data-step="5" hidden>
-            <h3 class="ai-question">What impression should your scent leave?</h3>
-            <div class="ai-options ai-options-4">
-              <button class="ai-option" type="button" data-key="impression" data-val="clean">
-                <strong>Clean &amp; Effortless</strong>
-                <em>Bright, airy, polished</em>
-              </button>
-              <button class="ai-option" type="button" data-key="impression" data-val="romantic">
-                <strong>Romantic &amp; Magnetic</strong>
-                <em>Soft petals, warm skin</em>
-              </button>
-              <button class="ai-option" type="button" data-key="impression" data-val="bold">
-                <strong>Bold &amp; Mysterious</strong>
-                <em>Dark woods, spice, depth</em>
-              </button>
-              <button class="ai-option" type="button" data-key="impression" data-val="cozy">
-                <strong>Warm &amp; Addictive</strong>
-                <em>Vanilla, amber, comfort</em>
-              </button>
-            </div>
-          </div>
-
-          <div class="ai-panel ai-panel-results" data-step="results" hidden>
-            <h3 class="ai-question">Your Curated Matches</h3>
-            <p class="ai-results-sub" id="aiResultsSub">Based on your preferences, we recommend:</p>
-            <div class="new-arrivals-grid ai-results" id="aiResults"></div>
-            <div class="ai-result-actions">
-              <button class="btn-ghost ai-retake" id="aiRetake" type="button">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                Retake the Quiz
-              </button>
-            </div>
-          </div>
-        </div>
-
+      <div class="section-header reveal">
+        <p class="section-eyebrow">Designer Houses</p>
+        <h2 class="section-title">Shop by Brand</h2>
+      </div>
+      <div class="brands-grid">
+        <a href="shop.html?brand=dior" class="brand-tile reveal" style="--delay:0ms" data-filter-brand="dior">DIOR</a>
+        <a href="shop.html?brand=chanel" class="brand-tile reveal" style="--delay:20ms" data-filter-brand="chanel">CHANEL</a>
+        <a href="shop.html?brand=ysl" class="brand-tile reveal" style="--delay:40ms" data-filter-brand="ysl">YVES SAINT LAURENT</a>
+        <a href="shop.html?brand=givenchy" class="brand-tile reveal" style="--delay:60ms" data-filter-brand="givenchy">GIVENCHY</a>
+        <a href="shop.html?brand=hermes" class="brand-tile reveal" style="--delay:80ms" data-filter-brand="hermes">HERMÈS</a>
+        <a href="shop.html?brand=bvlgari" class="brand-tile reveal" style="--delay:100ms" data-filter-brand="bvlgari">BVLGARI</a>
+        <a href="shop.html?brand=sol-de-janeiro" class="brand-tile reveal" style="--delay:160ms" data-filter-brand="sol-de-janeiro">SOL DE JANEIRO</a>
+        <a href="shop.html?brand=narciso-rodriguez" class="brand-tile reveal" style="--delay:180ms" data-filter-brand="narciso-rodriguez">NARCISO RODRIGUEZ</a>
+        <a href="shop.html?brand=issey-miyake" class="brand-tile reveal" style="--delay:200ms" data-filter-brand="issey-miyake">ISSEY MIYAKE</a>
+        <a href="shop.html?brand=dolce-gabbana" class="brand-tile reveal" style="--delay:220ms" data-filter-brand="dolce-gabbana">DOLCE &amp; GABBANA</a>
+        <a href="shop.html?brand=versace" class="brand-tile reveal" style="--delay:240ms" data-filter-brand="versace">VERSACE</a>
+        <a href="shop.html?brand=coach" class="brand-tile reveal" style="--delay:260ms" data-filter-brand="coach">COACH</a>
+        <a href="shop.html?brand=moschino" class="brand-tile reveal" style="--delay:280ms" data-filter-brand="moschino">MOSCHINO</a>
+        <a href="shop.html?brand=kate-spade" class="brand-tile reveal" style="--delay:300ms" data-filter-brand="kate-spade">KATE SPADE</a>
+        <a href="shop.html?brand=montblanc" class="brand-tile reveal" style="--delay:320ms" data-filter-brand="montblanc">MONTBLANC</a>
+        <a href="shop.html?brand=jimmy-choo" class="brand-tile reveal" style="--delay:340ms" data-filter-brand="jimmy-choo">JIMMY CHOO</a>
+        <a href="shop.html?brand=tory-burch" class="brand-tile reveal" style="--delay:360ms" data-filter-brand="tory-burch">TORY BURCH</a>
+        <a href="shop.html?brand=rabanne" class="brand-tile reveal" style="--delay:380ms" data-filter-brand="rabanne">RABANNE</a>
+        <a href="shop.html?brand=carolina-herrera" class="brand-tile reveal" style="--delay:400ms" data-filter-brand="carolina-herrera">CAROLINA HERRERA</a>
+        <a href="shop.html?brand=jean-paul-gaultier" class="brand-tile reveal" style="--delay:420ms" data-filter-brand="jean-paul-gaultier">JEAN PAUL GAULTIER</a>
+        <a href="shop.html?brand=valentino" class="brand-tile reveal" style="--delay:440ms" data-filter-brand="valentino">VALENTINO</a>
+        <a href="shop.html?brand=prada" class="brand-tile reveal" style="--delay:460ms" data-filter-brand="prada">PRADA</a>
+        <a href="shop.html?brand=mugler" class="brand-tile reveal" style="--delay:480ms" data-filter-brand="mugler">MUGLER</a>
+        <a href="shop.html?brand=miu-miu" class="brand-tile reveal" style="--delay:500ms" data-filter-brand="miu-miu">MIU MIU</a>
+        <a href="shop.html?brand=viktor-rolf" class="brand-tile reveal" style="--delay:520ms" data-filter-brand="viktor-rolf">VIKTOR &amp; ROLF</a>
+        <a href="shop.html?brand=azzaro" class="brand-tile reveal" style="--delay:540ms" data-filter-brand="azzaro">AZZARO</a>
+        <a href="shop.html?brand=armani" class="brand-tile reveal" style="--delay:560ms" data-filter-brand="armani">ARMANI</a>
+        <a href="shop.html?brand=ralph-lauren" class="brand-tile reveal" style="--delay:580ms" data-filter-brand="ralph-lauren">RALPH LAUREN</a>
+        <a href="shop.html?brand=lancome" class="brand-tile reveal" style="--delay:600ms" data-filter-brand="lancome">LANCÔME</a>
+        <a href="shop.html?brand=gucci" class="brand-tile reveal" style="--delay:620ms" data-filter-brand="gucci">GUCCI</a>
+        <a href="shop.html?brand=burberry" class="brand-tile reveal" style="--delay:640ms" data-filter-brand="burberry">BURBERRY</a>
+        <a href="shop.html?brand=marc-jacobs" class="brand-tile reveal" style="--delay:660ms" data-filter-brand="marc-jacobs">MARC JACOBS</a>
+        <a href="shop.html?brand=chloe" class="brand-tile reveal" style="--delay:680ms" data-filter-brand="chloe">CHLOE</a>
+        <a href="shop.html?brand=tiffany-co" class="brand-tile reveal" style="--delay:700ms" data-filter-brand="tiffany-co">TIFFANY &amp; CO.</a>
+        <a href="shop.html?brand=hugo-boss" class="brand-tile reveal" style="--delay:720ms" data-filter-brand="hugo-boss">HUGO BOSS</a>
+        <a href="shop.html?brand=ck" class="brand-tile reveal" style="--delay:740ms" data-filter-brand="ck">CALVIN KLEIN</a>
+        <a href="shop.html?brand=michael-kors" class="brand-tile reveal" style="--delay:760ms" data-filter-brand="michael-kors">MICHAEL KORS</a>
+        <a href="shop.html?brand=salvatore-ferragamo" class="brand-tile reveal" style="--delay:780ms" data-filter-brand="salvatore-ferragamo">SALVATORE FERRAGAMO</a>
+        <a href="shop.html?brand=kenzo" class="brand-tile reveal" style="--delay:800ms" data-filter-brand="kenzo">KENZO</a>
+        <a href="shop.html?brand=lacoste" class="brand-tile reveal" style="--delay:820ms" data-filter-brand="lacoste">LACOSTE</a>
+        <a href="shop.html?brand=guess" class="brand-tile reveal" style="--delay:840ms" data-filter-brand="guess">GUESS</a>
+        <a href="shop.html?brand=abercrombie-fitch" class="brand-tile reveal" style="--delay:860ms" data-filter-brand="abercrombie-fitch">ABERCROMBIE &amp; FITCH</a>
+        <a href="shop.html?brand=oscar-de-la-renta" class="brand-tile reveal" style="--delay:880ms" data-filter-brand="oscar-de-la-renta">OSCAR DE LA RENTA</a>
+        <a href="shop.html?brand=karl-lagerfeld" class="brand-tile reveal" style="--delay:900ms" data-filter-brand="karl-lagerfeld">KARL LAGERFELD</a>
+        <a href="shop.html?brand=cartier" class="brand-tile reveal" style="--delay:910ms" data-filter-brand="cartier">CARTIER</a>
+        <a href="shop.html?brand=guerlain" class="brand-tile reveal" style="--delay:920ms" data-filter-brand="guerlain">GUERLAIN</a>
+        <a href="shop.html?brand=estee-lauder" class="brand-tile reveal" style="--delay:920ms" data-filter-brand="estee-lauder">ESTEE LAUDER</a>
+        <a href="shop.html?brand=elizabeth-arden" class="brand-tile reveal" style="--delay:940ms" data-filter-brand="elizabeth-arden">ELIZABETH ARDEN</a>
+        <a href="shop.html?brand=elizabeth-taylor" class="brand-tile reveal" style="--delay:960ms" data-filter-brand="elizabeth-taylor">ELIZABETH TAYLOR</a>
+        <a href="shop.html?brand=ariana-grande" class="brand-tile reveal" style="--delay:980ms" data-filter-brand="ariana-grande">ARIANA GRANDE</a>
+        <a href="shop.html?brand=billie-eilish" class="brand-tile reveal" style="--delay:1000ms" data-filter-brand="billie-eilish">BILLIE EILISH</a>
+        <a href="shop.html?brand=sabrina-carpenter" class="brand-tile reveal" style="--delay:1020ms" data-filter-brand="sabrina-carpenter">SABRINA CARPENTER</a>
+        <a href="shop.html?brand=paris-hilton" class="brand-tile reveal" style="--delay:1030ms" data-filter-brand="paris-hilton">PARIS HILTON</a>
+        <a href="shop.html?brand=shakira" class="brand-tile reveal" style="--delay:1035ms" data-filter-brand="shakira">SHAKIRA</a>
+        <a href="shop.html?brand=antonio-banderas" class="brand-tile reveal" style="--delay:1038ms" data-filter-brand="antonio-banderas">ANTONIO BANDERAS</a>
+        <a href="shop.html?brand=lattafa" class="brand-tile reveal" style="--delay:1040ms" data-filter-brand="lattafa">LATTAFA</a>
+        <a href="shop.html?brand=armaf" class="brand-tile reveal" style="--delay:1060ms" data-filter-brand="armaf">ARMAF</a>
+        <a href="shop.html?brand=afnan" class="brand-tile reveal" style="--delay:1080ms" data-filter-brand="afnan">AFNAN</a>
+        <a href="shop.html?brand=alharamain" class="brand-tile reveal" style="--delay:1100ms" data-filter-brand="alharamain">AL HARAMAIN</a>
+        <a href="shop.html?brand=bond-no-9" class="brand-tile reveal" style="--delay:1120ms" data-filter-brand="bond-no-9">BOND NO. 9</a>
       </div>
     </div>
   </section>
@@ -4154,45 +4208,6 @@
         </div>
       </div>
       <div class="process-cta reveal"><a href="shop.html" class="btn-gold">Shop Fragrances</a></div>
-    </div>
-  </section>
-
-  <!-- ── TESTIMONIALS ──────────────────────────────── -->
-  <section class="testimonials" aria-labelledby="testimonialsTitle">
-    <div class="container">
-      <div class="section-header reveal">
-        <p class="section-eyebrow">Loved in St. Thomas</p>
-        <h2 class="section-title" id="testimonialsTitle">What Our Customers Say</h2>
-      </div>
-      <div class="testimonials-columns reveal" aria-label="Customer testimonials">
-        <div class="testimonial-column">
-          <div class="testimonial-column-track" style="--testimonial-duration:22s">
-            <div class="testimonial-group">
-              <article class="testimonial-card"><div class="testimonial-stars" aria-label="5 out of 5 stars">★★★★★</div><p>“The team took time to learn what I normally wear and introduced me to a fragrance I never would have chosen on my own. It is now my signature.”</p><div class="testimonial-author"><div class="author-avatar av-1">M</div><div><strong>Maria R.</strong><span>St. Thomas resident</span></div></div></article>
-              <article class="testimonial-card"><div class="testimonial-stars" aria-label="5 out of 5 stars">★★★★★</div><p>“Ordering online and picking up at Havensight was effortless. My confirmation had everything I needed, and the order was ready when promised.”</p><div class="testimonial-author"><div class="author-avatar av-2">D</div><div><strong>Danielle P.</strong><span>Local pickup customer</span></div></div></article>
-              <article class="testimonial-card"><div class="testimonial-stars" aria-label="5 out of 5 stars">★★★★★</div><p>“A beautiful selection and genuinely warm service. You can tell this is a family business that cares about every person who walks in.”</p><div class="testimonial-author"><div class="author-avatar av-3">K</div><div><strong>Kevin A.</strong><span>Charlotte Amalie</span></div></div></article>
-            </div>
-          </div>
-        </div>
-        <div class="testimonial-column testimonial-column-secondary">
-          <div class="testimonial-column-track testimonial-column-reverse" style="--testimonial-duration:27s">
-            <div class="testimonial-group">
-              <article class="testimonial-card"><div class="testimonial-stars" aria-label="5 out of 5 stars">★★★★★</div><p>“I needed a gift but did not know where to begin. They asked a few simple questions and helped me choose the perfect Sol de Janeiro set.”</p><div class="testimonial-author"><div class="author-avatar av-2">A</div><div><strong>Alicia T.</strong><span>Gift shopper</span></div></div></article>
-              <article class="testimonial-card"><div class="testimonial-stars" aria-label="5 out of 5 stars">★★★★★</div><p>“The Bond No. 9 collection was impressive, and the staff explained the notes without making the experience feel overwhelming.”</p><div class="testimonial-author"><div class="author-avatar av-3">J</div><div><strong>Jordan M.</strong><span>Fragrance collector</span></div></div></article>
-              <article class="testimonial-card"><div class="testimonial-stars" aria-label="5 out of 5 stars">★★★★★</div><p>“I used the scent finder before visiting Perfume World. It narrowed down my choices and made testing fragrances in store so much easier.”</p><div class="testimonial-author"><div class="author-avatar av-1">N</div><div><strong>Nadia S.</strong><span>Perfume World customer</span></div></div></article>
-            </div>
-          </div>
-        </div>
-        <div class="testimonial-column testimonial-column-tertiary">
-          <div class="testimonial-column-track" style="--testimonial-duration:24s">
-            <div class="testimonial-group">
-              <article class="testimonial-card"><div class="testimonial-stars" aria-label="5 out of 5 stars">★★★★★</div><p>“We stop here whenever we visit St. Thomas. The selection is excellent, but the personal recommendations are what keep us coming back.”</p><div class="testimonial-author"><div class="author-avatar av-3">R</div><div><strong>Rachel B.</strong><span>Returning visitor</span></div></div></article>
-              <article class="testimonial-card"><div class="testimonial-stars" aria-label="5 out of 5 stars">★★★★★</div><p>“They helped me compare several sizes and concentrations instead of pushing the most expensive bottle. Honest, patient, and knowledgeable.”</p><div class="testimonial-author"><div class="author-avatar av-1">C</div><div><strong>Chris L.</strong><span>First-time customer</span></div></div></article>
-              <article class="testimonial-card"><div class="testimonial-stars" aria-label="5 out of 5 stars">★★★★★</div><p>“My pickup email included the store address and reference number, so collecting my order took only a few minutes.”</p><div class="testimonial-author"><div class="author-avatar av-2">S</div><div><strong>Shanice W.</strong><span>St. Thomas resident</span></div></div></article>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </section>
 

@@ -10,3 +10,4 @@ node_modules/
 .wrangler/
 *.log
 styles 2.css
+supabase/
