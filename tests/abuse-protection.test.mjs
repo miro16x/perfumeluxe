@@ -23,7 +23,7 @@ const mockNetwork = (siteverify) => mock.method(globalThis, 'fetch', async (url,
 const emailsSent = (fetchMock) => fetchMock.mock.calls.filter((call) => call.arguments[0] !== SITEVERIFY).length;
 
 test('an order without a Turnstile token is rejected before any email', async () => {
-  const fetchMock = mockNetwork(() => Response.json({ success: true, action: 'pickup-order' }));
+  const fetchMock = mockNetwork(() => Response.json({ success: true, action: 'pickup-order', hostname: 'luxeperfume.uluxe.site' }));
   assert.equal((await pickup({ request: order(), env })).status, 403);
   assert.equal(fetchMock.mock.callCount(), 0);
 });
@@ -32,7 +32,7 @@ test('a verified Turnstile token lets the order through', async () => {
   let sent;
   const fetchMock = mockNetwork((body) => {
     sent = body;
-    return Response.json({ success: true, action: 'pickup-order' });
+    return Response.json({ success: true, action: 'pickup-order', hostname: 'luxeperfume.uluxe.site' });
   });
   const response = await pickup({ request: order({ turnstileToken: 'good-token' }), env });
   assert.equal(response.status, 200);
@@ -45,7 +45,9 @@ test('a verified Turnstile token lets the order through', async () => {
 test('failed, mismatched or unreachable verification blocks the order', async () => {
   for (const siteverify of [
     () => Response.json({ success: false, 'error-codes': ['timeout-or-duplicate'] }),
-    () => Response.json({ success: true, action: 'some-other-form' }),
+    () => Response.json({ success: true, action: 'some-other-form', hostname: 'luxeperfume.uluxe.site' }),
+    () => Response.json({ success: true, action: 'pickup-order', hostname: 'other.uluxe.site' }),
+    () => new Response('Service unavailable', { status: 503 }),
     () => { throw new TypeError('network down'); }
   ]) {
     mock.method(console, 'error', () => {});
@@ -63,7 +65,7 @@ test('orders work without Turnstile until the secret is configured', async () =>
 });
 
 test('the Worker returns 429 once a visitor exceeds the rate limit', async () => {
-  const fetchMock = mockNetwork(() => Response.json({ success: true, action: 'pickup-order' }));
+  const fetchMock = mockNetwork(() => Response.json({ success: true, action: 'pickup-order', hostname: 'luxeperfume.uluxe.site' }));
   const keys = [];
   const API_RATE_LIMITER = { limit: async ({ key }) => { keys.push(key); return { success: false }; } };
   const response = await worker.fetch(order({ turnstileToken: 'token' }), { ...env, API_RATE_LIMITER }, { waitUntil() {} });
