@@ -3,6 +3,8 @@
   "name": "luxeperfume",
   "compatibility_date": "2026-08-26",
   "main": "worker.js",
+  // Keeps console logs (order failures, Turnstile rejections) in the dashboard's Logs tab.
+  "observability": { "enabled": true },
   // 10 API calls per minute per visitor IP, per route (see lib/abuse-protection.js).
   // Kept generous because cruise-ship and hotel guests can share one IP.
   "ratelimits": [
