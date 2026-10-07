@@ -17,7 +17,7 @@ const order = () => new Request('https://example.com/api/pickup-order', {
   body: JSON.stringify({
     pickupStore: 'Perfume World', customerName: 'Test Customer', email: 'customer@example.com',
     phone: '3405550100', pickupDate: '2026-09-20', pickupTime: '12:00 PM',
-    items: [{ name: 'Test fragrance', price: 50, qty: 1 }]
+    items: [{ id: 11, size: '50ml', qty: 1 }]
   })
 });
 /* Resend stand-in: `reject(payload)` decides which emails fail; returns every payload sent. */
@@ -52,7 +52,7 @@ test('an order the store never received alerts the owner with the full order', a
   assert.match(alert.subject, /ORDER NOT DELIVERED to Perfume World — LP-/);
   assert.match(alert.text, /Test Customer/);
   assert.match(alert.text, /3405550100/);
-  assert.match(alert.text, /Test fragrance/);
+  assert.match(alert.text, /Miss Dior Essence · 50ml/);
 });
 
 test('every lost order is alerted, even during an outage', async () => {

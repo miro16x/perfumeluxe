@@ -79,7 +79,7 @@ test('a placed order can be cancelled with the token it was issued', async () =>
       method: 'POST', body: JSON.stringify({
         pickupStore: 'Perfume World', customerName: 'Test Customer', email: 'customer@example.com',
         phone: '3405550100', pickupDate: '2026-09-20', pickupTime: '12:00 PM',
-        items: [{ name: 'Test fragrance', price: 50, qty: 1 }]
+        items: [{ id: 11, size: '50ml', qty: 1 }]
       })
     }),
     env
@@ -101,7 +101,7 @@ test('orders placed without the signing secret get no cancel token', async () =>
       method: 'POST', body: JSON.stringify({
         pickupStore: 'Perfume World', customerName: 'Test Customer', email: 'customer@example.com',
         phone: '3405550100', pickupDate: '2026-09-20', pickupTime: '12:00 PM',
-        items: [{ name: 'Test fragrance', price: 50, qty: 1 }]
+        items: [{ id: 11, size: '50ml', qty: 1 }]
       })
     }),
     env: { RESEND_API_KEY: 'test-key' }

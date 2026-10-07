@@ -177,6 +177,103 @@ function setupTurnstile() {
   document.head.appendChild(script);
 }
 
+/* ── DELIVERY: STORE PICKUP OR SHIPPING ─────────────────
+   /api/checkout-options says whether online payment is on, and if so offers
+   shipping (US and Puerto Rico, from Luxe Fragrances). The choice and the
+   address form are added here so every page's cart gets them. */
+let fulfillment = 'pickup';
+let checkoutOptions = null;
+let checkoutOptionsRequested = false;
+
+const checkoutLabel = () => fulfillment === 'shipping' || checkoutOptions?.payments
+  ? 'Continue to Payment'
+  : 'Place Pick-Up Order';
+
+const shippingFeeFor = (subtotal) => {
+  const rules = checkoutOptions?.shipping;
+  if (fulfillment !== 'shipping' || !rules) return 0;
+  return subtotal >= rules.freeOver ? 0 : rules.flatRate;
+};
+
+async function loadCheckoutOptions() {
+  if (checkoutOptionsRequested || !checkoutBtn || !pickupDetails) return;
+  checkoutOptionsRequested = true;
+  try {
+    const response = await fetch('/api/checkout-options', { headers: { Accept: 'application/json' } });
+    if (!response.ok) return;
+    checkoutOptions = await response.json();
+  } catch (_) {
+    return;   /* pickup keeps working without it */
+  }
+  if (checkoutOptions.shipping) setupShippingOption(checkoutOptions.shipping);
+  checkoutBtn.textContent = checkoutLabel();
+}
+
+function setupShippingOption(rules) {
+  const panel = pickupDetails.closest('.pickup-panel');
+  const heading = panel?.querySelector('.pickup-heading');
+  if (!panel || !heading || document.getElementById('fulfillmentOptions')) return;
+  const stateOptions = Object.entries(rules.states)
+    .map(([code, name]) => `<option value="${code}">${name}</option>`).join('');
+
+  heading.insertAdjacentHTML('afterend', `
+    <fieldset class="fulfillment-options" id="fulfillmentOptions">
+      <legend>How would you like your order?</legend>
+      <label class="fulfillment-option">
+        <input type="radio" name="fulfillment" value="pickup" checked>
+        <span><strong>Store pickup</strong><small>Free · St. Thomas</small></span>
+      </label>
+      <label class="fulfillment-option">
+        <input type="radio" name="fulfillment" value="shipping">
+        <span><strong>Ship to me</strong><small>U.S. &amp; Puerto Rico · $${rules.flatRate}, free over $${rules.freeOver}</small></span>
+      </label>
+    </fieldset>`);
+  pickupError.insertAdjacentHTML('beforebegin', `
+    <div class="pickup-fields shipping-fields" id="shippingFields" hidden>
+      <label><span>Street address</span><input id="shipLine1" type="text" autocomplete="shipping address-line1" placeholder="123 Main St"></label>
+      <label><span>Apt, suite, unit (optional)</span><input id="shipLine2" type="text" autocomplete="shipping address-line2"></label>
+      <label><span>City</span><input id="shipCity" type="text" autocomplete="shipping address-level2"></label>
+      <div class="pickup-fields-split">
+        <label><span>State</span><select id="shipState" autocomplete="shipping address-level1"><option value="">Select</option>${stateOptions}</select></label>
+        <label><span>ZIP code</span><input id="shipZip" type="text" inputmode="numeric" autocomplete="shipping postal-code" placeholder="00000" maxlength="10"></label>
+      </div>
+    </div>`);
+  document.querySelector('.cart-total')?.insertAdjacentHTML('beforebegin',
+    '<div class="cart-shipping" id="cartShipping" hidden><span>Shipping</span><span id="cartShippingFee"></span></div>');
+
+  const pickupNote = pickupDetails.querySelector('.pickup-note');
+  const pickupNoteText = pickupNote?.textContent;
+  const nameLabel = pickupName?.closest('label')?.querySelector('span');
+  const toggleText = pickupToggle.firstChild.textContent;
+  const kicker = heading.querySelector('.pickup-kicker');
+  const title = heading.querySelector('h3');
+  const headingText = [kicker?.textContent, title?.textContent];
+  const secure = document.querySelector('.pickup-secure');
+  const secureText = secure?.textContent;
+
+  panel.querySelectorAll('input[name="fulfillment"]').forEach((input) => input.addEventListener('change', () => {
+    fulfillment = input.value;
+    const shipping = fulfillment === 'shipping';
+    panel.querySelector('.pickup-locations').hidden = shipping;
+    pickupDay.closest('.pickup-fields').hidden = shipping;
+    heading.querySelector('.pickup-ready')?.toggleAttribute('hidden', shipping);
+    document.getElementById('shippingFields').hidden = !shipping;
+    pickupToggle.firstChild.textContent = shipping ? 'Enter shipping details ' : toggleText;
+    if (kicker) kicker.textContent = shipping ? `Ships from ${rules.fromStore}` : headingText[0];
+    if (title) title.textContent = shipping ? 'Delivered to your door' : headingText[1];
+    if (nameLabel) nameLabel.textContent = shipping ? 'Full name' : 'Pickup name';
+    if (pickupNote) {
+      pickupNote.textContent = shipping
+        ? `Shipping is $${rules.flatRate}, or free on orders of $${rules.freeOver} or more. You can cancel for a full refund within 24 hours; your order ships after that.`
+        : pickupNoteText;
+    }
+    if (secure) secure.textContent = shipping ? 'Secure payment by Stripe · Ships within the U.S. and Puerto Rico' : secureText;
+    pickupError.hidden = true;
+    checkoutBtn.textContent = checkoutLabel();
+    updateCart();
+  }));
+}
+
 if (pickupToggle && pickupDetails) {
   pickupToggle.addEventListener('click', () => {
     prefillPickupFromAccount();
@@ -197,24 +294,26 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
     pickupToggle.click();
     return;
   }
+  const shipping = fulfillment === 'shipping';
   const phoneDigits = pickupPhone.value.replace(/\D/g, '');
   const emailIsValid = pickupEmail?.checkValidity() && pickupEmail.value.trim().length > 0;
-  if (!pickupDay.value || !pickupTime.value || pickupName.value.trim().length < 2 || phoneDigits.length < 10 || !emailIsValid) {
-    pickupError.textContent = !pickupDay.value
-      ? 'Choose a pickup date from the calendar.'
-      : !pickupTime.value
-        ? 'Choose a pickup time.'
-        : pickupName.value.trim().length < 2
-          ? 'Enter the pickup person’s full name.'
-          : phoneDigits.length < 10
-            ? 'Enter a valid mobile number.'
-            : 'Enter a valid email address.';
+  const field = (id) => document.getElementById(id);
+  /* First failing check wins: [problem?, message, field to focus]. */
+  const problem = [
+    [!shipping && !pickupDay.value, 'Choose a pickup date from the calendar.', pickupDay],
+    [!shipping && !pickupTime.value, 'Choose a pickup time.', pickupTime],
+    [pickupName.value.trim().length < 2, shipping ? 'Enter your full name.' : 'Enter the pickup person’s full name.', pickupName],
+    [phoneDigits.length < 10, 'Enter a valid mobile number.', pickupPhone],
+    [!emailIsValid, 'Enter a valid email address.', pickupEmail],
+    [shipping && field('shipLine1')?.value.trim().length < 3, 'Enter your street address.', field('shipLine1')],
+    [shipping && field('shipCity')?.value.trim().length < 2, 'Enter your city.', field('shipCity')],
+    [shipping && !field('shipState')?.value, 'Choose your state.', field('shipState')],
+    [shipping && !/^\d{5}(-\d{4})?$/.test(field('shipZip')?.value.trim() || ''), 'Enter a 5-digit ZIP code.', field('shipZip')]
+  ].find(([failed]) => failed);
+  if (problem) {
+    pickupError.textContent = problem[1];
     pickupError.hidden = false;
-    (!pickupDay.value ? pickupDay
-      : !pickupTime.value ? pickupTime
-        : pickupName.value.trim().length < 2 ? pickupName
-          : phoneDigits.length < 10 ? pickupPhone
-            : pickupEmail).focus();
+    problem[2]?.focus();
     return;
   }
   setupTurnstile();
@@ -225,9 +324,27 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
     return;
   }
   pickupError.hidden = true;
-  const selectedDate =new Date(`${pickupDay.value}T12:00:00`);
+  const selectedDate = new Date(`${pickupDay.value}T12:00:00`);
   const selectedDay = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(selectedDate);
   const selectedLocation = document.querySelector('input[name="pickupLocation"]:checked').value;
+  const delivery = shipping
+    ? {
+        fulfillment: 'shipping',
+        shippingAddress: {
+          line1: field('shipLine1').value.trim(),
+          line2: field('shipLine2').value.trim(),
+          city: field('shipCity').value.trim(),
+          state: field('shipState').value,
+          zip: field('shipZip').value.trim()
+        }
+      }
+    : {
+        fulfillment: 'pickup',
+        pickupStore: selectedLocation,
+        pickupDate: pickupDay.value,
+        pickupDateLabel: selectedDay,
+        pickupTime: pickupTime.value
+      };
   const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
   const orderTotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   checkoutBtn.textContent = 'Sending Order…';
@@ -248,11 +365,9 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
         customerName: pickupName.value.trim(),
         phone: pickupPhone.value.trim(),
         email: pickupEmail.value.trim(),
-        pickupStore: selectedLocation,
-        pickupDate: pickupDay.value,
-        pickupDateLabel: selectedDay,
-        pickupTime: pickupTime.value,
-        items: cart.map(({ id, name, brand, price, qty }) => ({ id, name, brand, price, qty })),
+        ...delivery,
+        /* The server looks up names and prices itself; only id, size and qty count. */
+        items: cart.map(({ id, size, qty }) => ({ id, size, qty })),
         itemCount,
         orderTotal,
         sourcePage: window.location.href,
@@ -267,77 +382,19 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
       throw new Error(result.message || `Order email failed with status ${response.status}`);
     }
 
-    const confirmedReference = result.orderReference;
-    const savedOrder = {
-      orderReference: confirmedReference,
-      email: pickupEmail.value.trim(),
-      pickupStore: result.pickupStore,
-      placedAt: result.placedAt,
-      cancelBy: result.cancelBy,
-      cancelToken: result.cancelToken,   /* server's signature over the details above */
-      status: 'active'
-    };
-    try {
-      localStorage.setItem('ul-latest-pickup-order', JSON.stringify(savedOrder));
-    } catch (error) {
-      console.warn('Unable to save pickup order on this device:', error);
+    /* Online payment: keep the cart in case the customer backs out of Stripe's
+       page, then go there. The store is emailed only after payment. */
+    if (result.checkoutUrl) {
+      try { sessionStorage.setItem(CHECKOUT_CART_KEY, JSON.stringify(cart)); } catch (_) {}
+      checkoutBtn.textContent = 'Opening Secure Payment…';
+      window.location.assign(result.checkoutUrl);
+      return;
     }
-    const cancelDeadline = new Intl.DateTimeFormat('en-US', {
-      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/St_Thomas', timeZoneName: 'short'
-    }).format(new Date(result.cancelBy));
-    checkoutBtn.textContent = 'Pickup Order Sent ✓';
-    showToast('Pickup order sent', `${confirmedReference} · ${selectedLocation} · ${itemCount} ${itemCount === 1 ? 'item' : 'items'} · ${selectedDay}, ${pickupTime.value}`);
-    cart = [];
-    updateCart();
-    cartBody.innerHTML = `
-      <div class="cart-empty">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12 2.5 2.5L16 9"/></svg>
-        <p>Pickup request received</p>
-        <span>YOUR PICKUP REFERENCE</span>
-        <strong style="font-family:var(--font-serif);font-size:24px;color:var(--gold);letter-spacing:.06em">${confirmedReference}</strong>
-        <span>Show this reference when collecting your order.</span>
-        <span><strong>${result.pickupStore}</strong><br>${result.pickupAddress}<br>${result.storePhone}</span>
-        <span>${result.customerEmailSent === false
-          ? 'Your request was sent to the store, but we could not email your confirmation. Please save your pickup reference.'
-          : 'A confirmation email was sent. Please check your inbox.'}</span>
-        <div class="pickup-cancel-box" id="pickupCancelBox">
-          ${result.cancelToken
-            ? `<span>You may request cancellation until <strong>${cancelDeadline}</strong>.</span>
-          <button type="button" class="btn-cancel-pickup" id="cancelPickupBtn">Cancel Pickup Order</button>
-          <span class="pickup-cancel-status" id="pickupCancelStatus" role="status"></span>`
-            : `<span>To cancel before <strong>${cancelDeadline}</strong>, call ${result.pickupStore} at ${result.storePhone} with your pickup reference.</span>`}
-        </div>
-      </div>`;
-    document.getElementById('cancelPickupBtn')?.addEventListener('click', async (event) => {
-      const button = event.currentTarget;
-      const status = document.getElementById('pickupCancelStatus');
-      if (!window.confirm(`Cancel pickup order ${confirmedReference}?`)) return;
-      button.disabled = true;
-      button.textContent = 'Sending Cancellation…';
-      try {
-        const cancelResponse = await fetch('/api/cancel-pickup-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(savedOrder)
-        });
-        const cancelResult = await cancelResponse.json().catch(() => ({}));
-        if (!cancelResponse.ok || cancelResult.success === false) {
-          throw new Error(cancelResult.message || 'Unable to cancel this pickup order.');
-        }
-        savedOrder.status = 'cancelled';
-        savedOrder.cancelledAt = new Date().toISOString();
-        try { localStorage.setItem('ul-latest-pickup-order', JSON.stringify(savedOrder)); } catch (_) {}
-        button.textContent = 'Cancellation Requested ✓';
-        status.textContent = 'The store has been notified and a confirmation email has been sent.';
-        showToast('Cancellation requested', `${confirmedReference} · ${result.pickupStore}`);
-      } catch (error) {
-        button.disabled = false;
-        button.textContent = 'Try Cancellation Again';
-        status.textContent = error.message;
-      }
+
+    showPickupConfirmation(result, {
+      email: pickupEmail.value.trim(),
+      summary: `${selectedLocation} · ${itemCount} ${itemCount === 1 ? 'item' : 'items'} · ${selectedDay}, ${pickupTime.value}`
     });
-    checkoutBtn.textContent = 'Place Pick-Up Order';
-    checkoutBtn.disabled = false;
   } catch (error) {
     console.error('Unable to send pickup order:', error);
     if (turnstileWidget !== null) window.turnstile.reset(turnstileWidget);
@@ -345,15 +402,153 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
       ? 'We could not reach the pickup-order service. Check your connection and try again.'
       : error.message || 'We could not send your order. Please try again.';
     pickupError.hidden = false;
-    checkoutBtn.textContent = 'Place Pick-Up Order';
+    checkoutBtn.textContent = checkoutLabel();
     checkoutBtn.disabled = false;
   }
 });
+
+const CHECKOUT_CART_KEY = 'ul-checkout-cart';   /* cart held while the customer is on Stripe */
+
+/* Shows the order reference and cancellation option in the cart panel, for
+   pay-at-pickup orders and for paid orders when the customer returns from Stripe. */
+function showPickupConfirmation(result, { email, summary }) {
+  const confirmedReference = result.orderReference;
+  const savedOrder = {
+    orderReference: confirmedReference,
+    email,
+    pickupStore: result.pickupStore,
+    placedAt: result.placedAt,
+    cancelBy: result.cancelBy,
+    cancelToken: result.cancelToken,   /* server's signature over the details above */
+    ...(result.sessionId ? { sessionId: result.sessionId } : {}),   /* lets cancellation refund the payment */
+    status: 'active'
+  };
+  try {
+    localStorage.setItem('ul-latest-pickup-order', JSON.stringify(savedOrder));
+  } catch (error) {
+    console.warn('Unable to save pickup order on this device:', error);
+  }
+  const cancelDeadline = new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/St_Thomas', timeZoneName: 'short'
+  }).format(new Date(result.cancelBy));
+  const paidTotal = result.paid ? `$${Number(result.total).toFixed(2)}` : '';
+  const shipping = result.fulfillment === 'shipping';
+  const shipTo = shipping && result.shippingAddress
+    ? [result.shippingAddress.line1, result.shippingAddress.line2,
+       `${result.shippingAddress.city}, ${result.shippingAddress.state} ${result.shippingAddress.zip}`]
+        .filter(Boolean).map(escapeHTML).join('<br>')
+    : '';
+  if (checkoutBtn) {
+    checkoutBtn.textContent = checkoutLabel();
+    checkoutBtn.disabled = false;
+  }
+  showToast(result.paid ? 'Payment received' : 'Pickup order sent', `${confirmedReference} · ${summary}`);
+  cart = [];
+  updateCart();
+  cartBody.innerHTML = `
+    <div class="cart-empty">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12 2.5 2.5L16 9"/></svg>
+      <p>${shipping ? `Paid ${paidTotal} · Your order will ship from ${result.pickupStore}` : result.paid ? `Paid ${paidTotal} · Order sent to the store` : 'Pickup request received'}</p>
+      <span>${shipping ? 'YOUR ORDER REFERENCE' : 'YOUR PICKUP REFERENCE'}</span>
+      <strong style="font-family:var(--font-serif);font-size:24px;color:var(--gold);letter-spacing:.06em">${confirmedReference}</strong>
+      ${shipping
+        ? `<span>Keep this reference for any questions about your order.</span>
+      <span><strong>Shipping to</strong><br>${shipTo}</span>`
+        : `<span>Show this reference when collecting your order.${result.paid ? ' Nothing more to pay at pickup.' : ''}</span>
+      <span><strong>${result.pickupStore}</strong><br>${result.pickupAddress}<br>${result.storePhone}</span>`}
+      <span>${result.customerEmailSent === false
+        ? 'Your request was sent to the store, but we could not email your confirmation. Please save your pickup reference.'
+        : 'A confirmation email is on its way. Please check your inbox.'}</span>
+      <div class="pickup-cancel-box" id="pickupCancelBox">
+        ${result.cancelToken
+          ? `<span>You may cancel${result.paid ? ' for a full refund' : ''} until <strong>${cancelDeadline}</strong>.${shipping ? ' Your order ships after that.' : ''}</span>
+        <button type="button" class="btn-cancel-pickup" id="cancelPickupBtn">${shipping ? 'Cancel Order' : 'Cancel Pickup Order'}</button>
+        <span class="pickup-cancel-status" id="pickupCancelStatus" role="status"></span>`
+          : `<span>To cancel before <strong>${cancelDeadline}</strong>, call ${result.pickupStore} at ${result.storePhone} with your ${shipping ? 'order' : 'pickup'} reference.</span>`}
+      </div>
+    </div>`;
+  document.getElementById('cancelPickupBtn')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    const status = document.getElementById('pickupCancelStatus');
+    if (!window.confirm(`Cancel ${shipping ? 'order' : 'pickup order'} ${confirmedReference}?${result.paid ? ` You will be refunded ${paidTotal}.` : ''}`)) return;
+    button.disabled = true;
+    button.textContent = result.paid ? 'Cancelling and Refunding…' : 'Sending Cancellation…';
+    try {
+      const cancelResponse = await fetch('/api/cancel-pickup-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(savedOrder)
+      });
+      const cancelResult = await cancelResponse.json().catch(() => ({}));
+      if (!cancelResponse.ok || cancelResult.success === false) {
+        throw new Error(cancelResult.message || 'Unable to cancel this pickup order.');
+      }
+      savedOrder.status = 'cancelled';
+      savedOrder.cancelledAt = new Date().toISOString();
+      try { localStorage.setItem('ul-latest-pickup-order', JSON.stringify(savedOrder)); } catch (_) {}
+      button.textContent = cancelResult.refunded ? 'Cancelled and Refunded ✓' : 'Cancellation Requested ✓';
+      status.textContent = cancelResult.refunded
+        ? `Your refund of $${Number(cancelResult.refunded).toFixed(2)} has been issued. It can take 5–10 business days to appear. The store has been notified.`
+        : 'The store has been notified and a confirmation email has been sent.';
+      showToast(cancelResult.refunded ? 'Order cancelled and refunded' : 'Cancellation requested', `${confirmedReference} · ${result.pickupStore}`);
+    } catch (error) {
+      button.disabled = false;
+      button.textContent = 'Try Cancellation Again';
+      status.textContent = error.message;
+    }
+  });
+}
+
+/* Returning from Stripe: ?checkout=success&session_id=… or ?checkout=cancelled. */
+async function handleCheckoutReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const outcome = params.get('checkout');
+  if (!outcome || !cartBody) return;
+  const sessionId = params.get('session_id');
+  params.delete('checkout');
+  params.delete('session_id');
+  history.replaceState(null, '', `${window.location.pathname}${params.size ? `?${params}` : ''}${window.location.hash}`);
+
+  let heldCart = [];
+  try { heldCart = JSON.parse(sessionStorage.getItem(CHECKOUT_CART_KEY)) || []; } catch (_) {}
+
+  if (outcome === 'cancelled') {
+    if (heldCart.length) {
+      cart = heldCart;
+      updateCart();
+    }
+    openCart();
+    showToast('Payment cancelled', 'You were not charged. Your cart is still here.');
+    return;
+  }
+
+  openCart();
+  cartBody.innerHTML = '<div class="cart-empty"><p>Confirming your payment…</p></div>';
+  try {
+    const response = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(sessionId || '')}`, { headers: { Accept: 'application/json' } });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.success) throw new Error(result.message || 'We could not confirm your payment.');
+    try { sessionStorage.removeItem(CHECKOUT_CART_KEY); } catch (_) {}
+    const items = `${result.itemCount} ${result.itemCount === 1 ? 'item' : 'items'}`;
+    showPickupConfirmation(result, {
+      email: result.email,
+      /* Escaped: the toast renders HTML, and these came from the order form. */
+      summary: escapeHTML(result.fulfillment === 'shipping'
+        ? `Shipping to ${result.shippingAddress?.city}, ${result.shippingAddress?.state} · ${items}`
+        : `${result.pickupStore} · ${items} · ${result.pickupDate}, ${result.pickupTime}`)
+    });
+  } catch (error) {
+    if (heldCart.length) cart = heldCart;
+    updateCart();
+    cartBody.insertAdjacentHTML('afterbegin', `<div class="cart-empty"><p>${error instanceof TypeError ? 'We could not reach the server to confirm your payment.' : error.message}</p><span>If you were charged, your confirmation email is on its way. Otherwise you can try again.</span></div>`);
+  }
+}
 
 function openCart() {
   cartSidebar.classList.add('open');
   cartOverlay.classList.add('active');
   document.body.style.overflow = 'hidden';
+  loadCheckoutOptions();   /* first open only: offers payment and shipping if available */
 }
 function closeCart() {
   cartSidebar.classList.remove('open');
@@ -365,15 +560,18 @@ cartClose.addEventListener('click', closeCart);
 cartOverlay.addEventListener('click', closeCart);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCart(); });
 
-function addToCart(id, name, price, btn) {
+/* Each size is its own cart line (key "id|size"), so 200ml and 60ml of the
+   same fragrance keep their own prices. The server re-prices by id and size. */
+function addToCart(id, name, price, btn, size = '') {
   const product = typeof PRODUCTS !== 'undefined' ? PRODUCTS.find((item) => item.id === id) : null;
-  const existing = cart.find((i) => i.id === id);
+  const key = `${id}|${size}`;
+  const existing = cart.find((i) => i.key === key);
   if (existing) {
     existing.qty += 1;
     if (!existing.brand && product?.brand) existing.brand = product.brand;
     if (!existing.img && product?.img) existing.img = product.img;
   } else {
-    cart.push({ id, name, brand: product?.brand || '', price, qty: 1, img: product?.img || '' });
+    cart.push({ key, id, size, name, brand: product?.brand || '', price, qty: 1, img: product?.img || '' });
   }
   updateCart();
   openCart();
@@ -394,28 +592,35 @@ function addToCart(id, name, price, btn) {
 }
 window.addToCart = addToCart;
 
-function removeFromCart(id) {
-  cart = cart.filter((i) => i.id !== id);
+function removeFromCart(key) {
+  cart = cart.filter((i) => i.key !== key);
   updateCart();
 }
 window.removeFromCart = removeFromCart;
 
-function changeQty(id, delta) {
-  const item = cart.find((i) => i.id === id);
+function changeQty(key, delta) {
+  const item = cart.find((i) => i.key === key);
   if (!item) return;
   item.qty += delta;
-  if (item.qty <= 0) removeFromCart(id);
+  if (item.qty <= 0) removeFromCart(key);
   else updateCart();
 }
 window.changeQty = changeQty;
 
 function updateCart() {
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const shippingFee = shippingFeeFor(subtotal);
+  const total = subtotal + shippingFee;
   const count = cart.reduce((s, i) => s + i.qty, 0);
 
   cartBadge.textContent = count;
   cartBtn.setAttribute('aria-label', `Shopping cart, ${count} ${count === 1 ? 'item' : 'items'}`);
   cartTotalEl.textContent = `$${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  const shippingRow = document.getElementById('cartShipping');
+  if (shippingRow) {
+    shippingRow.hidden = fulfillment !== 'shipping';
+    document.getElementById('cartShippingFee').textContent = shippingFee ? `$${shippingFee.toFixed(2)}` : 'Free';
+  }
   cartFooter.style.display = cart.length ? 'block' : 'none';
 
   if (cart.length === 0) {
@@ -442,10 +647,10 @@ function updateCart() {
         <div class="cart-item-name">${item.name}</div>
         <div class="cart-item-price">$${item.price.toLocaleString()}</div>
         <div class="cart-item-qty">
-          <button class="qty-btn" onclick="changeQty(${item.id},-1)" aria-label="Decrease">−</button>
+          <button class="qty-btn" onclick="changeQty('${item.key}',-1)" aria-label="Decrease">−</button>
           <span class="qty-val">${item.qty}</span>
-          <button class="qty-btn" onclick="changeQty(${item.id},1)" aria-label="Increase">+</button>
-          <button class="cart-item-remove" onclick="removeFromCart(${item.id})">Remove</button>
+          <button class="qty-btn" onclick="changeQty('${item.key}',1)" aria-label="Increase">+</button>
+          <button class="cart-item-remove" onclick="removeFromCart('${item.key}')">Remove</button>
         </div>
       </div>
     </div>`).join('');
@@ -620,38 +825,58 @@ function updateCart() {
         <p>Please request written permission before reproducing Luxe Perfume website copy, original graphics, or store materials. Product names, packaging, and trademarks remain the property of their respective owners.</p>
       </div>`,
     privacy: `
-      <p class="support-kicker">Last updated August 26, 2026</p>
+      <p class="support-kicker">Last updated October 7, 2026</p>
       <h2 id="supportTitle">Privacy Policy</h2>
-      <p class="support-lead">Luxe Perfume respects your privacy. This policy explains what information the website uses when you browse, save fragrances, or submit a store-pickup request.</p>
+      <p class="support-lead">Luxe Perfume respects your privacy. This policy explains what information the website uses when you browse, create an account, save fragrances, or place an order for store pickup or shipping.</p>
       <div class="support-policy-list support-document">
         <h3>Information we collect</h3>
-        <p>When you request store pickup, we collect the name, phone number, email address, selected store, pickup date and time, requested products, quantities, and order reference needed to process the request. Basic technical information, such as the source page and service-delivery logs, may also be processed for security and troubleshooting.</p>
+        <ul>
+          <li><strong>Orders:</strong> your name, phone number, email address, the products, sizes and quantities you order, the order reference, and either your selected store and pickup date and time, or your shipping address.</li>
+          <li><strong>Payment:</strong> card details are entered on a secure payment page operated by Stripe and are not received or stored by Luxe Perfume. Stripe tells us whether a payment succeeded, the amount, and limited payment details needed for refunds and records.</li>
+          <li><strong>Accounts:</strong> if you create an account, your name, email address, password (stored only in encrypted form by our account provider), fragrance preferences, liked fragrances, and order history.</li>
+          <li><strong>Technical information:</strong> your IP address, browser details, the page you ordered from, and service logs, used for security checks, preventing automated or abusive orders, and troubleshooting.</li>
+        </ul>
         <h3>How we use information</h3>
-        <ul><li>Send the selected store your pickup request.</li><li>Send you a confirmation and contact you about availability or pickup.</li><li>Prevent fraud, diagnose errors, and protect the website.</li><li>Comply with legal obligations and resolve disputes.</li></ul>
+        <ul><li>Send your order to the store that will prepare it for pickup or shipping.</li><li>Take payment, issue refunds, and keep payment records.</li><li>Send order, payment, cancellation and refund confirmations, and contact you about availability, pickup, or shipping.</li><li>Ship your order to the address you provide.</li><li>Show your order history and personalized fragrance recommendations when you have an account.</li><li>Prevent fraud, block automated abuse, diagnose errors, and protect the website.</li><li>Comply with legal obligations and resolve disputes.</li></ul>
         <h3>Who receives order information</h3>
-        <p>The selected store receives the order details. An internal order administrator is privately notified of each request. Cloudflare processes the submission and delivers transactional emails on our behalf. We do not sell customer personal information.</p>
+        <p>The store preparing your order receives the order details: the store you select for pickup, or Luxe Fragrances for shipped orders. An internal order administrator is privately notified of each order. Shipping carriers receive the name, address, and phone number needed to deliver a shipped order.</p>
+        <p>We also use service providers that process information on our behalf: Stripe (payments, refunds, and fraud screening), Supabase (customer accounts and order records), Resend (delivering order emails), and Cloudflare (website hosting, security, and bot protection). They may process information only to provide these services. We do not sell customer personal information.</p>
         <h3>Information stored in your browser</h3>
-        <p>Your liked fragrances, theme choice, account preferences, and cookie choices may be stored locally on your device. You can remove local data through your browser settings. Clearing it may reset those preferences.</p>
+        <p>Your sign-in session, theme choice, recently viewed recommendations, quiz answers in progress, your latest order details (so you can cancel it from the confirmation screen), your cart while you complete payment, and cookie choices may be stored locally on your device. You can remove local data through your browser settings. Clearing it may sign you out or reset those preferences.</p>
         <h3>Retention and security</h3>
-        <p>Order information is kept only as long as reasonably necessary to fulfill pickup requests, maintain business records, prevent abuse, and meet legal requirements. We use reasonable safeguards, but no internet transmission or storage system can be guaranteed completely secure.</p>
+        <p>Order and payment records are kept as long as reasonably necessary to fulfill orders, process refunds, maintain business and tax records, prevent abuse, and meet legal requirements. Account information is kept until you ask us to delete your account. We use reasonable safeguards, but no internet transmission or storage system can be guaranteed completely secure.</p>
         <h3>Your choices</h3>
-        <p>You may ask to access, correct, or delete personal information, subject to applicable recordkeeping requirements. You can also change optional cookie preferences at any time through Cookie Settings.</p>
+        <p>You may ask to access, correct, or delete personal information, including your account, subject to applicable recordkeeping requirements. You can also change optional cookie preferences at any time through Cookie Settings.</p>
         <h3>Contact</h3>
         <p>For privacy questions, email <a href="mailto:luxefragrances.vi@gmail.com">luxefragrances.vi@gmail.com</a> or call Luxe Fragrances at <a href="tel:+13406930039">340-693-0039</a>.</p>
       </div>`,
     terms: `
-      <p class="support-kicker">Last updated August 26, 2026</p>
+      <p class="support-kicker">Last updated October 7, 2026</p>
       <h2 id="supportTitle">Terms of Service</h2>
-      <p class="support-lead">By using luxeperfume.uluxe.site or submitting a pickup request, you agree to these terms.</p>
+      <p class="support-lead">By using luxeperfume.uluxe.site or placing an order, you agree to these terms.</p>
       <div class="support-policy-list support-document">
         <h3>Website information</h3>
         <p>We aim to keep product descriptions, images, prices, and availability accurate. Fragrance appearance and packaging may vary, and errors may be corrected without notice.</p>
-        <h3>Pickup requests</h3>
-        <p>An online submission is a request, not a guarantee of inventory or a completed sale. The selected store must confirm availability. Bring a photo ID and the unique order reference. We may contact you if an item, date, or time is unavailable.</p>
+        <h3>Orders and availability</h3>
+        <p>Placing an order confirms that the store received it, not that every item is in stock. If an item you ordered is unavailable, we will contact you and refund the amount paid for that item to your original payment method.</p>
+        <h3>Store pickup</h3>
+        <p>Pickup orders are collected at the store you select, Luxe Fragrances or Perfume World, on your chosen date and time. Bring a photo ID and your order reference. We may contact you if an item, date, or time is unavailable.</p>
+        <h3>Shipping</h3>
+        <ul>
+          <li>Shipped orders are sent from Luxe Fragrances in St. Thomas, U.S. Virgin Islands, to addresses in the 50 states, Washington, D.C., and Puerto Rico only. We do not ship to military (APO/FPO/DPO) addresses, other U.S. territories, or outside the United States.</li>
+          <li>Shipping costs $15 for orders with a subtotal under $200 and is free for orders of $200 or more. The shipping charge is shown before you pay.</li>
+          <li>Orders ship after the 24-hour cancellation window closes. Delivery times depend on the carrier and are not guaranteed. Luxe Fragrances will email you tracking details when your order ships.</li>
+          <li>Please check your shipping address carefully. We are not responsible for delays or non-delivery caused by an incorrect or incomplete address.</li>
+          <li>Fragrances are regulated as hazardous materials for transport. If an item cannot be shipped to your address, we will contact you and refund it.</li>
+        </ul>
         <h3>Prices and payment</h3>
-        <p>Displayed prices are in U.S. dollars and may change before the store completes the sale. Any applicable charges will be communicated at purchase. Do not submit false, misleading, or unauthorized customer information.</p>
+        <p>Prices are in U.S. dollars. When checkout offers online payment, and for every shipped order, you pay the full order total, including any shipping charge, when you place your order, through our payment provider, Stripe. Your total is shown before you pay, and the prices shown at checkout are the prices you are charged. Pickup orders placed without online payment are paid at the store when you collect them. Do not submit false, misleading, or unauthorized customer or payment information.</p>
+        <h3>Cancellations and refunds</h3>
+        <p>You may cancel an order within 24 hours of placing it, using the cancellation button on your order-confirmation screen or by contacting the store with your order reference. Orders paid online are refunded in full to your original payment method when cancelled; refunds can take 5–10 business days to appear, depending on your bank. After 24 hours, orders cannot be cancelled online.</p>
         <h3>Returns and exchanges</h3>
-        <div class="support-policy-alert"><strong>No returns. Exchanges at the original purchase location only.</strong><p>Returns are not allowed. Exchanges are allowed only at the store location where the product was purchased. Confirm the product, size, quantity, and store before purchase.</p></div>
+        <div class="support-policy-alert"><strong>No returns. Exchanges at the original purchase location only.</strong><p>Returns are not allowed. Exchanges are allowed only at the store location where the product was purchased; shipped orders are purchased from Luxe Fragrances. Confirm the product, size, quantity, and store before purchase.</p></div>
+        <h3>Accounts</h3>
+        <p>You are responsible for keeping your account password confidential and for activity under your account. We may suspend accounts used to misuse the website or place fraudulent orders.</p>
         <h3>Acceptable use</h3>
         <p>You may not misuse the website, interfere with its operation, attempt unauthorized access, submit fraudulent orders, scrape the catalog at disruptive volume, or use site content in violation of applicable law.</p>
         <h3>Intellectual property</h3>
@@ -915,7 +1140,7 @@ wishlistBody.addEventListener('click', (event) => {
     if (!product) return;
     const size = product.sizes[0];
     closeWishlist();
-    addToCart(product.id, size?.size ? `${product.name} · ${size.size}` : product.name, size?.price ?? product.price, cartButton);
+    addToCart(product.id, size?.size ? `${product.name} · ${size.size}` : product.name, size?.price ?? product.price, cartButton, size?.size || '');
   }
 });
 
@@ -1252,8 +1477,8 @@ function showToast(title, message, type = 'success') {
 
 /* Override addToCart to fire toast */
 const _origAddToCart = window.addToCart;
-window.addToCart = function(id, name, price, btn) {
-  _origAddToCart(id, name, price, btn);
+window.addToCart = function(id, name, price, btn, size) {
+  _origAddToCart(id, name, price, btn, size);
   showToast('Added to cart', `${name} — $${price}`, 'success');
 };
 
@@ -1373,7 +1598,7 @@ function addToCartFromCard(btn) {
   const active    = card.querySelector('.size-btn.size-btn-active');
   const size      = active?.dataset.size  || '';
   const price     = parseFloat(active?.dataset.price || card.dataset.price);
-  addToCart(id, size ? `${name} · ${size}` : name, price, btn);
+  addToCart(id, size ? `${name} · ${size}` : name, price, btn, size);
 }
 window.addToCartFromCard = addToCartFromCard;
 
@@ -2411,3 +2636,6 @@ if (location.hash && location.hash !== '#') {
   const hashTarget = document.querySelector(location.hash);
   if (hashTarget) scrollToTarget(hashTarget);
 }
+
+/* ── RETURN FROM STRIPE CHECKOUT ─────────────────────── */
+handleCheckoutReturn();

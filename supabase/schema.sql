@@ -90,6 +90,27 @@ create table if not exists public.orders (
 
 create index if not exists orders_user_placed_idx on public.orders (user_id, placed_at desc);
 
+-- Online payment (Stripe). Paid orders are stored for guests too, so user_id
+-- is optional; guest rows have no user_id and so are never readable by customers.
+alter table public.orders alter column user_id drop not null;
+alter table public.orders add column if not exists customer_name text;
+alter table public.orders add column if not exists phone text;
+alter table public.orders add column if not exists stripe_session_id text unique;
+alter table public.orders add column if not exists stripe_payment_intent text;
+alter table public.orders add column if not exists paid_at timestamptz;
+alter table public.orders add column if not exists refunded_at timestamptz;
+alter table public.orders add column if not exists notified_at timestamptz;  -- store email sent
+
+-- Shipping orders (US and Puerto Rico), shipped by Luxe Fragrances. They have
+-- no pickup date or time.
+alter table public.orders alter column pickup_date drop not null;
+alter table public.orders alter column pickup_time drop not null;
+alter table public.orders add column if not exists fulfillment text not null default 'pickup';
+alter table public.orders add column if not exists shipping_address jsonb;  -- { line1, line2, city, state, zip, country }
+alter table public.orders add column if not exists shipping_cost numeric(10, 2) not null default 0;
+alter table public.orders drop constraint if exists orders_fulfillment_check;
+alter table public.orders add constraint orders_fulfillment_check check (fulfillment in ('pickup', 'shipping'));
+
 alter table public.orders enable row level security;
 
 drop policy if exists "Orders: read own" on public.orders;

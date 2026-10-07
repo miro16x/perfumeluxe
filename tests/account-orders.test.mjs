@@ -9,7 +9,8 @@ const order = {
   pickupStore: 'Perfume World', customerName: 'Test Customer',
   email: 'Customer@Example.com', phone: '3405550100',
   pickupDate: '2026-10-05', pickupDateLabel: 'Mon, Oct 5', pickupTime: '12:00 PM',
-  items: [{ id: 287, name: 'Eros Eau de Toilette', brand: 'VERSACE', price: 50.5, qty: 2 }]
+  /* price is ignored: the server charges the catalog's $103 for this size. */
+  items: [{ id: 287, size: '100ml', price: 1, qty: 2 }]
 };
 afterEach(() => mock.restoreAll());
 
@@ -62,8 +63,8 @@ test('signed-in order is saved to the account with server-calculated totals', as
   assert.equal(saved.pickup_store, 'Perfume World');
   assert.equal(saved.pickup_date, 'Mon, Oct 5');
   assert.equal(saved.item_count, 2);
-  assert.equal(saved.total, 101);
-  assert.deepEqual(saved.items, [{ id: 287, name: 'Eros Eau de Toilette', brand: 'VERSACE', price: 50.5, qty: 2 }]);
+  assert.equal(saved.total, 206);
+  assert.deepEqual(saved.items, [{ id: 287, name: 'Eros Eau de Toilette', brand: 'VERSACE', size: '100ml', price: 103, qty: 2 }]);
 });
 
 test('guest order never contacts Supabase', async () => {

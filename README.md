@@ -2,15 +2,16 @@
 
 A responsive luxury fragrance storefront for Luxe Fragrances and Perfume World in St. Thomas, U.S. Virgin Islands. Live at [luxeperfume.uluxe.site](https://luxeperfume.uluxe.site).
 
-Customers browse the catalog, get personalized recommendations, and place free in-store pickup orders. There is no online payment: customers pay at the store when they collect.
+Customers browse the catalog, get personalized recommendations, and order for free in-store pickup or shipping within the United States and Puerto Rico, paying online through Stripe when they order.
 
 ## Features
 
 - Product catalog with filtering, search, collections and product pages
 - Signature Scent recommendation quiz
 - Customer accounts with saved taste preferences, likes and order history
-- Store pickup ordering with email confirmations to the store and the customer
-- Online cancellation within 24 hours of ordering
+- Store pickup ordering with online payment (Stripe Checkout) and email confirmations to the store and the customer
+- Shipping to the 50 states, Washington, D.C. and Puerto Rico from Luxe Fragrances ($15, free on orders of $200 or more)
+- Online cancellation with an automatic refund within 24 hours of ordering
 - Bot protection and rate limiting on ordering
 - Email alerts to the site owner when orders or cancellations fail
 - Dark and light themes, keyboard navigation and reduced-motion support
@@ -19,7 +20,8 @@ Customers browse the catalog, get personalized recommendations, and place free i
 
 - HTML, CSS and vanilla JavaScript, with no framework or build step
 - [Cloudflare Workers](https://developers.cloudflare.com/workers/) serves the site and runs the order API
-- [Supabase](https://supabase.com/) for customer accounts and order history
+- [Stripe Checkout](https://stripe.com/payments/checkout) for payments and refunds
+- [Supabase](https://supabase.com/) for customer accounts, order history and paid-order records
 - [Resend](https://resend.com/) for order, cancellation and alert emails
 - [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) for bot protection
 
@@ -36,14 +38,22 @@ urban-luxe/
 ├── images/
 ├── worker.js           Routes /api/* to the handlers below and serves everything else
 ├── functions/api/
-│   ├── pickup-order.js         Validates and sends pickup orders
-│   └── cancel-pickup-order.js  Sends cancellations within the 24-hour window
+│   ├── pickup-order.js         Validates and prices orders; starts Stripe Checkout (or emails the store when payment is off)
+│   ├── stripe-webhook.js       Receives Stripe's payment confirmation and emails the store
+│   ├── checkout-status.js      Confirmation details when the customer returns from Stripe
+│   ├── checkout-options.js     Tells the cart whether payment and shipping are available
+│   └── cancel-pickup-order.js  Cancels within the 24-hour window and refunds paid orders
 ├── lib/                Server-only helpers (never published)
 │   ├── abuse-protection.js     Turnstile verification and rate limiting
 │   ├── alerts.js               Failure alerts to the site owner
 │   ├── cancel-token.js         Signs and verifies cancellation tokens
+│   ├── catalog.js              Server-side prices from products-data.js
 │   ├── email.js                Resend client
-│   └── supabase.js             Saves orders to customer accounts
+│   ├── order-emails.js         Store and customer order emails
+│   ├── shipping.js             Shipping area, rates and address checks
+│   ├── stores.js               Store addresses, phones and email routing
+│   ├── stripe.js               Stripe Checkout, webhook verification and refunds
+│   └── supabase.js             Order records and account history
 ├── supabase/           Database schema and auth email templates (never published)
 ├── tests/              Node test suite (never published)
 ├── wrangler.jsonc      Worker configuration
@@ -81,19 +91,35 @@ The Worker needs these secrets, set under Worker → Settings → Variables and 
 | `CANCEL_SIGNING_SECRET` | Signing cancellation tokens | Online cancellation is off; customers are told to call the store |
 | `SUPABASE_SERVICE_ROLE_KEY` | Saving orders to account history | Orders work but don't appear in accounts |
 | `TURNSTILE_SECRET_KEY` | Verifying the bot check | The bot check is off |
+| `STRIPE_SECRET_KEY` | Creating payments and refunds | Customers pay at pickup instead |
+| `STRIPE_WEBHOOK_SECRET` | Verifying Stripe's payment confirmations | Customers pay at pickup instead |
 
-## Store pickup
+## Store pickup and payment
 
 1. The customer adds products to the cart, chooses Luxe Fragrances or Perfume World, picks a date and time, and enters their contact details.
 2. Turnstile confirms a person submitted the form.
-3. The store receives the order by email (BCC to the site owner), and the customer receives a confirmation with a unique pickup reference such as `LP-20261002-AB12CD34`.
-4. Signed-in customers also see the order in their account history.
+3. The server prices every item from `products-data.js` (prices sent by the browser are ignored) and opens a Stripe Checkout page.
+4. Once Stripe confirms payment, its webhook records the order in Supabase and emails the store (BCC to the site owner) marked **PAID**, and the customer a confirmation with a unique pickup reference such as `LP-20261002-AB12CD34`.
+5. The customer returns to the site and sees the reference and a cancel button. Signed-in customers also see the order in their account history.
 
-A pickup request confirms the store received it, not that the items are in stock. The store contacts the customer when the order is ready.
+If the customer leaves the Stripe page, they aren't charged and their cart is restored. Without the Stripe secrets, step 3 is skipped: the store is emailed straight away and the customer pays at pickup.
 
-## Cancellation
+A paid order confirms the store received it, not that the items are in stock. If something is unavailable, the store refunds it from the Stripe dashboard.
 
-Customers can cancel within 24 hours of ordering from the confirmation screen, or by calling the store with their pickup reference. The order API gives each order a signed cancellation token, so the 24-hour window and order details can't be forged from the browser. The store and customer are both emailed, and the order is marked cancelled in the customer's account history.
+## Shipping
+
+When online payment is on, the cart offers **Ship to me** next to store pickup. Shipping orders:
+
+- go only to the 50 states, Washington, D.C. and Puerto Rico. The server rejects other addresses (military, other territories, a ZIP code that doesn't match the state) before payment. The rules and rates are in `lib/shipping.js`.
+- cost $15, or ship free when the order subtotal is $200 or more.
+- are always sent to **Luxe Fragrances**. The store email is marked **New Shipping Order (PAID)**, shows the address, and asks the store to ship after the 24-hour cancellation window closes, so an order is never refunded after it has left.
+- appear in the customer's account history as "Shipping to City, ST".
+
+There is no tracking-number flow yet: the store emails the customer tracking details itself.
+
+## Cancellation and refunds
+
+Customers can cancel within 24 hours of ordering from the confirmation screen, or by calling the store with their pickup reference. Each order gets a signed cancellation token, so the 24-hour window and order details can't be forged from the browser. Cancelling a paid order refunds it in full through Stripe first; only then are the store and customer emailed, and the order is marked refunded. Phone cancellations are refunded by hand in the Stripe dashboard.
 
 ## Customer accounts
 
@@ -136,9 +162,7 @@ St. Thomas, VI 00802
 ## Not yet built
 
 - A staff dashboard for stores to manage orders and update customers
-- Saving guest orders (only signed-in customers' orders are stored)
-- Inventory and stock levels
-- Online payment
+- Inventory and stock levels (on hold until the stores have a point-of-sale system)
 
 ## License
 

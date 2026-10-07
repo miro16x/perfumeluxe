@@ -38,3 +38,31 @@ Accounts, taste preferences, likes and order history are stored in the Supabase 
 4. Save the Supabase **secret** key (`sb_secret_…`, or the legacy `service_role` key) as a Worker secret named `SUPABASE_SERVICE_ROLE_KEY`. Never put it in browser JavaScript or source control. Without it, ordering still works; orders are just not added to account history.
 
 `supabase/` is listed in `.assetsignore`, so the SQL file is not published with the site.
+
+## Online payment (Stripe)
+
+Customers pay when they order, on Stripe's hosted Checkout page; card details never reach this site. The store is emailed only after Stripe confirms payment, and cancelling within 24 hours refunds the customer automatically. Until both Stripe secrets are set, ordering works as before (pay at pickup), so the code can be deployed before Stripe is ready.
+
+Do everything in **test mode** first (the toggle at the top of the Stripe dashboard), then repeat steps 2–4 in live mode.
+
+1. **Update the database.** Supabase dashboard → SQL Editor → paste `supabase/schema.sql` → Run. This adds the payment and shipping columns and lets guest orders be stored. It is safe to re-run.
+2. **API key.** Stripe dashboard → Developers → API keys → copy the **Secret key** (`sk_test_…`, later `sk_live_…`). Save it as a Worker secret named `STRIPE_SECRET_KEY`.
+3. **Webhook.** Stripe dashboard → Developers → Webhooks → Add endpoint:
+   - Endpoint URL: `https://luxeperfume.uluxe.site/api/stripe-webhook`
+   - Events: `checkout.session.completed` only
+   - After saving, reveal the **Signing secret** (`whsec_…`) and save it as a Worker secret named `STRIPE_WEBHOOK_SECRET`.
+4. **Business details.** Stripe dashboard → Settings → Public details: set the business name and support phone/email customers see on the payment page and their card statement.
+5. **Test.** Place an order on the live site and pay with the test card `4242 4242 4242 4242` (any future expiry, any CVC, any ZIP). Check that:
+   - you return to the site and see the pickup reference and "Paid",
+   - the store email says **PAID ONLINE**,
+   - the payment appears under Stripe → Payments,
+   - cancelling from the confirmation screen shows a refund in Stripe.
+   Then repeat with **Ship to me** and a U.S. address: the email should go to Luxe Fragrances as **New Shipping Order (PAID)** with the address, and the payment in Stripe should show the shipping details.
+   Let the stores know first, since real store emails are sent.
+6. **Go live.** Switch the Stripe dashboard to live mode, repeat steps 2–3 with the live key and a live-mode webhook (it has its own signing secret), and replace both Worker secrets.
+
+Refunds for orders cancelled by phone, or for items that turn out to be unavailable, are issued in the Stripe dashboard: Payments → find the order (search its `LP-…` reference) → Refund.
+
+To turn online payment off at any time, delete the `STRIPE_SECRET_KEY` Worker secret. Ordering immediately goes back to pay at pickup, and the shipping option disappears from the cart (shipping needs online payment). Carts already open in a browser may show it for up to five minutes, but the server refuses those shipping orders.
+
+Shipping rates, the free-shipping threshold, the shipping store and the allowed states are set in `lib/shipping.js`. Perfume is shipped as a hazardous material (flammable liquid); confirm Luxe Fragrances' carrier account allows it before going live.

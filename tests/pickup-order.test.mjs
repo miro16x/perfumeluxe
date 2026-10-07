@@ -6,7 +6,8 @@ const order = {
   pickupStore: 'Luxe Fragrances', customerName: 'Test Customer',
   email: 'customer@example.com', phone: '3405550100',
   pickupDate: '2026-09-20', pickupTime: '12:00 PM',
-  items: [{ name: 'Test fragrance', brand: 'Brand & <House>', price: 50, qty: 1 }]
+  /* The browser's name, brand and price are ignored; id 239 is a DOLCE & GABBANA fragrance. */
+  items: [{ id: 239, name: '<b>Fake</b>', brand: 'Fake & <House>', price: 1, qty: 1 }]
 };
 afterEach(() => mock.restoreAll());
 const submit = (send) => {
@@ -45,8 +46,29 @@ test('successful order sends store notification before customer receipt', async 
   assert.deepEqual(recipients, ['luxefragrances.vi@gmail.com', order.email]);
   for (const message of messages) {
     assert.match(message.html, />Brand<\/th>/);
-    assert.ok(message.html.includes('Brand &amp; &lt;House&gt;'));
-    assert.ok(message.text.includes('Brand: Brand & <House>'));
+    assert.ok(message.html.includes('DOLCE &amp; GABBANA'));
+    assert.ok(message.text.includes('Brand: DOLCE & GABBANA'));
+    assert.ok(!message.html.includes('Fake') && !message.text.includes('$1.00'));
+    assert.match(message.text, /Payment due at pickup|Total due at pickup/);
+  }
+});
+
+test('unknown products, sizes and quantities are rejected before any email', async () => {
+  for (const items of [
+    [{ id: 999999, qty: 1 }],
+    [{ id: 239, size: '9000ml', qty: 1 }],
+    [{ id: 239, qty: 0 }],
+    [{ id: 239, qty: 1.5 }],
+    []
+  ]) {
+    const fetchMock = mock.method(globalThis, 'fetch', () => { throw new Error('Unexpected network call'); });
+    const response = await onRequestPost({
+      request: new Request('https://example.com/api/pickup-order', { method: 'POST', body: JSON.stringify({ ...order, items }) }),
+      env: { RESEND_API_KEY: 'test-key' }
+    });
+    assert.equal(response.status, 400, JSON.stringify(items));
+    assert.equal(fetchMock.mock.callCount(), 0);
+    mock.restoreAll();
   }
 });
 

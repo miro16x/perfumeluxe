@@ -182,7 +182,7 @@ function getRelatedFragrances(product, catalogue) {
     const active = sizesEl.querySelector('.size-btn-active');
     const size   = active?.dataset.size || '';
     const price  = parseFloat(active?.dataset.price || product.sizes[0].price);
-    addToCart(product.id, size ? `${product.name} · ${size}` : product.name, price, this);
+    addToCart(product.id, size ? `${product.name} · ${size}` : product.name, price, this, size);
   });
 
   /* ── wishlist toggle ── */

@@ -322,7 +322,19 @@ input{font-family:inherit}
 [data-theme="light"] .pickup-fields input[type="date"]{color-scheme:light}
 .pickup-fields input:focus,.pickup-fields select:focus{border-color:var(--gold)}
 .pickup-note,.pickup-secure,.pickup-error{font-size:9px;line-height:1.5;color:var(--ivory-muted)}
-.pickup-error{color:#d9877f;margin-bottom:8px}.pickup-turnstile:not(:empty){margin:4px 0 10px}.pickup-secure{text-align:center;margin-top:9px}
+.pickup-error{color:#d9877f;margin-bottom:8px}.pickup-turnstile:not(:empty){margin:4px 0 10px}
+/* Delivery choice (added by app.js when shipping is available) */
+.fulfillment-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:13px 0;border:0}
+.fulfillment-options legend{margin-bottom:7px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ivory-muted)}
+.fulfillment-option{display:flex;gap:9px;align-items:flex-start;padding:11px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color var(--transition),background var(--transition)}
+.fulfillment-option:hover,.fulfillment-option:has(input:checked){border-color:var(--gold);background:var(--gold-glow)}
+.fulfillment-option input{accent-color:var(--gold);margin-top:2px;flex:0 0 auto}
+.fulfillment-option>span{display:flex;flex-direction:column;gap:3px;color:var(--ivory)}
+.fulfillment-option strong{font-size:11px;font-weight:600}.fulfillment-option small{font-size:9px;line-height:1.4;color:var(--ivory-muted)}
+.shipping-fields .pickup-fields-split{display:grid;gap:10px}
+.cart-shipping{display:flex;justify-content:space-between;margin-bottom:8px;font-size:11px;color:var(--ivory-muted)}
+.pickup-locations[hidden],.pickup-fields[hidden],.pickup-ready[hidden],.cart-shipping[hidden]{display:none}
+@media(max-width:360px){.fulfillment-options{grid-template-columns:1fr}}.pickup-secure{text-align:center;margin-top:9px}
 .pickup-cancel-box{display:grid;justify-items:center;gap:10px;width:100%;margin-top:8px;padding:14px;border:1px solid var(--border-hover);border-radius:var(--radius);background:var(--gold-glow)}
 .pickup-cancel-box>span{font-size:10px;line-height:1.55;color:var(--ivory-muted)}
 .btn-cancel-pickup{padding:9px 14px;border:1px solid rgba(217,135,127,.55);border-radius:var(--radius);color:#d9877f;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;transition:background var(--transition),color var(--transition)}

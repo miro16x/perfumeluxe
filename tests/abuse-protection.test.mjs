@@ -12,7 +12,7 @@ const order = (overrides = {}) => new Request('https://example.com/api/pickup-or
   body: JSON.stringify({
     pickupStore: 'Perfume World', customerName: 'Test Customer', email: 'customer@example.com',
     phone: '3405550100', pickupDate: '2026-09-20', pickupTime: '12:00 PM',
-    items: [{ name: 'Test fragrance', price: 50, qty: 1 }], ...overrides
+    items: [{ id: 11, size: '50ml', qty: 1 }], ...overrides
   })
 });
 /* Turnstile answers with `siteverify`; Resend accepts every email. */
