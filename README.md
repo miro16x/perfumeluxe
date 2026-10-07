@@ -1,238 +1,145 @@
 # Luxe Perfume
 
-A responsive luxury fragrance storefront for Luxe Fragrances and Perfume World in St. Thomas, U.S. Virgin Islands.
+A responsive luxury fragrance storefront for Luxe Fragrances and Perfume World in St. Thomas, U.S. Virgin Islands. Live at [luxeperfume.uluxe.site](https://luxeperfume.uluxe.site).
 
-The website offers fragrance discovery, product browsing, personalized recommendations, a local shopping cart, and complimentary in-store pickup ordering.
+Customers browse the catalog, get personalized recommendations, and place free in-store pickup orders. There is no online payment: customers pay at the store when they collect.
 
 ## Features
 
-- Responsive luxury storefront
-- Dark and light themes
-- Product catalog with filtering and search
-- Individual product and collection pages
-- New arrivals and best-seller sections
+- Product catalog with filtering, search, collections and product pages
 - Signature Scent recommendation quiz
-- Wishlist and shopping cart
-- Local account preferences
-- Store pickup scheduling
-- Pickup confirmation emails
-- Pickup cancellation requests within 24 hours
-- Customer support and policy panels
-- Keyboard and reduced-motion accessibility support
+- Customer accounts with saved taste preferences, likes and order history
+- Store pickup ordering with email confirmations to the store and the customer
+- Online cancellation within 24 hours of ordering
+- Bot protection and rate limiting on ordering
+- Email alerts to the site owner when orders or cancellations fail
+- Dark and light themes, keyboard navigation and reduced-motion support
 
 ## Technology
 
-- HTML5
-- CSS3
-- Vanilla JavaScript
-- Cloudflare Pages
-- Cloudflare Pages Functions
-- Cloudflare Email Service
-- Browser `localStorage`
+- HTML, CSS and vanilla JavaScript, with no framework or build step
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/) serves the site and runs the order API
+- [Supabase](https://supabase.com/) for customer accounts and order history
+- [Resend](https://resend.com/) for order, cancellation and alert emails
+- [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) for bot protection
 
-No frontend framework or build process is required.
-
-## Project Structure
+## Project structure
 
 ```text
 urban-luxe/
-├── index.html
-├── product.html
-├── collection.html
+├── index.html, shop.html, collection.html, product.html, about.html, contact.html
 ├── styles.css
-├── app.js
-├── auth.js
-├── product.js
-├── collection.js
-├── products-data.js
+├── app.js              Navigation, cart, search, pickup ordering and the Turnstile widget
+├── auth.js             Supabase sign-in, profiles, preferences, likes and order history
+├── products-data.js    Product catalog
+├── product.js, collection.js
 ├── images/
-├── functions/
-│   └── api/
-│       ├── pickup-order.js
-│       └── cancel-pickup-order.js
-├── wrangler.jsonc
-├── CLOUDFLARE-SETUP.md
-├── .gitignore
-└── README.md
+├── worker.js           Routes /api/* to the handlers below and serves everything else
+├── functions/api/
+│   ├── pickup-order.js         Validates and sends pickup orders
+│   └── cancel-pickup-order.js  Sends cancellations within the 24-hour window
+├── lib/                Server-only helpers (never published)
+│   ├── abuse-protection.js     Turnstile verification and rate limiting
+│   ├── alerts.js               Failure alerts to the site owner
+│   ├── cancel-token.js         Signs and verifies cancellation tokens
+│   ├── email.js                Resend client
+│   └── supabase.js             Saves orders to customer accounts
+├── supabase/           Database schema and auth email templates (never published)
+├── tests/              Node test suite (never published)
+├── wrangler.jsonc      Worker configuration
+└── CLOUDFLARE-SETUP.md Deployment and secrets setup
 ```
 
-## Key Files
+`.assetsignore` keeps server code, tests, the database schema and docs out of the public site.
 
-- `index.html` — Main storefront and homepage sections
-- `styles.css` — Shared layout, themes, components, and responsive styling
-- `app.js` — Navigation, cart, search, pickup ordering, recommendations, and general interactions
-- `auth.js` — Local account sessions and fragrance preferences
-- `products-data.js` — Shared product catalog
-- `product.html` and `product.js` — Individual product experience
-- `collection.html` and `collection.js` — Collection browsing experience
-- `functions/api/pickup-order.js` — Sends pickup-order notifications and customer confirmations
-- `functions/api/cancel-pickup-order.js` — Sends pickup cancellation requests within the permitted window
-- `wrangler.jsonc` — Cloudflare Pages and Email Service configuration
+## Running locally
 
-## Running Locally
-
-Because this is a static website, it can be served with any local HTTP server.
-
-Using Python:
+Run the site and the order API together with Wrangler:
 
 ```bash
 cd urban-luxe
-python3 -m http.server 8080
+npx wrangler dev
 ```
 
-Then visit:
+Without the Worker secrets, browsing works, but ordering returns "Email service is not configured". The Turnstile widget only works on `uluxe.site` domains, so it does not load on `localhost`.
 
-```text
-http://localhost:8080
-```
-
-For local Cloudflare Pages Function testing, install or run Wrangler:
+Run the tests (they mock Resend, Supabase and Turnstile, and send nothing):
 
 ```bash
-cd urban-luxe
-npx wrangler pages dev .
+node --test tests/*.test.mjs
 ```
 
-Wrangler will display the local development URL in the terminal.
+## Deployment
 
-> Pickup-order and cancellation emails require a configured Cloudflare Email Service binding. The visual storefront can still be explored without it.
+Deploy with `npx wrangler@latest deploy` from this folder, or push to `main` if the Worker is connected to GitHub through Workers Builds. First-time setup (Resend domain, Supabase tables, Turnstile widget and Worker secrets) is in [CLOUDFLARE-SETUP.md](CLOUDFLARE-SETUP.md).
 
-## Store Pickup
+The Worker needs these secrets, set under Worker → Settings → Variables and Secrets as type **Secret**:
 
-Customers can:
+| Secret | Used for | Without it |
+| --- | --- | --- |
+| `RESEND_API_KEY` | Sending all emails | Ordering and cancellation are unavailable |
+| `CANCEL_SIGNING_SECRET` | Signing cancellation tokens | Online cancellation is off; customers are told to call the store |
+| `SUPABASE_SERVICE_ROLE_KEY` | Saving orders to account history | Orders work but don't appear in accounts |
+| `TURNSTILE_SECRET_KEY` | Verifying the bot check | The bot check is off |
 
-1. Add products to their cart.
-2. Select Luxe Fragrances or Perfume World.
-3. Choose a pickup date and time.
-4. Enter their contact information.
-5. submit the pickup request.
-6. Receive a unique pickup reference by email.
+## Store pickup
 
-A pickup request confirms that the store received the request. It does not guarantee inventory until the selected store confirms availability.
+1. The customer adds products to the cart, chooses Luxe Fragrances or Perfume World, picks a date and time, and enters their contact details.
+2. Turnstile confirms a person submitted the form.
+3. The store receives the order by email (BCC to the site owner), and the customer receives a confirmation with a unique pickup reference such as `LP-20261002-AB12CD34`.
+4. Signed-in customers also see the order in their account history.
 
-## Pickup Cancellation
+A pickup request confirms the store received it, not that the items are in stock. The store contacts the customer when the order is ready.
 
-Customers may request cancellation within 24 hours of placing a pickup order.
+## Cancellation
 
-After checkout, the confirmation screen displays:
+Customers can cancel within 24 hours of ordering from the confirmation screen, or by calling the store with their pickup reference. The order API gives each order a signed cancellation token, so the 24-hour window and order details can't be forged from the browser. The store and customer are both emailed, and the order is marked cancelled in the customer's account history.
 
-- The pickup reference
-- The selected store
-- The cancellation deadline
-- A **Cancel Pickup Order** button
+## Customer accounts
 
-When cancellation is requested:
+Accounts use Supabase Auth (email and password, with email confirmation). Profiles, taste preferences and likes are stored in Supabase and protected by row-level security, so each customer can only read and change their own. Order history can only be written by the Worker, so customers can't add or edit orders themselves. The schema is in [supabase/schema.sql](supabase/schema.sql).
 
-- The selected store is notified.
-- The internal order contact is notified.
-- The customer receives a cancellation-request confirmation email.
+The browser keeps a small cache in `localStorage` (the last signed-in profile, quiz answers in progress, the latest pickup order for cancellation, recently shown recommendations, theme and cookie choices), but the account data lives in Supabase.
 
-Customers can also contact the selected store with their pickup reference.
+## Security and monitoring
 
-## Local Account Data
+- **Bot protection:** the order API rejects submissions without a valid Turnstile token before sending any email.
+- **Rate limiting:** each visitor IP can call each API route 10 times a minute (`API_RATE_LIMITER` in `wrangler.jsonc`).
+- **Secrets:** API keys exist only as Worker secrets and never reach the browser.
+- **Logs:** Workers Logs is enabled; view every request and error under Cloudflare → Workers → luxeperfume → Logs.
+- **Alerts:** the site owner is emailed when:
+  - a store doesn't receive an order or cancellation. Every one is sent, with the full details, so it can be passed on by hand.
+  - customer confirmations, the bot check or account saving start failing. These are sent at most once an hour per problem.
 
-Accounts, sessions, saved preferences, wishlist selections, theme settings, and certain order details are stored locally in the customer’s browser.
+  Alerts go through Resend, so a complete Resend outage can't send them; check the Resend dashboard and Workers Logs if orders seem quiet.
 
-This means:
+## Email routing
 
-- Account information is specific to the current browser and device.
-- Clearing browser storage may remove saved preferences and local account information.
-- The current account feature is not a server-backed authentication system.
-- Passwords stored locally should not be treated as production-grade authentication.
+Emails are sent from `orders@luxeperfume.uluxe.site` (alerts from `alerts@luxeperfume.uluxe.site`). The domain must stay verified in Resend.
 
-## Cloudflare Deployment
+- **Luxe Fragrances** orders: `luxefragrances.vi@gmail.com`
+- **Perfume World** orders: `perfumeworldvi@gmail.com`
+- Every store notification and every alert also goes to the site owner.
 
-The project is configured for Cloudflare Pages.
+## Store locations
 
-### Prerequisites
-
-- A Cloudflare account
-- A Cloudflare Pages project
-- A verified sending domain
-- Cloudflare Email Service enabled
-- The `RESEND_API_KEY` Worker secret and a verified Resend sending domain
-
-### Deployment Steps
-
-1. Confirm `luxeperfume.uluxe.site` is active in the appropriate Cloudflare account.
-2. Open **Compute & AI → Email Service → Email Sending**.
-3. Onboard and verify the sending domain.
-4. Allow Cloudflare to configure the required SPF, DKIM, DMARC, and bounce-domain records.
-5. Connect the repository to Cloudflare Pages.
-6. Set `urban-luxe` as the project root.
-7. Deploy the project.
-8. Follow [the Worker and Resend setup guide](CLOUDFLARE-SETUP.md) for the current deployment configuration.
-
-Cloudflare dashboard Direct Upload does not deploy Pages Functions. Deploy through a connected Git repository or Wrangler.
-
-### Wrangler Deployment
-
-```bash
-cd urban-luxe
-npx wrangler pages deploy .
-```
-
-## Email Routing
-
-Pickup orders are routed to the selected store:
-
-- **Luxe Fragrances**  
-  `luxefragrances.vi@gmail.com`
-
-- **Perfume World**  
-  `perfumeworldvi@gmail.com`
-
-The customer receives a separate confirmation at the email address entered during checkout.
-
-Transactional messages are sent from:
-
-```text
-Luxe Perfume Pickup <orders@luxeperfume.uluxe.site>
-```
-
-The sending domain must be verified before Cloudflare can deliver these messages.
-
-## Store Locations
-
-### Luxe Fragrances
-
-9001 Havensight Mall, Suite A & B  
-St. Thomas, VI 00802  
+**Luxe Fragrances**
+9001 Havensight Mall, Suite A & B
+St. Thomas, VI 00802
 340-693-0039
 
-### Perfume World
-
-4605 Tutu Park Mall  
-St. Thomas, VI 00802  
+**Perfume World**
+4605 Tutu Park Mall
+St. Thomas, VI 00802
 340-777-5504
 
-## Accessibility
+## Not yet built
 
-The website includes:
-
-- Semantic headings and landmarks
-- Keyboard-accessible controls
-- Visible focus states
-- Descriptive labels
-- Responsive layouts
-- Dark and light display themes
-- Reduced-motion support
-- Accessible dialogs and status messages
-
-## Important Production Notes
-
-Before treating the website as a full production commerce system, consider adding:
-
-- Server-backed customer authentication
-- A persistent order database
-- Signed or database-verified cancellation tokens
-- Inventory management
-- Payment processing
-- Administrative order management
-- Automated testing
-- Rate limiting and abuse protection
-- Centralized monitoring and error reporting
+- A staff dashboard for stores to manage orders and update customers
+- Saving guest orders (only signed-in customers' orders are stored)
+- Inventory and stock levels
+- Online payment
 
 ## License
 
-This project and its original design materials are intended for Luxe Perfume. Product names, fragrance names, images, and trademarks remain the property of their respective owners.
+This project and its original design materials are intended for Luxe Perfume. Product names, fragrance names, images and trademarks remain the property of their respective owners.

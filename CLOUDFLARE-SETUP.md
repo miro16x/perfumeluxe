@@ -26,7 +26,7 @@ The Function sends from `orders@luxeperfume.uluxe.site`. That mailbox does not h
 
 ## Local verification
 
-Run `node --test urban-luxe/tests/*.test.mjs` from the repository root. These tests mock Resend and do not send emails. After deployment, coordinate a test order and cancellation with the store and check delivery in the Resend Emails dashboard.
+Run `node --test tests/*.test.mjs` from the repository root. These tests mock Resend, Supabase and Turnstile and do not send emails. After deployment, coordinate a test order and cancellation with the store and check delivery in the Resend Emails dashboard.
 
 ## Customer accounts (Supabase)
 

@@ -1,6 +1,7 @@
 import { sendEmail } from '../../lib/email.js';
 import { accountOrdersEnabled, markAccountOrderCancelled } from '../../lib/supabase.js';
 import { cancelSigningEnabled, verifyCancellation } from '../../lib/cancel-token.js';
+import { alertOwner } from '../../lib/alerts.js';
 
 const STORES = {
   'Luxe Fragrances': { email: 'luxefragrances.vi@gmail.com' },
@@ -99,7 +100,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
        (a no-op for orders placed without an account). */
     if (accountOrdersEnabled(env)) {
       const markCancelled = markAccountOrderCancelled(env, reference, email)
-        .catch((error) => console.error('Pickup cancellation account update failed', reference, error?.message));
+        .catch((error) => {
+          console.error('Pickup cancellation account update failed', reference, error?.message);
+          return alertOwner(env, waitUntil, {
+            kind: 'account-cancel-failed',
+            subject: 'Cancellations are not being saved to customer accounts',
+            details: `Order ${reference} was cancelled with the store, but the customer's order history still shows it as placed: ${error?.message}\nCheck the SUPABASE_SERVICE_ROLE_KEY Worker secret and the Supabase project status.`
+          });
+        });
       if (typeof waitUntil === 'function') waitUntil(markCancelled);
       else await markCancelled;
     }
@@ -107,6 +115,13 @@ export async function onRequestPost({ request, env, waitUntil }) {
     return json({ success: true, orderReference: reference });
   } catch (error) {
     console.error('Pickup cancellation email delivery failed', error?.code, error?.message, error?.providerError);
+    /* The two emails are sent together, so the store may or may not have it. */
+    await alertOwner(env, waitUntil, {
+      kind: 'cancel-email-failed',
+      throttle: false,
+      subject: `CANCELLATION MAY NOT HAVE REACHED ${pickupStore} — ${reference}`,
+      details: `A customer tried to cancel order ${reference} and was told it failed (${error?.code || 'unknown error'}${error?.providerError ? `: ${error.providerError}` : ''}). ${pickupStore} may not know about the cancellation.\n\n${text}`
+    });
     return json({ success: false, message: 'Unable to deliver the cancellation request.' }, 502);
   }
 }

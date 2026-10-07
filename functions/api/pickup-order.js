@@ -2,6 +2,7 @@ import { sendEmail } from '../../lib/email.js';
 import { accountOrdersEnabled, getSignedInUser, saveAccountOrder } from '../../lib/supabase.js';
 import { cancelSigningEnabled, signCancellation } from '../../lib/cancel-token.js';
 import { turnstileEnabled, verifyTurnstile } from '../../lib/abuse-protection.js';
+import { alertOwner } from '../../lib/alerts.js';
 
 const STORES = {
   'Luxe Fragrances': {
@@ -57,7 +58,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
 
   /* Checked before any email is sent, so scripts can't use this endpoint to
      email stores or arbitrary addresses. Off until the secret is configured. */
-  if (turnstileEnabled(env) && !(await verifyTurnstile(env, request, order.turnstileToken))) {
+  if (turnstileEnabled(env) && !(await verifyTurnstile(env, request, order.turnstileToken, waitUntil))) {
     return json({ success: false, message: 'We could not verify this request. Please complete the security check and try again.' }, 403);
   }
 
@@ -158,6 +159,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
       customerEmailSent = true;
     } catch (error) {
       console.error('Pickup customer receipt failed', reference, error?.code, error?.message, error?.providerError);
+      await alertOwner(env, waitUntil, {
+        kind: 'customer-receipt-failed',
+        subject: `Customer confirmation email failed — ${reference}`,
+        details: `The store received order ${reference}, but the confirmation to ${customerEmail} was rejected (${error?.code || 'unknown error'}${error?.providerError ? `: ${error.providerError}` : ''}).\nThe customer saw their reference on screen. If this repeats, check the Resend dashboard.`
+      });
     }
 
     /* Signed-in customers get the order added to their account history. This
@@ -184,7 +190,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
           total: Number(calculatedTotal.toFixed(2)),
           placed_at: placedAt.toISOString()
         });
-      })().catch((error) => console.error('Pickup order account save failed', reference, error?.message));
+      })().catch((error) => {
+        console.error('Pickup order account save failed', reference, error?.message);
+        return alertOwner(env, waitUntil, {
+          kind: 'account-save-failed',
+          subject: 'Orders are not being saved to customer accounts',
+          details: `Order ${reference} was sent to the store but could not be added to the customer's order history: ${error?.message}\nCheck the SUPABASE_SERVICE_ROLE_KEY Worker secret and the Supabase project status.`
+        });
+      });
       if (typeof waitUntil === 'function') waitUntil(saveToAccount);
       else await saveToAccount;
     }
@@ -211,6 +224,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
     console.error('Pickup email delivery failed', reference, error?.code, error?.message, error?.providerError);
     const errorCode = /^RESEND_(HTTP_\d{3}|INVALID_RESPONSE)$/.test(error?.code || '')
       ? error.code : 'EMAIL_SEND_FAILED';
+    /* The store never got this order and the customer was told to call. Every
+       one is sent, with the full order, so it can be passed on by hand. */
+    await alertOwner(env, waitUntil, {
+      kind: 'order-email-failed',
+      throttle: false,
+      subject: `ORDER NOT DELIVERED to ${pickupStore} — ${reference}`,
+      details: `The store notification failed (${errorCode}${error?.providerError ? `: ${error.providerError}` : ''}), so ${pickupStore} did not receive this order. The customer was asked to call the store.\n\n${storeText}`
+    });
     return json({
       success: false,
       errorCode,

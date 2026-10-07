@@ -20,7 +20,12 @@ const mockNetwork = (siteverify) => mock.method(globalThis, 'fetch', async (url,
   if (url === SITEVERIFY) return siteverify(options.body);
   return Response.json({ id: 'test-id' });
 });
-const emailsSent = (fetchMock) => fetchMock.mock.calls.filter((call) => call.arguments[0] !== SITEVERIFY).length;
+const resendPayloads = (fetchMock) => fetchMock.mock.calls
+  .filter((call) => call.arguments[0] !== SITEVERIFY)
+  .map((call) => JSON.parse(call.arguments[1].body));
+const isAlert = (payload) => payload.from.includes('alerts@');
+const emailsSent = (fetchMock) => resendPayloads(fetchMock).filter((payload) => !isAlert(payload)).length;
+const alertsSent = (fetchMock) => resendPayloads(fetchMock).filter(isAlert);
 
 test('an order without a Turnstile token is rejected before any email', async () => {
   const fetchMock = mockNetwork(() => Response.json({ success: true, action: 'pickup-order', hostname: 'luxeperfume.uluxe.site' }));
@@ -54,6 +59,25 @@ test('failed, mismatched or unreachable verification blocks the order', async ()
     const fetchMock = mockNetwork(siteverify);
     assert.equal((await pickup({ request: order({ turnstileToken: 'token' }), env })).status, 403);
     assert.equal(emailsSent(fetchMock), 0);
+    mock.restoreAll();
+  }
+});
+
+test('a bot rejection does not alert the owner, a broken secret or outage does', async () => {
+  for (const [siteverify, alerts] of [
+    [() => Response.json({ success: false, 'error-codes': ['invalid-input-response'] }), 0],
+    [() => Response.json({ success: false, 'error-codes': ['invalid-input-secret'] }), 1],
+    [() => new Response('Service unavailable', { status: 503 }), 1]
+  ]) {
+    mock.method(console, 'error', () => {});
+    const fetchMock = mockNetwork(siteverify);
+    await pickup({ request: order({ turnstileToken: 'token' }), env });
+    const sent = alertsSent(fetchMock);
+    assert.equal(sent.length, alerts);
+    if (alerts) {
+      assert.deepEqual(sent[0].to, ['amirsslem679@gmail.com']);
+      assert.match(sent[0].subject, /blocked by the bot check/);
+    }
     mock.restoreAll();
   }
 });
