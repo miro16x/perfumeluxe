@@ -11,3 +11,5 @@ node_modules/
 *.log
 styles 2.css
 supabase/
+lib/
+tests/

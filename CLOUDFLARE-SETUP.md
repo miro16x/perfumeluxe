@@ -9,6 +9,11 @@ The storefront is deployed as a Cloudflare Worker with static assets. The Worker
 3. Deploy from the `urban-luxe` directory with `npx wrangler@latest deploy`, or configure that command in a Workers Builds project whose root directory is `urban-luxe`.
 4. Confirm that the deployed Worker has the `RESEND_API_KEY` secret and `ASSETS` binding. The old `EMAIL` binding is no longer used.
 5. Add a Worker secret named `CANCEL_SIGNING_SECRET` set to a long random value (for example, the output of `openssl rand -base64 32`). The pickup endpoint signs each order with it, and the cancellation endpoint rejects any request whose details (reference, email, store, time placed) don't match that signature, so the 24-hour window can't be bypassed. Without it, online cancellation is turned off and customers are told to call the store. Changing it invalidates the cancel buttons of orders placed in the previous 24 hours.
+6. Bot protection (Turnstile), in this order so orders never break:
+   1. Cloudflare dashboard → Turnstile → Add widget. Hostname: `uluxe.site` (this covers the `luxeperfume` subdomain). Widget mode: Managed.
+   2. Paste the **site key** into `TURNSTILE_SITE_KEY` near the top of the pickup code in `app.js`, then deploy. The site key is public.
+   3. Save the **secret key** as a Worker secret named `TURNSTILE_SECRET_KEY`. From then on the pickup endpoint rejects orders without a valid Turnstile token, before any email is sent. Without the secret, the check is off.
+7. Rate limiting needs no setup: `wrangler.jsonc` defines the `API_RATE_LIMITER` binding (10 requests per minute per visitor IP for each API route), and visitors over the limit get HTTP 429.
 
 The Function sends from `orders@luxeperfume.uluxe.site`. That mailbox does not have to exist, but the subdomain must finish verification in Resend before orders can be delivered.
 

@@ -152,9 +152,35 @@ function setupPickupDays() {
 setupPickupDays();
 prefillPickupFromAccount();
 
+/* Cloudflare Turnstile bot check on the pickup form. The site key is public;
+   leave it empty to turn the check off. The Worker only enforces it once
+   TURNSTILE_SECRET_KEY is set, so deploy this key before adding that secret. */
+const TURNSTILE_SITE_KEY = '0x4AAAAAAFQpTu5FYgmudtuN';
+let turnstileWidget = null;
+let turnstileLoading = false;
+
+/* Loaded when the pickup form opens, so ordinary page views don't run the check. */
+function setupTurnstile() {
+  if (!TURNSTILE_SITE_KEY || !pickupError || turnstileLoading) return;
+  turnstileLoading = true;
+  pickupError.insertAdjacentHTML('beforebegin', '<div class="pickup-turnstile" id="pickupTurnstile"></div>');
+  window.ulTurnstileReady = () => {
+    turnstileWidget = window.turnstile.render('#pickupTurnstile', {
+      sitekey: TURNSTILE_SITE_KEY,
+      action: 'pickup-order',
+      appearance: 'interaction-only'   /* invisible unless Cloudflare needs a click */
+    });
+  };
+  const script = document.createElement('script');
+  script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=ulTurnstileReady';
+  script.async = true;
+  document.head.appendChild(script);
+}
+
 if (pickupToggle && pickupDetails) {
   pickupToggle.addEventListener('click', () => {
     prefillPickupFromAccount();
+    setupTurnstile();
     const open = pickupDetails.hidden;
     pickupDetails.hidden = !open;
     pickupToggle.setAttribute('aria-expanded', String(open));
@@ -191,8 +217,15 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
             : pickupEmail).focus();
     return;
   }
+  setupTurnstile();
+  const turnstileToken = turnstileWidget !== null ? window.turnstile.getResponse(turnstileWidget) : '';
+  if (TURNSTILE_SITE_KEY && !turnstileToken) {
+    pickupError.textContent = 'Please wait a moment while we confirm you’re not a robot, then place your order again.';
+    pickupError.hidden = false;
+    return;
+  }
   pickupError.hidden = true;
-  const selectedDate = new Date(`${pickupDay.value}T12:00:00`);
+  const selectedDate =new Date(`${pickupDay.value}T12:00:00`);
   const selectedDay = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(selectedDate);
   const selectedLocation = document.querySelector('input[name="pickupLocation"]:checked').value;
   const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -222,9 +255,12 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
         items: cart.map(({ id, name, brand, price, qty }) => ({ id, name, brand, price, qty })),
         itemCount,
         orderTotal,
-        sourcePage: window.location.href
+        sourcePage: window.location.href,
+        ...(turnstileToken ? { turnstileToken } : {})
       })
     });
+    /* Tokens are single-use: get a fresh one for any retry or next order. */
+    if (turnstileWidget !== null) window.turnstile.reset(turnstileWidget);
 
     const result = await response.json().catch(() => ({}));
     if (!response.ok || result.success === false) {
@@ -304,6 +340,7 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
     checkoutBtn.disabled = false;
   } catch (error) {
     console.error('Unable to send pickup order:', error);
+    if (turnstileWidget !== null) window.turnstile.reset(turnstileWidget);
     pickupError.textContent = error instanceof TypeError
       ? 'We could not reach the pickup-order service. Check your connection and try again.'
       : error.message || 'We could not send your order. Please try again.';

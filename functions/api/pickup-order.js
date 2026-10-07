@@ -1,6 +1,7 @@
 import { sendEmail } from '../../lib/email.js';
 import { accountOrdersEnabled, getSignedInUser, saveAccountOrder } from '../../lib/supabase.js';
 import { cancelSigningEnabled, signCancellation } from '../../lib/cancel-token.js';
+import { turnstileEnabled, verifyTurnstile } from '../../lib/abuse-protection.js';
 
 const STORES = {
   'Luxe Fragrances': {
@@ -52,6 +53,12 @@ export async function onRequestPost({ request, env, waitUntil }) {
   if (!store || !validEmail(String(order.email || '')) || phoneDigits.length < 10 ||
       String(order.customerName || '').trim().length < 2 || !order.pickupDate || !order.pickupTime || !validItems) {
     return json({ success: false, message: 'Required pickup-order information is missing or invalid.' }, 400);
+  }
+
+  /* Checked before any email is sent, so scripts can't use this endpoint to
+     email stores or arbitrary addresses. Off until the secret is configured. */
+  if (turnstileEnabled(env) && !(await verifyTurnstile(env, request, order.turnstileToken))) {
+    return json({ success: false, message: 'We could not verify this request. Please complete the security check and try again.' }, 403);
   }
 
   const dateStamp = new Date().toISOString().slice(0, 10).replaceAll('-', '');

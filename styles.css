@@ -322,7 +322,7 @@ input{font-family:inherit}
 [data-theme="light"] .pickup-fields input[type="date"]{color-scheme:light}
 .pickup-fields input:focus,.pickup-fields select:focus{border-color:var(--gold)}
 .pickup-note,.pickup-secure,.pickup-error{font-size:9px;line-height:1.5;color:var(--ivory-muted)}
-.pickup-error{color:#d9877f;margin-bottom:8px}.pickup-secure{text-align:center;margin-top:9px}
+.pickup-error{color:#d9877f;margin-bottom:8px}.pickup-turnstile:not(:empty){margin:4px 0 10px}.pickup-secure{text-align:center;margin-top:9px}
 .pickup-cancel-box{display:grid;justify-items:center;gap:10px;width:100%;margin-top:8px;padding:14px;border:1px solid var(--border-hover);border-radius:var(--radius);background:var(--gold-glow)}
 .pickup-cancel-box>span{font-size:10px;line-height:1.55;color:var(--ivory-muted)}
 .btn-cancel-pickup{padding:9px 14px;border:1px solid rgba(217,135,127,.55);border-radius:var(--radius);color:#d9877f;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;transition:background var(--transition),color var(--transition)}
