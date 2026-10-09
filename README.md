@@ -139,7 +139,7 @@ Staff open `/staff.html` (not linked from the site) and create an account there 
 
 The server checks staff access and the order's current status on every action, so two people can't act on the same order at once, and an order is never refunded twice.
 
-Pay-at-pickup orders (only used when Stripe is off) are saved only for signed-in customers, so guest ones don't appear in the dashboard.
+Every order appears in the dashboard, from guests and signed-in customers alike: paid orders once Stripe confirms payment, pay-at-pickup orders (when Stripe is off) as soon as the store is emailed.
 
 ## Customer accounts
 

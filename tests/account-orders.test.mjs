@@ -68,11 +68,24 @@ test('signed-in order is saved to the account with server-calculated totals', as
   assert.deepEqual(saved.items, [{ id: 287, name: 'Eros Eau de Toilette', brand: 'VERSACE', size: '100ml', price: 103, qty: 2 }]);
 });
 
-test('guest order never contacts Supabase', async () => {
+test('a guest order is saved for the staff dashboard without an account', async () => {
   const calls = mockNetwork({ user: { id: 'user-123' } });
   const response = await submitOrder({ env: { SUPABASE_SERVICE_ROLE_KEY: 'secret-key' } });
   assert.equal(response.status, 200);
-  assert.equal(supabaseCalls(calls).length, 0);
+
+  const supabase = supabaseCalls(calls);
+  assert.equal(supabase.length, 1);   /* no sign-in check without a token */
+  const [insert] = supabase;
+  assert.equal(insert.url, `${SUPABASE}/rest/v1/orders`);
+  const saved = JSON.parse(insert.options.body);
+  assert.equal(saved.user_id, null);
+  assert.equal(saved.status, 'placed');
+  assert.equal(saved.fulfillment, 'pickup');
+  assert.equal(saved.customer_name, 'Test Customer');
+  assert.equal(saved.phone, '3405550100');
+  assert.equal(saved.pickup_store, 'Perfume World');
+  assert.equal(saved.total, 206);
+  assert.ok(saved.notified_at);
 });
 
 test('missing Supabase secret leaves ordering unchanged', async () => {
@@ -82,12 +95,14 @@ test('missing Supabase secret leaves ordering unchanged', async () => {
   assert.equal(supabaseCalls(calls).length, 0);
 });
 
-test('invalid access token saves nothing but still accepts the order', async () => {
+test('an invalid access token saves the order as a guest order', async () => {
   const calls = mockNetwork();
   const response = await submitOrder({ token: 'forged', env: { SUPABASE_SERVICE_ROLE_KEY: 'secret-key' } });
   assert.equal(response.status, 200);
   assert.equal((await response.json()).success, true);
-  assert.deepEqual(supabaseCalls(calls).map((call) => call.url), [`${SUPABASE}/auth/v1/user`]);
+  const [verify, insert] = supabaseCalls(calls);
+  assert.equal(verify.url, `${SUPABASE}/auth/v1/user`);
+  assert.equal(JSON.parse(insert.options.body).user_id, null);
 });
 
 test('Supabase outage does not fail an order the store already received', async () => {

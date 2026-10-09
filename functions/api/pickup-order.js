@@ -1,4 +1,4 @@
-import { accountOrdersEnabled, getSignedInUser, saveAccountOrder } from '../../lib/supabase.js';
+import { accountOrdersEnabled, getSignedInUser, saveOrder } from '../../lib/supabase.js';
 import { cancelSigningEnabled, signCancellation } from '../../lib/cancel-token.js';
 import { turnstileEnabled, verifyTurnstile } from '../../lib/abuse-protection.js';
 import { alertOwner } from '../../lib/alerts.js';
@@ -130,34 +130,40 @@ export async function onRequestPost({ request, env, waitUntil }) {
     const { storeResult, customerResult, customerEmailSent, total, count } =
       await sendOrderEmails(env, waitUntil, { ...details, paid: false });
 
-    /* Signed-in customers get the order added to their account history. This
-       is best-effort: the order is already accepted, so a failure here is
-       logged and never turns a sent order into an error for the customer. */
-    if (accountOrdersEnabled(env) && request.headers.get('Authorization')) {
-      const saveToAccount = (async () => {
-        const user = await getSignedInUser(request, env);
-        if (!user) return;
-        await saveAccountOrder(env, user.id, {
+    /* Every order is recorded for the staff dashboard; a signed-in customer's
+       is also linked to their account history (a guest's has no user_id, so
+       no customer can read it). Best-effort: the store already has the order,
+       so a failure here is logged and never becomes an error for the customer. */
+    if (accountOrdersEnabled(env)) {
+      const record = (async () => {
+        const user = request.headers.get('Authorization') ? await getSignedInUser(request, env) : null;
+        await saveOrder(env, {
+          user_id: user?.id ?? null,
           reference,
           email: details.customerEmail.toLowerCase(),
+          customer_name: details.customerName,
+          phone: details.phone,
           pickup_store: details.pickupStore,
           pickup_date: details.pickupDate,
           pickup_time: details.pickupTime,
+          fulfillment: 'pickup',
           items: items.map(({ id, name, brand, size, price, qty }) => ({ id, name, brand, size, price, qty })),
           item_count: count,
           total: Number(total.toFixed(2)),
-          placed_at: placedAt.toISOString()
+          status: 'placed',
+          placed_at: placedAt.toISOString(),
+          notified_at: new Date().toISOString()
         });
       })().catch((error) => {
-        console.error('Pickup order account save failed', reference, error?.message);
+        console.error('Pickup order save failed', reference, error?.message);
         return alertOwner(env, waitUntil, {
-          kind: 'account-save-failed',
-          subject: 'Orders are not being saved to customer accounts',
-          details: `Order ${reference} was sent to the store but could not be added to the customer's order history: ${error?.message}\nCheck the SUPABASE_SERVICE_ROLE_KEY Worker secret and the Supabase project status.`
+          kind: 'order-save-failed',
+          subject: 'Orders are not being saved',
+          details: `Order ${reference} was sent to the store but could not be saved in Supabase: ${error?.message}\nIt won't appear in the staff dashboard or the customer's order history. Check the SUPABASE_SERVICE_ROLE_KEY Worker secret and the Supabase project status.`
         });
       });
-      if (typeof waitUntil === 'function') waitUntil(saveToAccount);
-      else await saveToAccount;
+      if (typeof waitUntil === 'function') waitUntil(record);
+      else await record;
     }
 
     /* Proof for /api/cancel-pickup-order that these details came from us.
