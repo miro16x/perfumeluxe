@@ -603,7 +603,8 @@ input{font-family:inherit}
   flex:none;padding:3px 8px;border-radius:20px;border:1px solid var(--border-hover);
   font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--ivory-dim);
 }
-.account-order-placed,.account-order-paid{color:var(--gold);border-color:rgba(201,168,76,.4)}
+.account-order-placed,.account-order-paid,.account-order-ready,.account-order-shipped{color:var(--gold);border-color:rgba(201,168,76,.4)}
+.account-order-collected{color:var(--ivory-dim)}
 .account-order-cancelled,.account-order-refunded{color:var(--ivory-muted)}
 .account-order-meta{font-size:11px;color:var(--ivory-muted);line-height:1.5}
 
@@ -2763,3 +2764,70 @@ a:focus:not(:focus-visible){outline:none}
 /* Give standalone story and contact content room below the fixed navigation. */
 .about-page .story,.contact-page .store-visit{padding-top:150px;content-visibility:visible;contain:none}
 @media(max-width:720px){.about-page .story,.contact-page .store-visit{padding-top:110px}}
+
+/* ── STAFF DASHBOARD (staff.html) ───────────────────── */
+.staff-page{--staff-ok:#6fbf86;--staff-danger:#e08a8a;--staff-danger-bg:rgba(200,70,70,.1)}
+:root[data-theme="light"] .staff-page{--staff-ok:#2f7d48;--staff-danger:#a33a3a;--staff-danger-bg:rgba(170,50,50,.08)}
+.staff-header{border-bottom:1px solid var(--border);background:var(--bg-1)}
+.staff-header-inner{max-width:1100px;margin:0 auto;padding:20px 16px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.staff-eyebrow{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+.staff-title{font-family:var(--font-serif);font-weight:500;font-size:clamp(26px,5vw,36px);line-height:1.15}
+.staff-who{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--ivory-dim)}
+.staff-who[hidden]{display:none}
+.staff-link{font-size:12px;color:var(--gold);border-bottom:1px solid currentColor;padding:2px 0}
+.staff-main{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+.staff-signin{max-width:400px;margin:40px auto;display:flex;flex-direction:column;gap:12px}
+.staff-page [hidden]{display:none}
+.staff-section-title{font-family:var(--font-serif);font-weight:500;font-size:28px}
+.staff-muted{color:var(--ivory-muted);font-size:13px}
+
+.staff-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
+.staff-tabs{display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.staff-tab{padding:10px 20px;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ivory-dim)}
+.staff-tab[aria-selected="true"]{background:var(--gold);color:var(--bg-0)}
+.staff-filters{display:flex;gap:8px;flex-wrap:wrap}
+.staff-chip{padding:7px 14px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--ivory-dim)}
+.staff-chip[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);background:var(--gold-glow)}
+.staff-refresh{margin-left:auto;padding:9px 18px}
+.staff-status{min-height:1.7em;margin:16px 0 8px;font-size:13px;color:var(--ivory-dim)}
+.staff-status-error{color:var(--staff-danger)}
+.staff-empty{padding:48px 16px;text-align:center;color:var(--ivory-muted);border:1px dashed var(--border);border-radius:var(--radius-lg)}
+
+.staff-orders{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:16px}
+.staff-order{display:flex;flex-direction:column;gap:14px;padding:18px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg)}
+.staff-order[aria-busy="true"]{opacity:.7}
+.staff-order-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.staff-kind{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.staff-ref{font-size:15px;font-weight:600;letter-spacing:.02em;word-break:break-all}
+.staff-badge{flex:none;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border-hover);color:var(--ivory-dim)}
+.staff-badge-paid,.staff-badge-placed{border-color:var(--gold);color:var(--gold)}
+.staff-badge-ready,.staff-badge-shipped,.staff-badge-collected{border-color:var(--staff-ok);color:var(--staff-ok)}
+.staff-badge-cancelled,.staff-badge-refunded{border-color:var(--staff-danger);color:var(--staff-danger)}
+.staff-details{display:grid;gap:6px;font-size:13px}
+.staff-detail{display:grid;grid-template-columns:76px 1fr;gap:10px}
+.staff-detail dt{color:var(--ivory-muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding-top:2px}
+.staff-detail dd{color:var(--ivory);word-break:break-word}
+.staff-detail a{color:var(--gold);border-bottom:1px solid transparent}
+.staff-detail a:hover,.staff-detail a:focus-visible{border-color:currentColor}
+.staff-address{white-space:pre-line}
+.staff-items{border-top:1px solid var(--border);padding-top:12px;display:grid;gap:6px;font-size:13px}
+.staff-items li{display:grid;grid-template-columns:auto 1fr auto;gap:10px}
+.staff-item-qty{color:var(--gold);font-weight:600}
+.staff-item-price{color:var(--ivory-dim)}
+.staff-note{font-size:12px;color:var(--ivory-muted);padding:8px 12px;background:var(--gold-glow);border-radius:var(--radius)}
+.staff-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:auto}
+.staff-action{padding:11px 16px;font-size:11px}
+.staff-action:disabled{opacity:.5;cursor:default;transform:none}
+.staff-danger{color:var(--staff-danger);border-color:var(--staff-danger)}
+.staff-danger-solid{background:var(--staff-danger-bg)}
+.staff-inline-form{display:flex;flex-direction:column;gap:12px;width:100%}
+.staff-inline-form select{
+  padding:12px 14px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--ivory);font-size:14px;font-family:var(--font-sans);outline:none;
+}
+.staff-inline-form select:focus{border-color:var(--gold)}
+.staff-warning{font-size:13px;color:var(--staff-danger);padding:10px 12px;background:var(--staff-danger-bg);border-radius:var(--radius)}
+@media(max-width:520px){
+  .staff-refresh{margin-left:0}
+  .staff-action{flex:1 1 auto;justify-content:center}
+}

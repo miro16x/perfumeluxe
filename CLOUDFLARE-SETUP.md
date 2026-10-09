@@ -66,3 +66,14 @@ Refunds for orders cancelled by phone, or for items that turn out to be unavaila
 To turn online payment off at any time, delete the `STRIPE_SECRET_KEY` Worker secret. Ordering immediately goes back to pay at pickup, and the shipping option disappears from the cart (shipping needs online payment). Carts already open in a browser may show it for up to five minutes, but the server refuses those shipping orders.
 
 Shipping rates, the free-shipping threshold, the shipping store and the allowed states are set in `lib/shipping.js`. Perfume is shipped as a hazardous material (flammable liquid); confirm Luxe Fragrances' carrier account allows it before going live.
+
+## Staff dashboard
+
+1. **Update the database.** Supabase dashboard → SQL Editor → paste `supabase/schema.sql` → Run. This adds the `staff` table and the ready, shipped and picked-up order statuses. It is safe to re-run.
+2. **Add staff.** Each staff member creates an account on the site (Account → Create Account) and confirms their email. Then, in the SQL Editor, add them with their store:
+   ```sql
+   insert into public.staff (user_id, store, name)
+   select id, 'Perfume World', 'Jane' from auth.users where email = 'jane@example.com';
+   ```
+   Use `'Luxe Fragrances'`, `'Perfume World'`, or `'all'` for someone who manages every store (such as the owner). To remove access: `delete from public.staff where user_id = (select id from auth.users where email = 'jane@example.com');`
+3. **Use it.** Staff go to `https://luxeperfume.uluxe.site/staff.html` and sign in. The dashboard needs `SUPABASE_SERVICE_ROLE_KEY` and `RESEND_API_KEY`, and refunds need the Stripe secrets.

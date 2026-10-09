@@ -24,6 +24,7 @@ const mockNetwork = (supabase = {}) => {
       return supabase.user ? Response.json(supabase.user) : Response.json({ msg: 'invalid JWT' }, { status: 401 });
     }
     if (String(url).startsWith(`${SUPABASE}/rest/v1/orders`)) {
+      if (!options.method) return Response.json(supabase.orders ?? []);
       return new Response(null, { status: supabase.ordersStatus ?? 201 });
     }
     throw new Error(`Unexpected request to ${url}`);
@@ -116,7 +117,7 @@ test('cancellation marks the matching account order cancelled', async () => {
   });
   assert.equal(response.status, 200);
 
-  const [update] = supabaseCalls(calls);
+  const update = supabaseCalls(calls).find((call) => call.options.method === 'PATCH');
   assert.equal(update.url, `${SUPABASE}/rest/v1/orders?reference=eq.LP-20261002-AB12CD34&email=eq.customer%40example.com`);
   assert.equal(update.options.method, 'PATCH');
   assert.equal(update.options.headers.apikey, 'secret-key');

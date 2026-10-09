@@ -256,7 +256,10 @@ function renderRecommendations() {
   const SCENT_LABELS = { floral: 'Floral', woody: 'Woody', oriental: 'Oriental', fresh: 'Fresh', gourmand: 'Gourmand', fruity: 'Fruity', aquatic: 'Aquatic', chypre: 'Chypre' };
   const BRANDS = [...new Set(PRODUCTS.map((p) => p.brand))].sort();
   const UNAVAILABLE = 'Accounts are unavailable right now. Check your connection and try again.';
-  const ORDER_STATUS = { placed: 'Placed', paid: 'Paid', cancelled: 'Cancelled', refunded: 'Refunded' };
+  const ORDER_STATUS = {
+    placed: 'Placed', paid: 'Paid', ready: 'Ready for pickup', shipped: 'Shipped',
+    collected: 'Picked up', cancelled: 'Cancelled', refunded: 'Refunded'
+  };
 
   /* ── extra UI the static markup doesn't have (same on every page) ── */
   tabSignIn.closest('.account-tabs').insertAdjacentHTML('afterend',

@@ -111,11 +111,42 @@ alter table public.orders add column if not exists shipping_cost numeric(10, 2) 
 alter table public.orders drop constraint if exists orders_fulfillment_check;
 alter table public.orders add constraint orders_fulfillment_check check (fulfillment in ('pickup', 'shipping'));
 
+-- Staff dashboard (staff.html): orders move on from paid to ready (pickup),
+-- shipped (shipping) and collected (pickup), and record who changed them.
+alter table public.orders drop constraint if exists orders_status_check;
+alter table public.orders add constraint orders_status_check
+  check (status in ('placed', 'paid', 'ready', 'shipped', 'collected', 'cancelled', 'refunded'));
+alter table public.orders add column if not exists ready_at timestamptz;
+alter table public.orders add column if not exists shipped_at timestamptz;
+alter table public.orders add column if not exists collected_at timestamptz;
+alter table public.orders add column if not exists tracking_carrier text;
+alter table public.orders add column if not exists tracking_number text;
+alter table public.orders add column if not exists updated_by uuid references auth.users (id) on delete set null;
+
+create index if not exists orders_store_placed_idx on public.orders (pickup_store, placed_at desc);
+
 alter table public.orders enable row level security;
 
 drop policy if exists "Orders: read own" on public.orders;
 create policy "Orders: read own" on public.orders
   for select to authenticated using ((select auth.uid()) = user_id);
+
+-- ── STAFF: who can use the staff dashboard ─────────────────────────
+-- Each staff member signs up on the site like a customer, then is added here
+-- by hand (SQL Editor):
+--   insert into public.staff (user_id, store, name)
+--   select id, 'Perfume World', 'Jane' from auth.users where email = 'jane@example.com';
+-- store is 'Luxe Fragrances', 'Perfume World', or 'all' (every store).
+-- No policies: only the Worker (secret key) can read it, so nobody can make
+-- themselves staff from the browser.
+create table if not exists public.staff (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  store      text not null check (store in ('Luxe Fragrances', 'Perfume World', 'all')),
+  name       text not null default '',
+  created_at timestamptz not null default now()
+);
+
+alter table public.staff enable row level security;
 
 -- ── API access ─────────────────────────────────────────────────────
 -- Row-level security above still decides WHICH rows each person can touch.
@@ -124,4 +155,4 @@ grant select, insert, update on public.profiles to authenticated;
 grant select, insert, delete on public.wishlist_items to authenticated;
 grant select on public.orders to authenticated;
 grant usage on schema public to service_role;
-grant all on public.profiles, public.wishlist_items, public.orders to service_role;
+grant all on public.profiles, public.wishlist_items, public.orders, public.staff to service_role;

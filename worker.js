@@ -7,6 +7,8 @@ import {
 import { onRequestPost as stripeWebhook } from './functions/api/stripe-webhook.js';
 import { onRequestGet as checkoutStatus } from './functions/api/checkout-status.js';
 import { onRequestGet as checkoutOptions } from './functions/api/checkout-options.js';
+import { onRequestGet as staffOrders } from './functions/api/staff-orders.js';
+import { onRequestPost as staffOrderAction } from './functions/api/staff-order-action.js';
 
 import { rateLimited } from './lib/abuse-protection.js';
 
@@ -17,7 +19,9 @@ const API_ROUTES = new Map([
   ['/api/cancel-pickup-order', ['POST', cancelPickupOrder, true]],
   ['/api/checkout-status', ['GET', checkoutStatus, true]],
   ['/api/checkout-options', ['GET', checkoutOptions, false]],   /* cacheable, no side effects */
-  ['/api/stripe-webhook', ['POST', stripeWebhook, false]]
+  ['/api/stripe-webhook', ['POST', stripeWebhook, false]],
+  ['/api/staff-orders', ['GET', staffOrders, true]],
+  ['/api/staff-order-action', ['POST', staffOrderAction, true]]
 ]);
 
 const tooManyRequests = () => new Response(

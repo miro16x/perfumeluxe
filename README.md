@@ -12,6 +12,7 @@ Customers browse the catalog, get personalized recommendations, and order for fr
 - Store pickup ordering with online payment (Stripe Checkout) and email confirmations to the store and the customer
 - Shipping to the 50 states, Washington, D.C. and Puerto Rico from Luxe Fragrances ($15, free on orders of $200 or more)
 - Online cancellation with an automatic refund within 24 hours of ordering
+- Staff dashboard for each store: mark orders ready, picked up or shipped (with tracking), and cancel or refund them
 - Bot protection and rate limiting on ordering
 - Email alerts to the site owner when orders or cancellations fail
 - Dark and light themes, keyboard navigation and reduced-motion support
@@ -30,6 +31,7 @@ Customers browse the catalog, get personalized recommendations, and order for fr
 ```text
 urban-luxe/
 ├── index.html, shop.html, collection.html, product.html, about.html, contact.html
+├── staff.html, staff.js  Staff dashboard (not linked from the site)
 ├── styles.css
 ├── app.js              Navigation, cart, search, pickup ordering and the Turnstile widget
 ├── auth.js             Supabase sign-in, profiles, preferences, likes and order history
@@ -42,7 +44,9 @@ urban-luxe/
 │   ├── stripe-webhook.js       Receives Stripe's payment confirmation and emails the store
 │   ├── checkout-status.js      Confirmation details when the customer returns from Stripe
 │   ├── checkout-options.js     Tells the cart whether payment and shipping are available
-│   └── cancel-pickup-order.js  Cancels within the 24-hour window and refunds paid orders
+│   ├── cancel-pickup-order.js  Cancels within the 24-hour window and refunds paid orders
+│   ├── staff-orders.js         Lists a staff member's store orders
+│   └── staff-order-action.js   Ready, picked up, shipped and cancel/refund actions
 ├── lib/                Server-only helpers (never published)
 │   ├── abuse-protection.js     Turnstile verification and rate limiting
 │   ├── alerts.js               Failure alerts to the site owner
@@ -51,6 +55,7 @@ urban-luxe/
 │   ├── email.js                Resend client
 │   ├── order-emails.js         Store and customer order emails
 │   ├── shipping.js             Shipping area, rates and address checks
+│   ├── staff.js                Staff access, carriers and dashboard emails
 │   ├── stores.js               Store addresses, phones and email routing
 │   ├── stripe.js               Stripe Checkout, webhook verification and refunds
 │   └── supabase.js             Order records and account history
@@ -115,11 +120,24 @@ When online payment is on, the cart offers **Ship to me** next to store pickup. 
 - are always sent to **Luxe Fragrances**. The store email is marked **New Shipping Order (PAID)**, shows the address, and asks the store to ship after the 24-hour cancellation window closes, so an order is never refunded after it has left.
 - appear in the customer's account history as "Shipping to City, ST".
 
-There is no tracking-number flow yet: the store emails the customer tracking details itself.
+When the window has closed, staff mark the order shipped in the staff dashboard with the carrier and tracking number, and the customer is emailed a tracking link. The dashboard won't mark an order shipped before then.
 
 ## Cancellation and refunds
 
-Customers can cancel within 24 hours of ordering from the confirmation screen, or by calling the store with their pickup reference. Each order gets a signed cancellation token, so the 24-hour window and order details can't be forged from the browser. Cancelling a paid order refunds it in full through Stripe first; only then are the store and customer emailed, and the order is marked refunded. Phone cancellations are refunded by hand in the Stripe dashboard.
+Customers can cancel within 24 hours of ordering from the confirmation screen, or by calling the store with their pickup reference. Each order gets a signed cancellation token, so the 24-hour window and order details can't be forged from the browser. Cancelling a paid order refunds it in full through Stripe first; only then are the store and customer emailed, and the order is marked refunded. Phone cancellations, and orders a store can't fill, are cancelled and refunded from the staff dashboard. Once an order is marked shipped or picked up, customers can no longer cancel it online.
+
+## Staff dashboard
+
+Staff open `/staff.html` (not linked from the site) and sign in with an ordinary site account that has been added to the `staff` table (see [CLOUDFLARE-SETUP.md](CLOUDFLARE-SETUP.md)). Each staff member sees only their store's orders; the owner can be given every store.
+
+- **To do** lists paid and pay-at-pickup orders that still need something; **Done** lists shipped, picked-up, cancelled and refunded ones. It refreshes every minute.
+- **Pickup orders:** *Ready for pickup* emails the customer; *Picked up* closes the order.
+- **Shipping orders:** *Mark shipped* takes the carrier (USPS, UPS, FedEx or DHL) and tracking number and emails the customer a tracking link, once the 24-hour cancellation window has closed.
+- **Cancel & refund** refunds a paid order in full through Stripe (or cancels a pay-at-pickup order) and emails the customer, with an optional reason. The site owner is copied.
+
+The server checks staff access and the order's current status on every action, so two people can't act on the same order at once, and an order is never refunded twice.
+
+Pay-at-pickup orders (only used when Stripe is off) are saved only for signed-in customers, so guest ones don't appear in the dashboard.
 
 ## Customer accounts
 
@@ -161,7 +179,7 @@ St. Thomas, VI 00802
 
 ## Not yet built
 
-- A staff dashboard for stores to manage orders and update customers
+- Partial refunds (one item of an order): refund these in the Stripe dashboard for now
 - Inventory and stock levels (on hold until the stores have a point-of-sale system)
 
 ## License

@@ -1,5 +1,5 @@
 import { sendEmail } from '../../lib/email.js';
-import { accountOrdersEnabled, markAccountOrderCancelled, updateOrder } from '../../lib/supabase.js';
+import { accountOrdersEnabled, getOrder, markAccountOrderCancelled, updateOrder } from '../../lib/supabase.js';
 import { cancelSigningEnabled, verifyCancellation } from '../../lib/cancel-token.js';
 import { alertOwner } from '../../lib/alerts.js';
 import { paymentsEnabled, validSessionId, retrieveCheckoutSession, refundPayment } from '../../lib/stripe.js';
@@ -75,6 +75,21 @@ export async function onRequestPost({ request, env, waitUntil }) {
   }
   if (age < 0 || age > DAY_MS) {
     return json({ success: false, message: 'The 24-hour cancellation window has closed.' }, 409);
+  }
+
+  /* Staff may already have handed the order over (staff dashboard). The lookup
+     is best-effort: if Supabase is down, cancellation works as before. */
+  if (accountOrdersEnabled(env)) {
+    const current = await getOrder(env, reference).catch((error) => {
+      console.error('Pickup cancellation status check failed', reference, error?.message);
+      return null;
+    });
+    if (current?.status === 'shipped' || current?.status === 'collected') {
+      return json({
+        success: false,
+        message: `This order has already been ${current.status === 'shipped' ? 'shipped' : 'picked up'}, so it can't be cancelled online. Please call ${pickupStore} at ${store.phone}.`
+      }, 409);
+    }
   }
 
   /* Paid orders carry their Stripe session id; refund before telling anyone. */

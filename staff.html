@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Staff Orders | Luxe Perfume</title>
+  <script>try{var t=localStorage.getItem('ul-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="staff-page">
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="staff-header">
+    <div class="staff-header-inner">
+      <div>
+        <p class="staff-eyebrow">Luxe Perfume · Staff</p>
+        <h1 class="staff-title" id="staffTitle">Orders</h1>
+      </div>
+      <div class="staff-who" id="staffWho" hidden>
+        <span id="staffName"></span>
+        <button type="button" class="staff-link" id="signOutBtn">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="staff-main" id="main-content">
+    <!-- Sign in -->
+    <section class="staff-signin" id="signInView" hidden>
+      <h2 class="staff-section-title">Staff sign in</h2>
+      <p class="staff-muted">Use the email and password of your staff account.</p>
+      <form class="account-form" id="staffSignInForm" novalidate>
+        <label class="account-field"><span>Email</span>
+          <input type="email" name="email" autocomplete="email" required></label>
+        <label class="account-field"><span>Password</span>
+          <input type="password" name="password" autocomplete="current-password" required></label>
+        <p class="account-error" id="signInError" role="alert" hidden></p>
+        <button type="submit" class="btn-gold btn-full">Sign In</button>
+      </form>
+    </section>
+
+    <!-- Not staff -->
+    <section class="staff-signin" id="noAccessView" hidden>
+      <h2 class="staff-section-title">No staff access</h2>
+      <p class="staff-muted" id="noAccessText">This account isn't set up for the staff dashboard. Ask the site owner to add it.</p>
+    </section>
+
+    <!-- Orders -->
+    <section id="ordersView" hidden>
+      <div class="staff-toolbar">
+        <div class="staff-tabs" role="tablist" aria-label="Orders">
+          <button type="button" role="tab" class="staff-tab" data-view="open" aria-selected="true">To do</button>
+          <button type="button" role="tab" class="staff-tab" data-view="done" aria-selected="false">Done</button>
+        </div>
+        <div class="staff-filters" aria-label="Order type">
+          <button type="button" class="staff-chip" data-type="all" aria-pressed="true">All</button>
+          <button type="button" class="staff-chip" data-type="pickup" aria-pressed="false">Pickup</button>
+          <button type="button" class="staff-chip" data-type="shipping" aria-pressed="false">Shipping</button>
+        </div>
+        <button type="button" class="btn-ghost staff-refresh" id="refreshBtn">Refresh</button>
+      </div>
+      <p class="staff-status" id="ordersStatus" role="status" aria-live="polite"></p>
+      <div class="staff-orders" id="ordersList"></div>
+    </section>
+  </main>
+
+  <script src="staff.js"></script>
+</body>
+</html>
