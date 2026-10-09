@@ -4,7 +4,7 @@
 //   shipped   shipping order left the store; emails the customer tracking
 //   refund    cancels the order, refunding it in full if it was paid online
 import { accountOrdersEnabled, getStaffOrder, transitionOrder } from '../../lib/supabase.js';
-import { getStaff, canManage, sendCustomerEmail, CARRIERS } from '../../lib/staff.js';
+import { getStaff, staffLookupFailure, canManage, sendCustomerEmail, CARRIERS } from '../../lib/staff.js';
 import { paymentsEnabled, refundPayment } from '../../lib/stripe.js';
 import { alertOwner } from '../../lib/alerts.js';
 import { CANCEL_WINDOW_MS } from '../../lib/stores.js';
@@ -34,8 +34,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   try {
     staff = await getStaff(request, env);
   } catch (error) {
-    console.error('Staff lookup failed', error?.message);
-    return json({ success: false, message: 'Unable to check staff access right now. Please try again.' }, 502);
+    return json(await staffLookupFailure(env, waitUntil, error), 502);
   }
   if (!staff) return json({ success: false, message: 'This account does not have staff access.' }, 403);
 

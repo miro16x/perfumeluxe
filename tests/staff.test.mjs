@@ -295,3 +295,20 @@ test('the worker routes the staff API', async () => {
   const wrongMethod = await worker.fetch(new Request('https://luxeperfume.uluxe.site/api/staff-order-action'), routed, ctx);
   assert.equal(wrongMethod.status, 405);
 });
+
+test('a rejected Supabase key is explained to staff and alerts the owner', async () => {
+  const calls = mockNetwork();
+  mock.method(globalThis, 'fetch', async (url, options = {}) => {
+    url = String(url);
+    calls.push({ url, method: options.method || 'GET', body: options.body });
+    if (url === `${SUPABASE}/auth/v1/user`) return Response.json({ id: 'staff-1', email: 'jane@example.com' });
+    if (url.startsWith(`${SUPABASE}/rest/v1/staff`)) return Response.json({ message: 'Invalid API key' }, { status: 401 });
+    if (url === 'https://api.resend.com/emails') return Response.json({ id: 'email-id' });
+    throw new Error(`Unexpected request to ${url}`);
+  });
+  const response = await listOrders({ request: listRequest(), env });
+  assert.equal(response.status, 502);
+  assert.match((await response.json()).message, /rejected the server's key/);
+  const [alert] = emails(calls);
+  assert.match(alert.subject, /Supabase is rejecting the Worker secret key/);
+});

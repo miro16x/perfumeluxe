@@ -389,7 +389,15 @@ $('staffSignInForm').addEventListener('submit', async (event) => {
 });
 
 $('checkAccessBtn').addEventListener('click', () => loadOrders());
-$('retryBtn').addEventListener('click', () => start());
+$('retryBtn').addEventListener('click', async () => {
+  const button = $('retryBtn');
+  button.disabled = true;
+  button.textContent = 'Checking…';
+  $('errorText').textContent = '';
+  await start();
+  button.disabled = false;
+  button.textContent = 'Try again';
+});
 
 $('signOutBtn').addEventListener('click', async () => {
   /* Local scope: signs out here even if the sign-in service is unreachable. */
