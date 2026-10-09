@@ -29,7 +29,7 @@
 
   <main class="staff-main" id="main-content">
     <!-- Sign in / create account -->
-    <section class="staff-signin" id="signInView" hidden>
+    <section class="staff-signin" id="signInView">
       <div class="staff-tabs staff-auth-tabs" role="tablist" aria-label="Staff account">
         <button type="button" role="tab" class="staff-tab" id="tabStaffSignIn" aria-selected="true" aria-controls="staffSignInForm">Sign in</button>
         <button type="button" role="tab" class="staff-tab" id="tabStaffSignUp" aria-selected="false" aria-controls="staffSignUpForm">Create account</button>
@@ -59,6 +59,13 @@
         <p class="account-error" id="signUpError" role="alert" hidden></p>
         <button type="submit" class="btn-gold btn-full">Create Account</button>
       </form>
+    </section>
+
+    <!-- Something went wrong before the orders loaded -->
+    <section class="staff-signin" id="errorView" hidden>
+      <h2 class="staff-section-title">Orders couldn't load</h2>
+      <p class="account-error" id="errorText" role="alert"></p>
+      <button type="button" class="btn-gold btn-full" id="retryBtn">Try again</button>
     </section>
 
     <!-- Not staff -->

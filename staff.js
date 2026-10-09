@@ -7,6 +7,7 @@ const ST_SUPABASE_URL = 'https://bvffpffnyjfufprcdskb.supabase.co';
 const ST_SUPABASE_KEY = 'sb_publishable_NGGc4fVDwCVlsInS2NT51g_ymNOYi7w';
 const ST_SUPABASE_SDK = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
 const ST_REFRESH_MS = 60 * 1000;
+const ST_TIMEOUT_MS = 15 * 1000;   /* give up on the sign-in service after this */
 
 const STATUS_LABEL = {
   placed: 'Pay at pickup', paid: 'Paid', ready: 'Ready', shipped: 'Shipped',
@@ -15,7 +16,7 @@ const STATUS_LABEL = {
 const CARRIERS = { usps: 'USPS', ups: 'UPS', fedex: 'FedEx', dhl: 'DHL' };
 
 const $ = (id) => document.getElementById(id);
-const state = { client: null, view: 'open', type: 'all', orders: [], allStores: false, cancelWindowMs: 0, busy: new Set() };
+const state = { client: null, email: '', view: 'open', type: 'all', orders: [], allStores: false, cancelWindowMs: 0, busy: new Set() };
 
 const money = (amount) => `$${Number(amount).toFixed(2)}`;
 const astTime = (value) => new Intl.DateTimeFormat('en-US', {
@@ -37,19 +38,40 @@ function h(tag, props = {}, ...children) {
 }
 
 function showView(id) {
-  for (const view of ['signInView', 'noAccessView', 'ordersView']) $(view).hidden = view !== id;
+  for (const view of ['signInView', 'errorView', 'noAccessView', 'ordersView']) $(view).hidden = view !== id;
 }
+
+/* Errors before the order list has ever shown get their own panel, so the
+   page is never left blank; later ones go in the status line above the list. */
+function showError(message) {
+  if (!$('ordersView').hidden) return flash(message, true);
+  $('errorText').textContent = message;
+  $('staffWho').hidden = !state.email;
+  if (state.email && !$('staffName').textContent) $('staffName').textContent = state.email;
+  showView('errorView');
+}
+
+function withTimeout(promise, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ST_TIMEOUT_MS); });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+const getSession = async () => {
+  const { data } = await withTimeout(state.client.auth.getSession(), 'The sign-in service is not responding.');
+  state.email = data.session?.user?.email || '';
+  return data.session;
+};
 
 /* ── API ─────────────────────────────────────────────── */
 
 async function api(path, options = {}) {
-  const { data } = await state.client.auth.getSession();
-  const token = data.session?.access_token;
+  const token = (await getSession())?.access_token;
   if (!token) return { status: 401, body: { success: false } };
-  const response = await fetch(path, {
+  const response = await withTimeout(fetch(path, {
     ...options,
     headers: { ...(options.headers || {}), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-  });
+  }), 'The server is not responding.');
   const body = await response.json().catch(() => ({ success: false, message: 'Unexpected response from the server.' }));
   return { status: response.status, body };
 }
@@ -59,16 +81,16 @@ async function loadOrders({ quiet = false } = {}) {
   let result;
   try {
     result = await api(`/api/staff-orders?view=${state.view}`);
-  } catch {
-    flash('Unable to reach the server. Check your connection and refresh.', true);
+  } catch (error) {
+    console.warn('Staff orders failed to load:', error);
+    showError(`${error?.message?.endsWith('not responding.') ? error.message : 'Unable to reach the server.'} Check your connection and try again.`);
     return;
   }
   const { status, body } = result;
   if (status === 401) return showSignIn();
   if (status === 403) {
     /* Signed in, but not in the staff table yet (or removed from it). */
-    const { data } = await state.client.auth.getSession();
-    const email = data.session?.user?.email || '';
+    const email = state.email;
     $('noAccessEmail').textContent = email;
     $('staffName').textContent = email;
     $('staffWho').hidden = false;
@@ -77,7 +99,9 @@ async function loadOrders({ quiet = false } = {}) {
     return;
   }
   if (!body.success) {
-    flash(body.message || 'Unable to load orders.', true);
+    showError(status === 429
+      ? 'Too many requests from this network. Wait a minute, then try again.'
+      : body.message || `Unable to load orders (error ${status}).`);
     return;
   }
   if (!quiet) flash('');
@@ -340,11 +364,17 @@ $('staffSignInForm').addEventListener('submit', async (event) => {
   showAuthMessage('authNotice', '');
   if (!state.client) return showAuthMessage('signInError', AUTH_UNAVAILABLE);
   submit.disabled = true;
-  const { error: signInError } = await state.client.auth.signInWithPassword({
-    email: form.email.value.trim(),
-    password: form.password.value
-  });
-  submit.disabled = false;
+  let signInError;
+  try {
+    ({ error: signInError } = await withTimeout(state.client.auth.signInWithPassword({
+      email: form.email.value.trim(),
+      password: form.password.value
+    }), 'The sign-in service is not responding. Please try again.'));
+  } catch (failure) {
+    signInError = failure;
+  } finally {
+    submit.disabled = false;
+  }
   if (signInError) {
     error.textContent = signInError.message === 'Invalid login credentials'
       ? 'Incorrect email or password.'
@@ -359,9 +389,13 @@ $('staffSignInForm').addEventListener('submit', async (event) => {
 });
 
 $('checkAccessBtn').addEventListener('click', () => loadOrders());
+$('retryBtn').addEventListener('click', () => start());
 
 $('signOutBtn').addEventListener('click', async () => {
-  await state.client.auth.signOut();
+  /* Local scope: signs out here even if the sign-in service is unreachable. */
+  await state.client?.auth.signOut({ scope: 'local' }).catch(() => {});
+  state.email = '';
+  $('staffName').textContent = '';
   state.orders = [];
   $('ordersList').replaceChildren();
   showSignIn();
@@ -393,18 +427,29 @@ setInterval(() => {
 
 /* ── START ───────────────────────────────────────────── */
 
-(function start() {
-  const script = document.createElement('script');
-  script.src = ST_SUPABASE_SDK;
-  script.onload = async () => {
-    state.client = window.supabase.createClient(ST_SUPABASE_URL, ST_SUPABASE_KEY);
-    const { data } = await state.client.auth.getSession();
-    if (data.session) loadOrders();
+/* The sign-in form shows straight away; once the sign-in service has loaded,
+   a returning staff member goes on to their orders. */
+function loadSdk() {
+  if (window.supabase?.createClient) return Promise.resolve();
+  return withTimeout(new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = ST_SUPABASE_SDK;
+    script.onload = resolve;
+    script.onerror = () => { script.remove(); reject(new Error('The sign-in service could not be loaded.')); };
+    document.head.append(script);
+  }), 'The sign-in service is taking too long to load.');
+}
+
+async function start() {
+  try {
+    await loadSdk();
+    state.client ??= window.supabase.createClient(ST_SUPABASE_URL, ST_SUPABASE_KEY);
+    if (await getSession()) await loadOrders();
     else showSignIn();
-  };
-  script.onerror = () => {
-    $('ordersStatus').textContent = 'Unable to load the sign-in service. Check your connection and reload.';
-    showView('ordersView');
-  };
-  document.head.append(script);
-})();
+  } catch (error) {
+    console.warn('Staff page failed to start:', error);
+    showError(`${error?.message || 'Something went wrong.'} Check your connection (or turn off content blockers for this site) and try again.`);
+  }
+}
+
+start();
