@@ -66,7 +66,13 @@ async function loadOrders({ quiet = false } = {}) {
   const { status, body } = result;
   if (status === 401) return showSignIn();
   if (status === 403) {
-    $('noAccessText').textContent = body.message || "This account isn't set up for the staff dashboard.";
+    /* Signed in, but not in the staff table yet (or removed from it). */
+    const { data } = await state.client.auth.getSession();
+    const email = data.session?.user?.email || '';
+    $('noAccessEmail').textContent = email;
+    $('staffName').textContent = email;
+    $('staffWho').hidden = false;
+    $('staffTitle').textContent = 'Orders';
     showView('noAccessView');
     return;
   }
@@ -254,7 +260,9 @@ function openRefundForm(container, order, paid) {
   reason.focus();
 }
 
-/* ── SIGN IN ─────────────────────────────────────────── */
+/* ── SIGN IN / CREATE ACCOUNT ────────────────────────── */
+
+const AUTH_UNAVAILABLE = 'Accounts are unavailable right now. Check your connection and try again.';
 
 function showSignIn() {
   $('staffWho').hidden = true;
@@ -262,12 +270,75 @@ function showSignIn() {
   showView('signInView');
 }
 
+function showAuthMessage(id, message) {
+  $(id).textContent = message;
+  $(id).hidden = !message;
+}
+
+function switchAuthTab(tab) {
+  const signIn = tab === 'signin';
+  $('tabStaffSignIn').setAttribute('aria-selected', String(signIn));
+  $('tabStaffSignUp').setAttribute('aria-selected', String(!signIn));
+  $('staffSignInForm').hidden = !signIn;
+  $('staffSignUpForm').hidden = signIn;
+  showAuthMessage('signInError', '');
+  showAuthMessage('signUpError', '');
+}
+
+$('tabStaffSignIn').addEventListener('click', () => { showAuthMessage('authNotice', ''); switchAuthTab('signin'); });
+$('tabStaffSignUp').addEventListener('click', () => { showAuthMessage('authNotice', ''); switchAuthTab('signup'); });
+
+/* The confirmation link returns here, not to the shop, and signs them in. */
+$('staffSignUpForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const name = form.name.value.trim();
+  const email = form.email.value.trim();
+  const password = form.password.value;
+  showAuthMessage('signUpError', '');
+  if (!name || !email) return showAuthMessage('signUpError', 'Please fill in every field.');
+  if (password.length < 6) return showAuthMessage('signUpError', 'Password must be at least 6 characters.');
+  if (!state.client) return showAuthMessage('signUpError', AUTH_UNAVAILABLE);
+
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  try {
+    const { data, error } = await state.client.auth.signUp({
+      email,
+      password,
+      options: { data: { name }, emailRedirectTo: `${location.origin}/staff.html` }
+    });
+    if (error) {
+      return showAuthMessage('signUpError', /already registered/i.test(error.message)
+        ? 'An account with this email already exists. Sign in instead.'
+        : /password/i.test(error.message) ? error.message : 'Unable to create your account right now. Please try again.');
+    }
+    /* With email confirmation on, Supabase hides whether an email is taken:
+       it returns a user with no identities instead of an error. */
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return showAuthMessage('signUpError', 'An account with this email already exists. Sign in instead.');
+    }
+    form.reset();
+    if (data.session) return loadOrders();
+    switchAuthTab('signin');
+    $('staffSignInForm').email.value = email;
+    showAuthMessage('authNotice', `Almost there. We sent a confirmation link to ${email}. Open it to finish creating your account. Didn't get it? Check your spam folder.`);
+  } catch (error) {
+    console.warn('Staff sign up failed:', error);
+    showAuthMessage('signUpError', AUTH_UNAVAILABLE);
+  } finally {
+    submit.disabled = false;
+  }
+});
+
 $('staffSignInForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const error = $('signInError');
   const submit = form.querySelector('button[type="submit"]');
   error.hidden = true;
+  showAuthMessage('authNotice', '');
+  if (!state.client) return showAuthMessage('signInError', AUTH_UNAVAILABLE);
   submit.disabled = true;
   const { error: signInError } = await state.client.auth.signInWithPassword({
     email: form.email.value.trim(),
@@ -275,13 +346,19 @@ $('staffSignInForm').addEventListener('submit', async (event) => {
   });
   submit.disabled = false;
   if (signInError) {
-    error.textContent = signInError.message === 'Invalid login credentials' ? 'Incorrect email or password.' : signInError.message;
+    error.textContent = signInError.message === 'Invalid login credentials'
+      ? 'Incorrect email or password.'
+      : /not confirmed/i.test(signInError.message)
+        ? 'Please confirm your email first. Open the link we sent you, then sign in.'
+        : signInError.message;
     error.hidden = false;
     return;
   }
   form.reset();
   loadOrders();
 });
+
+$('checkAccessBtn').addEventListener('click', () => loadOrders());
 
 $('signOutBtn').addEventListener('click', async () => {
   await state.client.auth.signOut();

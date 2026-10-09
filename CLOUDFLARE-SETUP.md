@@ -70,7 +70,7 @@ Shipping rates, the free-shipping threshold, the shipping store and the allowed 
 ## Staff dashboard
 
 1. **Update the database.** Supabase dashboard → SQL Editor → paste `supabase/schema.sql` → Run. This adds the `staff` table and the ready, shipped and picked-up order statuses. It is safe to re-run.
-2. **Add staff.** Each staff member creates an account on the site (Account → Create Account) and confirms their email. Then, in the SQL Editor, add them with their store:
+2. **Add staff.** Each staff member opens `https://luxeperfume.uluxe.site/staff.html`, chooses **Create account** and confirms their email. They'll see "Waiting for access" with their email until you add them. Then, in the SQL Editor, add them with their store:
    ```sql
    insert into public.staff (user_id, store, name)
    select id, 'Perfume World', 'Jane' from auth.users where email = 'jane@example.com';

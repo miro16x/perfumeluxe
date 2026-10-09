@@ -28,11 +28,17 @@
   </header>
 
   <main class="staff-main" id="main-content">
-    <!-- Sign in -->
+    <!-- Sign in / create account -->
     <section class="staff-signin" id="signInView" hidden>
-      <h2 class="staff-section-title">Staff sign in</h2>
-      <p class="staff-muted">Use the email and password of your staff account.</p>
+      <div class="staff-tabs staff-auth-tabs" role="tablist" aria-label="Staff account">
+        <button type="button" role="tab" class="staff-tab" id="tabStaffSignIn" aria-selected="true" aria-controls="staffSignInForm">Sign in</button>
+        <button type="button" role="tab" class="staff-tab" id="tabStaffSignUp" aria-selected="false" aria-controls="staffSignUpForm">Create account</button>
+      </div>
+      <p class="account-notice" id="authNotice" role="status" hidden></p>
+
       <form class="account-form" id="staffSignInForm" novalidate>
+        <h2 class="staff-section-title">Staff sign in</h2>
+        <p class="staff-muted">Use the email and password of your staff account.</p>
         <label class="account-field"><span>Email</span>
           <input type="email" name="email" autocomplete="email" required></label>
         <label class="account-field"><span>Password</span>
@@ -40,12 +46,28 @@
         <p class="account-error" id="signInError" role="alert" hidden></p>
         <button type="submit" class="btn-gold btn-full">Sign In</button>
       </form>
+
+      <form class="account-form" id="staffSignUpForm" novalidate hidden>
+        <h2 class="staff-section-title">Create a staff account</h2>
+        <p class="staff-muted">After you confirm your email, the site owner gives your account access to your store's orders.</p>
+        <label class="account-field"><span>Name</span>
+          <input type="text" name="name" autocomplete="name" required></label>
+        <label class="account-field"><span>Email</span>
+          <input type="email" name="email" autocomplete="email" required></label>
+        <label class="account-field"><span>Password</span>
+          <input type="password" name="password" autocomplete="new-password" minlength="6" required></label>
+        <p class="account-error" id="signUpError" role="alert" hidden></p>
+        <button type="submit" class="btn-gold btn-full">Create Account</button>
+      </form>
     </section>
 
     <!-- Not staff -->
     <section class="staff-signin" id="noAccessView" hidden>
-      <h2 class="staff-section-title">No staff access</h2>
-      <p class="staff-muted" id="noAccessText">This account isn't set up for the staff dashboard. Ask the site owner to add it.</p>
+      <h2 class="staff-section-title">Waiting for access</h2>
+      <p class="staff-muted" id="noAccessText">This account isn't set up for the staff dashboard yet.</p>
+      <p class="staff-muted">Send the site owner the email below and the store you work at. Once they've added you, tap Check again.</p>
+      <p class="staff-access-email" id="noAccessEmail"></p>
+      <button type="button" class="btn-ghost btn-full" id="checkAccessBtn">Check again</button>
     </section>
 
     <!-- Orders -->

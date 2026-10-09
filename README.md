@@ -128,7 +128,7 @@ Customers can cancel within 24 hours of ordering from the confirmation screen, o
 
 ## Staff dashboard
 
-Staff open `/staff.html` (not linked from the site) and sign in with an ordinary site account that has been added to the `staff` table (see [CLOUDFLARE-SETUP.md](CLOUDFLARE-SETUP.md)). Each staff member sees only their store's orders; the owner can be given every store.
+Staff open `/staff.html` (not linked from the site) and create an account there (or sign in with an existing site account). It shows their orders once the owner has added them to the `staff` table (see [CLOUDFLARE-SETUP.md](CLOUDFLARE-SETUP.md)). Each staff member sees only their store's orders; the owner can be given every store.
 
 - **To do** lists paid and pay-at-pickup orders that still need something; **Done** lists shipped, picked-up, cancelled and refunded ones. It refreshes every minute.
 - **Pickup orders:** *Ready for pickup* emails the customer; *Picked up* closes the order.
