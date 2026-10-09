@@ -16,7 +16,7 @@ const STATUS_LABEL = {
 const CARRIERS = { usps: 'USPS', ups: 'UPS', fedex: 'FedEx', dhl: 'DHL' };
 
 const $ = (id) => document.getElementById(id);
-const state = { client: null, email: '', view: 'open', type: 'all', orders: [], allStores: false, cancelWindowMs: 0, busy: new Set() };
+const state = { client: null, email: '', activity: null, updatedAt: null, view: 'open', type: 'all', orders: [], allStores: false, cancelWindowMs: 0, busy: new Set() };
 
 const money = (amount) => `$${Number(amount).toFixed(2)}`;
 const astTime = (value) => new Intl.DateTimeFormat('en-US', {
@@ -80,7 +80,7 @@ async function loadOrders({ quiet = false } = {}) {
   if (!quiet) flash('Loading orders…');
   let result;
   try {
-    result = await api(`/api/staff-orders?view=${state.view}`);
+    result = await api(`/api/staff-orders?view=${state.view}&activity=1`);
   } catch (error) {
     console.warn('Staff orders failed to load:', error);
     showError(`${error?.message?.endsWith('not responding.') ? error.message : 'Unable to reach the server.'} Check your connection and try again.`);
@@ -108,11 +108,14 @@ async function loadOrders({ quiet = false } = {}) {
   state.orders = body.orders;
   state.allStores = !body.staff.store;
   state.cancelWindowMs = body.cancelWindowMs;
+  state.activity = body.activity || null;
+  state.updatedAt = new Date();
   $('staffTitle').textContent = body.staff.store ? `${body.staff.store} orders` : 'All store orders';
   $('staffName').textContent = body.staff.name;
   $('staffWho').hidden = false;
   showView('ordersView');
   renderOrders();
+  renderActivity();
 }
 
 async function runAction(order, action, extra = {}) {
@@ -283,6 +286,219 @@ function openRefundForm(container, order, paid) {
   container.replaceChildren(form);
   reason.focus();
 }
+
+/* ── ORDER ACTIVITY (tiles + chart) ──────────────────── */
+
+/* Series in fixed order, bottom of the stack first. Colors are CSS tokens
+   (--chart-1..3 in styles.css), validated for both themes. */
+const SERIES = [
+  { key: 'completed', label: 'Completed', statuses: ['shipped', 'collected'] },
+  { key: 'progress', label: 'In progress', statuses: ['placed', 'paid', 'ready'] },
+  { key: 'cancelled', label: 'Cancelled', statuses: ['cancelled', 'refunded'] }
+];
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/* Store days run on St. Thomas time (AST, no daylight saving). */
+const dayKey = (value) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/St_Thomas' }).format(new Date(value));
+const dayLabel = (key, options) => new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'UTC' }).format(new Date(`${key}T12:00:00Z`));
+const seriesOf = (status) => SERIES.find((series) => series.statuses.includes(status))?.key;
+
+function svg(tag, attrs = {}) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
+  return el;
+}
+
+/* One row per day, oldest first, ending today. */
+function activityDays() {
+  const { days, orders } = state.activity;
+  const now = Date.now();
+  const rows = Array.from({ length: days }, (_, index) => {
+    const key = dayKey(now - (days - 1 - index) * DAY_MS);
+    return { key, completed: 0, progress: 0, cancelled: 0, total: 0, sales: 0 };
+  });
+  const byKey = new Map(rows.map((row) => [row.key, row]));
+  for (const order of orders) {
+    const row = byKey.get(dayKey(order.placed_at));
+    const series = seriesOf(order.status);
+    if (!row || !series) continue;
+    row[series] += 1;
+    row.total += 1;
+    if (series !== 'cancelled') row.sales += Number(order.total) || 0;
+  }
+  return rows;
+}
+
+function renderActivity() {
+  if (!state.activity) return;
+  const today = dayKey(Date.now());
+  const orders = state.activity.orders;
+  const count = (test) => orders.filter(test).length;
+
+  const tiles = [
+    { label: 'To prepare', value: count((o) => o.fulfillment === 'pickup' && ['placed', 'paid'].includes(o.status)), note: 'Pickup orders not ready yet' },
+    { label: 'Ready for pickup', value: count((o) => o.status === 'ready'), note: 'Waiting for the customer' },
+    { label: 'To ship', value: count((o) => o.fulfillment === 'shipping' && o.status === 'paid'), note: 'Paid shipping orders' },
+    { label: 'Completed today', value: count((o) => [o.shipped_at, o.collected_at].some((at) => at && dayKey(at) === today)), note: 'Picked up or shipped' }
+  ];
+  $('activityTiles').replaceChildren(...tiles.map((tile) => h('div', { class: 'staff-tile' },
+    h('span', { class: 'staff-tile-label', text: tile.label }),
+    h('span', { class: 'staff-tile-value', text: String(tile.value) }),
+    h('span', { class: 'staff-tile-note', text: tile.note }))));
+
+  $('activityUpdatedText').textContent = `Live · updated ${new Intl.DateTimeFormat('en-US', { timeStyle: 'short', timeZone: 'America/St_Thomas' }).format(state.updatedAt)}`;
+  $('chartSubtitle').textContent = `Last ${state.activity.days} days, by where each order is now`;
+  $('chartLegend').replaceChildren(...SERIES.map((series, index) => h('li', {},
+    h('span', { class: 'staff-swatch', style: `background:var(--chart-${index + 1})` }), series.label)));
+
+  const rows = activityDays();
+  renderChart(rows, today);
+  renderChartTable(rows);
+}
+
+function renderChart(rows, today) {
+  const plot = $('chartPlot');
+  const width = Math.max(plot.clientWidth, 280);
+  const height = 220;
+  const margin = { top: 12, right: 8, bottom: 28, left: 32 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  /* Clean integer ticks: 0 and three more, rounded up to a nice step. */
+  const max = Math.max(...rows.map((row) => row.total), 1);
+  const step = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500].find((s) => s * 3 >= max) || Math.ceil(max / 3);
+  const top = step * Math.max(1, Math.ceil(max / step));
+  const y = (value) => margin.top + innerH - (value / top) * innerH;
+  const band = innerW / rows.length;
+  const barW = Math.min(24, band * 0.62);
+  const labelEvery = Math.ceil(46 / band);   /* "Sep 27" needs ~46px */
+
+  const chart = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img',
+    'aria-label': `Orders placed per day for the last ${rows.length} days. ${rows.reduce((sum, row) => sum + row.total, 0)} orders in total. See the table below for each day.` });
+
+  for (let value = 0; value <= top; value += step) {
+    chart.append(svg('line', { class: value ? 'staff-grid' : 'staff-baseline', x1: margin.left, x2: width - margin.right, y1: y(value), y2: y(value) }));
+    const tick = svg('text', { class: 'staff-axis', x: margin.left - 8, y: y(value) + 4, 'text-anchor': 'end' });
+    tick.textContent = value;
+    chart.append(tick);
+  }
+
+  rows.forEach((row, index) => {
+    const cx = margin.left + band * index + band / 2;
+    const group = svg('g', { class: 'staff-col', tabindex: '0',
+      'aria-label': `${dayLabel(row.key, { weekday: 'long', month: 'long', day: 'numeric' })}: ${row.total} orders, ${row.completed} completed, ${row.progress} in progress, ${row.cancelled} cancelled` });
+    group.append(svg('rect', { class: 'staff-col-hit', x: cx - band / 2, y: margin.top, width: band, height: innerH }));
+
+    /* Stack from the baseline with a 2px gap between segments; only the
+       top segment gets the 4px rounded end. */
+    let base = 0;
+    const filled = SERIES.map((series, s) => ({ s, value: row[series.key] })).filter((part) => part.value > 0);
+    filled.forEach((part, i) => {
+      const bottom = y(base) - (i > 0 ? 2 : 0);
+      const y1 = y(base + part.value);
+      const segH = Math.max(bottom - y1, 1);
+      const isTop = i === filled.length - 1;
+      const r = isTop ? Math.min(4, segH, barW / 2) : 0;
+      const x0 = cx - barW / 2;
+      const d = `M${x0},${bottom} V${y1 + r} Q${x0},${y1} ${x0 + r},${y1} H${x0 + barW - r} Q${x0 + barW},${y1} ${x0 + barW},${y1 + r} V${bottom} Z`;
+      group.append(svg('path', { d, fill: `var(--chart-${part.s + 1})`, class: 'staff-seg' }));
+      base += part.value;
+    });
+
+    const showLabel = (rows.length - 1 - index) % labelEvery === 0;
+    if (showLabel) {
+      const label = svg('text', { class: `staff-axis${row.key === today ? ' staff-axis-today' : ''}`, x: cx, y: height - 8, 'text-anchor': 'middle' });
+      label.textContent = row.key === today ? 'Today' : dayLabel(row.key, { month: 'short', day: 'numeric' });
+      group.append(label);
+    }
+
+    const show = () => showTooltip(row, cx, band, margin.top, group);
+    group.addEventListener('pointerenter', show);
+    group.addEventListener('focus', show);
+    group.addEventListener('pointerleave', hideTooltip);
+    group.addEventListener('blur', hideTooltip);
+    chart.append(group);
+  });
+
+  const tooltip = h('div', { class: 'staff-tooltip', role: 'tooltip', hidden: true });
+  plot.replaceChildren(chart, tooltip);
+}
+
+/* Beside the column (right if it fits, else left), so it never hides the bar. */
+function showTooltip(row, x, band, top, group) {
+  const tooltip = $('chartPlot').querySelector('.staff-tooltip');
+  if (!tooltip) return;
+  $('chartPlot').querySelectorAll('.staff-col-active').forEach((el) => el.classList.remove('staff-col-active'));
+  group.classList.add('staff-col-active');
+  tooltip.replaceChildren(
+    h('strong', { text: dayLabel(row.key, { weekday: 'short', month: 'short', day: 'numeric' }) }),
+    ...SERIES.slice().reverse().map((series) => h('div', { class: 'staff-tooltip-row' },
+      h('span', { class: 'staff-swatch', style: `background:var(--chart-${SERIES.indexOf(series) + 1})` }),
+      h('span', { text: series.label }),
+      h('span', { class: 'staff-tooltip-value', text: String(row[series.key]) }))),
+    h('div', { class: 'staff-tooltip-row staff-tooltip-total' },
+      h('span'), h('span', { text: 'Sales' }), h('span', { class: 'staff-tooltip-value', text: money(row.sales) })));
+  tooltip.hidden = false;
+  const plotW = $('chartPlot').clientWidth;
+  const tipW = tooltip.offsetWidth;
+  const right = x + band / 2 + 6;
+  const left = x - band / 2 - 6 - tipW;
+  tooltip.style.left = `${right + tipW <= plotW ? right : Math.max(left, 0)}px`;
+  tooltip.style.top = `${top}px`;
+}
+
+function hideTooltip() {
+  const tooltip = $('chartPlot').querySelector('.staff-tooltip');
+  if (tooltip) tooltip.hidden = true;
+  $('chartPlot').querySelectorAll('.staff-col-active').forEach((el) => el.classList.remove('staff-col-active'));
+}
+
+function renderChartTable(rows) {
+  const head = h('tr', {}, h('th', { scope: 'col', text: 'Day' }),
+    ...SERIES.map((series) => h('th', { scope: 'col', text: series.label })),
+    h('th', { scope: 'col', text: 'Total' }), h('th', { scope: 'col', text: 'Sales' }));
+  const body = rows.slice().reverse().map((row) => h('tr', {},
+    h('th', { scope: 'row', text: dayLabel(row.key, { weekday: 'short', month: 'short', day: 'numeric' }) }),
+    ...SERIES.map((series) => h('td', { text: String(row[series.key]) })),
+    h('td', { text: String(row.total) }), h('td', { text: money(row.sales) })));
+  $('chartTable').replaceChildren(h('table', { class: 'staff-table' }, h('thead', {}, head), h('tbody', {}, body)));
+}
+
+/* Redraw at the new width (phone rotation, window resize). */
+if ('ResizeObserver' in window) {
+  let lastWidth = 0;
+  new ResizeObserver(([entry]) => {
+    const width = Math.round(entry.contentRect.width);
+    if (width === lastWidth || !state.activity) return;
+    lastWidth = width;
+    renderChart(activityDays(), dayKey(Date.now()));
+  }).observe($('chartPlot'));
+}
+
+/* ── THEME ───────────────────────────────────────────── */
+
+/* Shares the shop's saved choice (ul-theme), so both match. */
+(function initTheme() {
+  const html = document.documentElement;
+  const button = $('themeToggle');
+  function apply(theme, save) {
+    html.setAttribute('data-theme', theme);
+    if (save) { try { localStorage.setItem('ul-theme', theme); } catch (e) {} }
+    const dark = theme === 'dark';
+    button.setAttribute('aria-pressed', String(dark));
+    button.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    $('themeLabel').textContent = dark ? 'Dark' : 'Light';
+  }
+  let saved = null;
+  try { saved = localStorage.getItem('ul-theme'); } catch (e) {}
+  apply(saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'), false);
+  button.addEventListener('click', () => apply(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark', true));
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
+    try { if (localStorage.getItem('ul-theme')) return; } catch (e) {}
+    apply(event.matches ? 'dark' : 'light', false);
+  });
+})();
 
 /* ── SIGN IN / CREATE ACCOUNT ────────────────────────── */
 

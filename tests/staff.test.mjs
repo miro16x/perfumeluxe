@@ -312,3 +312,22 @@ test('a rejected Supabase key is explained to staff and alerts the owner', async
   const [alert] = emails(calls);
   assert.match(alert.subject, /Supabase is rejecting the Worker secret key/);
 });
+
+test('the activity chart data comes in the same request, without customer details', async () => {
+  const calls = mockNetwork();
+  const body = await (await listOrders({ request: listRequest('open&activity=1'), env })).json();
+  assert.equal(body.activity.days, 14);
+  assert.ok(Array.isArray(body.activity.orders));
+
+  const lists = calls.filter((call) => call.url.startsWith(`${SUPABASE}/rest/v1/orders`));
+  assert.equal(lists.length, 2);
+  const activity = lists.find((call) => call.url.includes('placed_at=gte.'));
+  assert.match(activity.url, /pickup_store=eq\.Perfume%20World/);
+  assert.match(activity.url, /select=status,fulfillment,total,placed_at,shipped_at,collected_at&/);
+  assert.doesNotMatch(activity.url, /email|phone|customer_name/);
+});
+
+test('unknown views are refused', async () => {
+  mockNetwork();
+  assert.equal((await listOrders({ request: listRequest('toString'), env })).status, 400);
+});
