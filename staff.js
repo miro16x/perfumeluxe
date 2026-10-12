@@ -424,11 +424,12 @@ function renderChart(rows, today) {
   const width = Math.max(plot.clientWidth, 280);
   const height = width < 520 ? 240 : 300;
 
-  /* Clean dollar ticks: 0 and three or four more, rounded up to a nice step. */
+  /* $0–$200 in $50 steps. A bigger day raises the top in $50 steps, and past
+     six ticks the step widens, so the line never leaves the chart. */
   const max = Math.max(...rows.map((row) => row.sales));
-  const step = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000]
-    .find((s) => s * 4 >= max) || Math.ceil(max / 4);
-  const top = max > 0 ? step * Math.ceil(max / step) : step * 4;
+  const step = [50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000]
+    .find((s) => Math.ceil(max / s) <= 6) || Math.ceil(max / 6);
+  const top = Math.max(200, step * Math.ceil(max / step));
   const ticks = Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step);
   const margin = { top: 20, right: 14, bottom: 36, left: 22 + wholeMoney(top).length * 7 };
   const innerW = width - margin.left - margin.right;
