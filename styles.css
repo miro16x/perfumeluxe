@@ -2768,12 +2768,14 @@ a:focus:not(:focus-visible){outline:none}
 /* ── STAFF DASHBOARD (staff.html) ───────────────────── */
 .staff-page{
   --staff-ok:#6fbf86;--staff-danger:#e08a8a;--staff-danger-bg:rgba(200,70,70,.1);
-  /* Chart series (completed, in progress, cancelled), validated on --bg-card */
-  --chart-1:#3987e5;--chart-2:#d95926;--chart-3:#199e70;
+  /* Sales chart (components/chart.txt design), contrast-checked on --bg-card */
+  --chart-line:#a855f7;--chart-tick:#c084fc;--chart-high:#38bdf8;--chart-low:#facc15;
+  --trend-up:#4ade80;--trend-down:#f87171;
 }
 :root[data-theme="light"] .staff-page{
   --staff-ok:#2f7d48;--staff-danger:#a33a3a;--staff-danger-bg:rgba(170,50,50,.08);
-  --chart-1:#2a78d6;--chart-2:#eb6834;--chart-3:#1baf7a;
+  --chart-line:#9333ea;--chart-tick:#9333ea;--chart-high:#0369a1;--chart-low:#854d0e;
+  --trend-up:#15803d;--trend-down:#b91c1c;
 }
 .staff-header{border-bottom:1px solid var(--border);background:var(--bg-1)}
 .staff-header-inner{max-width:1100px;margin:0 auto;padding:20px 16px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -2866,25 +2868,10 @@ a:focus:not(:focus-visible){outline:none}
 .staff-tile-value{font-size:30px;font-weight:600;line-height:1.2;color:var(--ivory)}
 .staff-tile-note{font-size:11px;color:var(--ivory-muted)}
 .staff-chart{margin:0;padding:18px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:10px;min-width:0}
-.staff-chart-caption{display:flex;flex-direction:column;gap:2px}
-.staff-chart-title{font-size:14px;font-weight:600;color:var(--ivory)}
-.staff-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--ivory-dim)}
-.staff-legend li{display:inline-flex;align-items:center;gap:8px}
-.staff-swatch{flex:none;width:10px;height:10px;border-radius:2px}
 .staff-chart-plot{position:relative;min-width:0}
 .staff-chart-plot svg{display:block;overflow:visible}
-.staff-grid{stroke:var(--border);stroke-width:1}
-.staff-baseline{stroke:var(--border-hover);stroke-width:1}
-.staff-axis{fill:var(--ivory-muted);font-size:11px;font-family:var(--font-sans);font-variant-numeric:tabular-nums}
-.staff-axis-today{fill:var(--ivory);font-weight:600}
-.staff-col{outline:none;cursor:default}
-.staff-col-hit{fill:transparent}
-.staff-col-active .staff-col-hit,.staff-col:focus-visible .staff-col-hit{fill:var(--gold-glow)}
 .staff-tooltip{position:absolute;z-index:2;min-width:160px;padding:10px 12px;background:var(--bg-2);border:1px solid var(--border-hover);border-radius:var(--radius);font-size:12px;color:var(--ivory);pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:4px}
 .staff-tooltip[hidden]{display:none}
-.staff-tooltip-row{display:grid;grid-template-columns:10px 1fr auto;align-items:center;gap:8px;color:var(--ivory-dim)}
-.staff-tooltip-value{color:var(--ivory);font-weight:600;font-variant-numeric:tabular-nums}
-.staff-tooltip-total{border-top:1px solid var(--border);padding-top:4px;margin-top:2px}
 .staff-chart-table summary{cursor:pointer;font-size:12px;color:var(--gold);width:max-content}
 .staff-chart-table[open] summary{margin-bottom:10px}
 .staff-chart-table div{overflow-x:auto}
@@ -2893,3 +2880,41 @@ a:focus:not(:focus-visible){outline:none}
 .staff-table th:first-child{text-align:left}
 .staff-table thead th{color:var(--ivory-muted);font-weight:500}
 .staff-table tbody th{font-weight:400;color:var(--ivory-dim)}
+
+/* Staff: sales chart (design from components/chart.txt) */
+.staff-chart{gap:14px;padding:22px}
+.staff-chart-head{display:flex;flex-direction:column;gap:4px}
+.staff-chart-label{font-size:14px;font-weight:500;color:var(--ivory-dim)}
+.staff-chart-headline{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.staff-chart-value{font-size:clamp(30px,6vw,40px);font-weight:700;line-height:1.1;color:var(--ivory)}
+.staff-trend{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:500}
+.staff-trend svg{flex:none}
+.staff-trend-up{color:var(--trend-up)}
+.staff-trend-down{color:var(--trend-down)}
+.staff-trend-flat{color:var(--ivory-muted);font-weight:400}
+.staff-trend-note{color:var(--ivory-muted);font-weight:400;margin-left:4px}
+.staff-chart-stats{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 24px;font-size:13px}
+.staff-chart-today{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.staff-chart-today strong{color:var(--ivory);font-weight:600}
+.staff-chart-range{display:flex;flex-wrap:wrap;gap:4px 22px;color:var(--ivory-muted)}
+.staff-muted-ink{color:var(--ivory-muted)}
+.staff-stat-high{color:var(--chart-high);font-weight:500}
+.staff-stat-low{color:var(--chart-low);font-weight:500}
+.staff-stat-strong{color:var(--ivory);font-weight:500}
+.staff-sales-chart{display:block;overflow:visible;outline:none;border-radius:var(--radius)}
+.staff-sales-chart:focus-visible{box-shadow:0 0 0 2px var(--gold)}
+.staff-dot-grid{fill:var(--ivory-muted);fill-opacity:.3}
+.staff-grid-dashed{stroke:var(--border-hover);stroke-width:1;stroke-dasharray:4 8}
+.staff-axis-line{fill:var(--chart-tick);font-size:12px;font-family:var(--font-sans);font-variant-numeric:tabular-nums}
+.staff-axis-strong{font-weight:600}
+.staff-reference{stroke:var(--chart-line);stroke-width:1;stroke-dasharray:4 4}
+.staff-sales-line{fill:none;stroke:var(--chart-line);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.staff-sales-dot{fill:var(--chart-line);stroke:var(--bg-card);stroke-width:2}
+.staff-cursor{stroke:var(--ivory-muted);stroke-opacity:.6;stroke-width:1;stroke-dasharray:3 3;pointer-events:none}
+.staff-hit{fill:transparent;cursor:crosshair}
+.staff-sales-tooltip{min-width:150px;padding:10px 12px;gap:2px;border-radius:var(--radius-lg)}
+.staff-tooltip-date{font-size:12px;color:var(--ivory-muted)}
+.staff-tooltip-headline{display:flex;align-items:center;gap:8px}
+.staff-tooltip-headline strong{font-size:16px;font-weight:700;color:var(--ivory)}
+.staff-tooltip-headline .staff-trend{font-size:11px}
+.staff-tooltip-sub{font-size:11px;color:var(--ivory-muted)}

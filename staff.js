@@ -18,7 +18,7 @@ const CARRIERS = { usps: 'USPS', ups: 'UPS', fedex: 'FedEx', dhl: 'DHL' };
 const $ = (id) => document.getElementById(id);
 const state = { client: null, email: '', activity: null, updatedAt: null, view: 'open', type: 'all', orders: [], allStores: false, cancelWindowMs: 0, busy: new Set() };
 
-const money = (amount) => `$${Number(amount).toFixed(2)}`;
+const money = (amount) => `$${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const astTime = (value) => new Intl.DateTimeFormat('en-US', {
   dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/St_Thomas'
 }).format(new Date(value));
@@ -287,10 +287,9 @@ function openRefundForm(container, order, paid) {
   reason.focus();
 }
 
-/* ── ORDER ACTIVITY (tiles + chart) ──────────────────── */
+/* ── ORDER ACTIVITY (tiles + sales chart) ────────────── */
 
-/* Series in fixed order, bottom of the stack first. Colors are CSS tokens
-   (--chart-1..3 in styles.css), validated for both themes. */
+/* Where each order is now. Cancelled and refunded orders don't count as sales. */
 const SERIES = [
   { key: 'completed', label: 'Completed', statuses: ['shipped', 'collected'] },
   { key: 'progress', label: 'In progress', statuses: ['placed', 'paid', 'ready'] },
@@ -303,6 +302,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const dayKey = (value) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/St_Thomas' }).format(new Date(value));
 const dayLabel = (key, options) => new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'UTC' }).format(new Date(`${key}T12:00:00Z`));
 const seriesOf = (status) => SERIES.find((series) => series.statuses.includes(status))?.key;
+const wholeMoney = (amount) => `$${Math.round(amount).toLocaleString('en-US')}`;
 
 function svg(tag, attrs = {}) {
   const el = document.createElementNS(SVG_NS, tag);
@@ -330,6 +330,23 @@ function activityDays() {
   return rows;
 }
 
+/* Percent change, or null when there's nothing to compare against. */
+const percentChange = (now, before) => (before > 0 ? ((now - before) / before) * 100 : null);
+
+const TREND_UP = 'M22 7 13.5 15.5 8.5 10.5 2 17M16 7h6v6';
+const TREND_DOWN = 'M22 17 13.5 8.5 8.5 13.5 2 7M16 17h6v-6';
+
+/* "▲ +12.7%" style change, with an icon and sign so it never relies on color. */
+function trendBadge(change, suffix = '', emptyText = '') {
+  if (change === null) return emptyText ? h('span', { class: 'staff-trend staff-trend-flat', text: emptyText }) : null;
+  const up = change >= 0;
+  const icon = svg('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' });
+  icon.append(svg('path', { d: up ? TREND_UP : TREND_DOWN }));
+  return h('span', { class: `staff-trend ${up ? 'staff-trend-up' : 'staff-trend-down'}` },
+    icon, h('span', { text: `${up ? '+' : '−'}${Math.abs(change).toFixed(1)}%` }),
+    suffix ? h('span', { class: 'staff-trend-note', text: suffix }) : null);
+}
+
 function renderActivity() {
   if (!state.activity) return;
   const today = dayKey(Date.now());
@@ -348,120 +365,197 @@ function renderActivity() {
     h('span', { class: 'staff-tile-note', text: tile.note }))));
 
   $('activityUpdatedText').textContent = `Live · updated ${new Intl.DateTimeFormat('en-US', { timeStyle: 'short', timeZone: 'America/St_Thomas' }).format(state.updatedAt)}`;
-  $('chartSubtitle').textContent = `Last ${state.activity.days} days, by where each order is now`;
-  $('chartLegend').replaceChildren(...SERIES.map((series, index) => h('li', {},
-    h('span', { class: 'staff-swatch', style: `background:var(--chart-${index + 1})` }), series.label)));
 
   const rows = activityDays();
+  const sum = (list) => list.reduce((total, row) => total + row.sales, 0);
+  const lastWeek = sum(rows.slice(-7));
+  const weekBefore = sum(rows.slice(-14, -7));
+  const todayRow = rows[rows.length - 1];
+  const yesterday = rows[rows.length - 2];
+  const best = rows.reduce((a, b) => (b.sales > a.sales ? b : a));
+  const slowest = rows.reduce((a, b) => (b.sales < a.sales ? b : a));
+
+  $('salesTotal').textContent = money(lastWeek);
+  $('salesTrend').replaceChildren(...[trendBadge(percentChange(lastWeek, weekBefore), 'vs previous 7 days', 'No sales in the previous 7 days to compare')].filter(Boolean));
+  $('todaySales').textContent = money(todayRow.sales);
+  $('todayTrend').replaceChildren(...[trendBadge(percentChange(todayRow.sales, yesterday.sales))].filter(Boolean));
+  $('todayOrders').textContent = `${todayRow.total} order${todayRow.total === 1 ? '' : 's'}`;
+  $('salesHigh').textContent = `${money(best.sales)} · ${dayLabel(best.key, { month: 'short', day: 'numeric' })}`;
+  $('salesLow').textContent = `${money(slowest.sales)} · ${dayLabel(slowest.key, { month: 'short', day: 'numeric' })}`;
+  $('salesOrders').textContent = String(rows.reduce((total, row) => total + row.total, 0));
+
   renderChart(rows, today);
   renderChartTable(rows);
+}
+
+/* Monotone cubic (Fritsch–Carlson): smooth, but never overshoots a day's
+   value, so the line can't dip below $0 or invent a peak. */
+function monotonePath(points) {
+  const n = points.length;
+  if (n < 2) return points.length ? `M${points[0].x},${points[0].y}` : '';
+  const dx = [], slope = [], tangent = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = points[i + 1].x - points[i].x;
+    slope[i] = (points[i + 1].y - points[i].y) / dx[i];
+  }
+  tangent[0] = slope[0];
+  tangent[n - 1] = slope[n - 2];
+  for (let i = 1; i < n - 1; i++) tangent[i] = slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (slope[i] === 0) { tangent[i] = 0; tangent[i + 1] = 0; continue; }
+    const a = tangent[i] / slope[i], b = tangent[i + 1] / slope[i];
+    const length = a * a + b * b;
+    if (length > 9) {
+      const t = 3 / Math.sqrt(length);
+      tangent[i] = t * a * slope[i];
+      tangent[i + 1] = t * b * slope[i];
+    }
+  }
+  let d = `M${points[0].x},${points[0].y}`;
+  for (let i = 0; i < n - 1; i++) {
+    const third = dx[i] / 3;
+    d += ` C${points[i].x + third},${points[i].y + tangent[i] * third} ${points[i + 1].x - third},${points[i + 1].y - tangent[i + 1] * third} ${points[i + 1].x},${points[i + 1].y}`;
+  }
+  return d;
 }
 
 function renderChart(rows, today) {
   const plot = $('chartPlot');
   const width = Math.max(plot.clientWidth, 280);
-  const height = 220;
-  const margin = { top: 12, right: 8, bottom: 28, left: 32 };
+  const height = width < 520 ? 240 : 300;
+
+  /* Clean dollar ticks: 0 and three or four more, rounded up to a nice step. */
+  const max = Math.max(...rows.map((row) => row.sales));
+  const step = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000]
+    .find((s) => s * 4 >= max) || Math.ceil(max / 4);
+  const top = max > 0 ? step * Math.ceil(max / step) : step * 4;
+  const ticks = Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step);
+  const margin = { top: 20, right: 14, bottom: 36, left: 22 + wholeMoney(top).length * 7 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
-
-  /* Clean integer ticks: 0 and three more, rounded up to a nice step. */
-  const max = Math.max(...rows.map((row) => row.total), 1);
-  const step = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500].find((s) => s * 3 >= max) || Math.ceil(max / 3);
-  const top = step * Math.max(1, Math.ceil(max / step));
+  const x = (index) => margin.left + (rows.length === 1 ? innerW / 2 : (index / (rows.length - 1)) * innerW);
   const y = (value) => margin.top + innerH - (value / top) * innerH;
-  const band = innerW / rows.length;
-  const barW = Math.min(24, band * 0.62);
-  const labelEvery = Math.ceil(46 / band);   /* "Sep 27" needs ~46px */
+  const points = rows.map((row, index) => ({ x: x(index), y: y(row.sales) }));
+  const bottom = margin.top + innerH;
 
-  const chart = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img',
-    'aria-label': `Orders placed per day for the last ${rows.length} days. ${rows.reduce((sum, row) => sum + row.total, 0)} orders in total. See the table below for each day.` });
+  const chart = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, class: 'staff-sales-chart', tabindex: '0', role: 'img',
+    'aria-label': `Sales per day for the last ${rows.length} days. Use the left and right arrow keys to read each day, or open the table below.` });
 
-  for (let value = 0; value <= top; value += step) {
-    chart.append(svg('line', { class: value ? 'staff-grid' : 'staff-baseline', x1: margin.left, x2: width - margin.right, y1: y(value), y2: y(value) }));
-    const tick = svg('text', { class: 'staff-axis', x: margin.left - 8, y: y(value) + 4, 'text-anchor': 'end' });
-    tick.textContent = value;
+  const defs = svg('defs');
+  const gradient = svg('linearGradient', { id: 'salesArea', x1: 0, y1: 0, x2: 0, y2: 1 });
+  gradient.append(svg('stop', { offset: '0%', style: 'stop-color:var(--chart-line);stop-opacity:.16' }),
+    svg('stop', { offset: '100%', style: 'stop-color:var(--chart-line);stop-opacity:0' }));
+  const dots = svg('pattern', { id: 'salesDotGrid', x: 0, y: 0, width: 20, height: 20, patternUnits: 'userSpaceOnUse' });
+  dots.append(svg('circle', { cx: 10, cy: 10, r: 1, class: 'staff-dot-grid' }));
+  const glow = svg('filter', { id: 'salesGlow', x: '-10%', y: '-40%', width: '120%', height: '200%' });
+  glow.append(svg('feDropShadow', { dx: 0, dy: 6, stdDeviation: 8, style: 'flood-color:var(--chart-line);flood-opacity:.45' }));
+  const dotShadow = svg('filter', { id: 'salesDotShadow', x: '-50%', y: '-50%', width: '200%', height: '200%' });
+  dotShadow.append(svg('feDropShadow', { dx: 1, dy: 2, stdDeviation: 2, style: 'flood-color:#000;flood-opacity:.45' }));
+  defs.append(gradient, dots, glow, dotShadow);
+  chart.append(defs);
+
+  chart.append(svg('rect', { x: margin.left, y: margin.top, width: innerW, height: innerH, fill: 'url(#salesDotGrid)', 'pointer-events': 'none' }));
+
+  for (const value of ticks) {
+    chart.append(svg('line', { class: 'staff-grid-dashed', x1: margin.left, x2: width - margin.right, y1: y(value), y2: y(value) }));
+    const tick = svg('text', { class: 'staff-axis-line', x: margin.left - 12, y: y(value) + 4, 'text-anchor': 'end' });
+    tick.textContent = wholeMoney(value);
     chart.append(tick);
   }
 
-  rows.forEach((row, index) => {
-    const cx = margin.left + band * index + band / 2;
-    const group = svg('g', { class: 'staff-col', tabindex: '0',
-      'aria-label': `${dayLabel(row.key, { weekday: 'long', month: 'long', day: 'numeric' })}: ${row.total} orders, ${row.completed} completed, ${row.progress} in progress, ${row.cancelled} cancelled` });
-    group.append(svg('rect', { class: 'staff-col-hit', x: cx - band / 2, y: margin.top, width: band, height: innerH }));
+  /* Date ticks at an even step counted back from today, as many as fit. */
+  const fits = Math.max(2, Math.floor(innerW / 64));
+  const every = Math.ceil(rows.length / fits);
+  const dateTicks = [];
+  for (let index = rows.length - 1; index >= 0; index -= every) dateTicks.push(index);
+  for (const index of dateTicks) {
+    const row = rows[index];
+    const anchor = index === 0 ? 'start' : index === rows.length - 1 ? 'end' : 'middle';
+    const label = svg('text', { class: `staff-axis-line${row.key === today ? ' staff-axis-strong' : ''}`, x: x(index), y: height - 10, 'text-anchor': anchor });
+    label.textContent = row.key === today ? 'Today' : dayLabel(row.key, { month: 'short', day: 'numeric' });
+    chart.append(label);
+  }
 
-    /* Stack from the baseline with a 2px gap between segments; only the
-       top segment gets the 4px rounded end. */
-    let base = 0;
-    const filled = SERIES.map((series, s) => ({ s, value: row[series.key] })).filter((part) => part.value > 0);
-    filled.forEach((part, i) => {
-      const bottom = y(base) - (i > 0 ? 2 : 0);
-      const y1 = y(base + part.value);
-      const segH = Math.max(bottom - y1, 1);
-      const isTop = i === filled.length - 1;
-      const r = isTop ? Math.min(4, segH, barW / 2) : 0;
-      const x0 = cx - barW / 2;
-      const d = `M${x0},${bottom} V${y1 + r} Q${x0},${y1} ${x0 + r},${y1} H${x0 + barW - r} Q${x0 + barW},${y1} ${x0 + barW},${y1 + r} V${bottom} Z`;
-      group.append(svg('path', { d, fill: `var(--chart-${part.s + 1})`, class: 'staff-seg' }));
-      base += part.value;
-    });
+  const todayIndex = rows.findIndex((row) => row.key === today);
+  if (todayIndex >= 0) {
+    chart.append(svg('line', { class: 'staff-reference', x1: x(todayIndex), x2: x(todayIndex), y1: margin.top, y2: bottom }));
+  }
 
-    const showLabel = (rows.length - 1 - index) % labelEvery === 0;
-    if (showLabel) {
-      const label = svg('text', { class: `staff-axis${row.key === today ? ' staff-axis-today' : ''}`, x: cx, y: height - 8, 'text-anchor': 'middle' });
-      label.textContent = row.key === today ? 'Today' : dayLabel(row.key, { month: 'short', day: 'numeric' });
-      group.append(label);
-    }
+  const line = monotonePath(points);
+  chart.append(svg('path', { d: `${line} L${points[points.length - 1].x},${bottom} L${points[0].x},${bottom} Z`, fill: 'url(#salesArea)', 'pointer-events': 'none' }));
+  chart.append(svg('path', { d: line, class: 'staff-sales-line', filter: 'url(#salesGlow)' }));
 
-    const show = () => showTooltip(row, cx, band, margin.top, group);
-    group.addEventListener('pointerenter', show);
-    group.addEventListener('focus', show);
-    group.addEventListener('pointerleave', hideTooltip);
-    group.addEventListener('blur', hideTooltip);
-    chart.append(group);
+  /* Highlight today, the best day and the slowest day. */
+  const maxIndex = rows.findIndex((row) => row.sales === max);
+  const minValue = Math.min(...rows.map((row) => row.sales));
+  const minIndex = rows.findIndex((row) => row.sales === minValue);
+  for (const index of new Set([todayIndex, maxIndex, minIndex].filter((i) => i >= 0))) {
+    chart.append(svg('circle', { class: 'staff-sales-dot', cx: points[index].x, cy: points[index].y, r: 6, filter: 'url(#salesDotShadow)' }));
+  }
+
+  /* Hover layer: dashed crosshair, active dot and tooltip on the nearest day. */
+  const cursor = svg('line', { class: 'staff-cursor', x1: 0, x2: 0, y1: margin.top, y2: bottom, visibility: 'hidden' });
+  const active = svg('circle', { class: 'staff-sales-dot', r: 6, filter: 'url(#salesDotShadow)', visibility: 'hidden' });
+  const hit = svg('rect', { class: 'staff-hit', x: margin.left - 10, y: 0, width: innerW + 20, height });
+  chart.append(cursor, active, hit);
+
+  const tooltip = h('div', { class: 'staff-tooltip staff-sales-tooltip', role: 'tooltip', hidden: true });
+  let current = null;
+  const showDay = (index) => {
+    current = index;
+    const row = rows[index];
+    const { x: px, y: py } = points[index];
+    for (const [key, value] of [['x1', px], ['x2', px]]) cursor.setAttribute(key, value);
+    cursor.setAttribute('visibility', 'visible');
+    active.setAttribute('cx', px);
+    active.setAttribute('cy', py);
+    active.setAttribute('visibility', 'visible');
+    const change = index > 0 ? percentChange(row.sales, rows[index - 1].sales) : null;
+    tooltip.replaceChildren(
+      h('span', { class: 'staff-tooltip-date', text: row.key === today ? `Today, ${dayLabel(row.key, { month: 'short', day: 'numeric' })}` : dayLabel(row.key, { weekday: 'short', month: 'short', day: 'numeric' }) }),
+      h('span', { class: 'staff-tooltip-headline' }, h('strong', { text: money(row.sales) }), change === null ? null : trendBadge(change)),
+      h('span', { class: 'staff-tooltip-sub', text: `${row.total} order${row.total === 1 ? '' : 's'}${row.cancelled ? ` · ${row.cancelled} cancelled` : ''}` }));
+    tooltip.hidden = false;
+    const tipW = tooltip.offsetWidth;
+    const tipH = tooltip.offsetHeight;
+    const left = px + 14 + tipW <= width ? px + 14 : px - 14 - tipW;
+    tooltip.style.left = `${Math.max(left, 0)}px`;
+    tooltip.style.top = `${Math.min(Math.max(py - tipH - 12, 0), height - tipH)}px`;
+  };
+  const hideDay = () => {
+    current = null;
+    cursor.setAttribute('visibility', 'hidden');
+    active.setAttribute('visibility', 'hidden');
+    tooltip.hidden = true;
+  };
+  const nearest = (event) => {
+    const box = chart.getBoundingClientRect();
+    const px = ((event.clientX - box.left) / box.width) * width;
+    return Math.min(rows.length - 1, Math.max(0, Math.round(((px - margin.left) / innerW) * (rows.length - 1))));
+  };
+  hit.addEventListener('pointermove', (event) => showDay(nearest(event)));
+  hit.addEventListener('pointerdown', (event) => showDay(nearest(event)));
+  hit.addEventListener('pointerleave', hideDay);
+  chart.addEventListener('focus', () => showDay(current ?? rows.length - 1));
+  chart.addEventListener('blur', hideDay);
+  chart.addEventListener('keydown', (event) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const from = current ?? rows.length - 1;
+    showDay({ ArrowLeft: Math.max(from - 1, 0), ArrowRight: Math.min(from + 1, rows.length - 1), Home: 0, End: rows.length - 1 }[event.key]);
   });
 
-  const tooltip = h('div', { class: 'staff-tooltip', role: 'tooltip', hidden: true });
   plot.replaceChildren(chart, tooltip);
 }
 
-/* Beside the column (right if it fits, else left), so it never hides the bar. */
-function showTooltip(row, x, band, top, group) {
-  const tooltip = $('chartPlot').querySelector('.staff-tooltip');
-  if (!tooltip) return;
-  $('chartPlot').querySelectorAll('.staff-col-active').forEach((el) => el.classList.remove('staff-col-active'));
-  group.classList.add('staff-col-active');
-  tooltip.replaceChildren(
-    h('strong', { text: dayLabel(row.key, { weekday: 'short', month: 'short', day: 'numeric' }) }),
-    ...SERIES.slice().reverse().map((series) => h('div', { class: 'staff-tooltip-row' },
-      h('span', { class: 'staff-swatch', style: `background:var(--chart-${SERIES.indexOf(series) + 1})` }),
-      h('span', { text: series.label }),
-      h('span', { class: 'staff-tooltip-value', text: String(row[series.key]) }))),
-    h('div', { class: 'staff-tooltip-row staff-tooltip-total' },
-      h('span'), h('span', { text: 'Sales' }), h('span', { class: 'staff-tooltip-value', text: money(row.sales) })));
-  tooltip.hidden = false;
-  const plotW = $('chartPlot').clientWidth;
-  const tipW = tooltip.offsetWidth;
-  const right = x + band / 2 + 6;
-  const left = x - band / 2 - 6 - tipW;
-  tooltip.style.left = `${right + tipW <= plotW ? right : Math.max(left, 0)}px`;
-  tooltip.style.top = `${top}px`;
-}
-
-function hideTooltip() {
-  const tooltip = $('chartPlot').querySelector('.staff-tooltip');
-  if (tooltip) tooltip.hidden = true;
-  $('chartPlot').querySelectorAll('.staff-col-active').forEach((el) => el.classList.remove('staff-col-active'));
-}
-
 function renderChartTable(rows) {
-  const head = h('tr', {}, h('th', { scope: 'col', text: 'Day' }),
-    ...SERIES.map((series) => h('th', { scope: 'col', text: series.label })),
-    h('th', { scope: 'col', text: 'Total' }), h('th', { scope: 'col', text: 'Sales' }));
+  const head = h('tr', {}, h('th', { scope: 'col', text: 'Day' }), h('th', { scope: 'col', text: 'Sales' }),
+    h('th', { scope: 'col', text: 'Orders' }),
+    ...SERIES.map((series) => h('th', { scope: 'col', text: series.label })));
   const body = rows.slice().reverse().map((row) => h('tr', {},
     h('th', { scope: 'row', text: dayLabel(row.key, { weekday: 'short', month: 'short', day: 'numeric' }) }),
-    ...SERIES.map((series) => h('td', { text: String(row[series.key]) })),
-    h('td', { text: String(row.total) }), h('td', { text: money(row.sales) })));
+    h('td', { text: money(row.sales) }), h('td', { text: String(row.total) }),
+    ...SERIES.map((series) => h('td', { text: String(row[series.key]) }))));
   $('chartTable').replaceChildren(h('table', { class: 'staff-table' }, h('thead', {}, head), h('tbody', {}, body)));
 }
 

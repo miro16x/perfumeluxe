@@ -93,11 +93,26 @@
         </div>
         <div class="staff-tiles" id="activityTiles"></div>
         <figure class="staff-chart">
-          <figcaption class="staff-chart-caption">
-            <span class="staff-chart-title">Orders placed per day</span>
-            <span class="staff-muted" id="chartSubtitle">Last 14 days, by where each order is now</span>
+          <figcaption class="staff-chart-head">
+            <span class="staff-chart-label">Sales · last 7 days</span>
+            <span class="staff-chart-headline">
+              <span class="staff-chart-value" id="salesTotal">$0.00</span>
+              <span id="salesTrend"></span>
+            </span>
           </figcaption>
-          <ul class="staff-legend" id="chartLegend"></ul>
+          <div class="staff-chart-stats">
+            <p class="staff-chart-today">
+              <span class="staff-muted-ink">Today's sales:</span>
+              <strong id="todaySales">$0.00</strong>
+              <span id="todayTrend"></span>
+              <span class="staff-muted-ink" id="todayOrders"></span>
+            </p>
+            <p class="staff-chart-range">
+              <span>Best day: <span class="staff-stat-high" id="salesHigh"></span></span>
+              <span>Slowest day: <span class="staff-stat-low" id="salesLow"></span></span>
+              <span>Orders (14 days): <span class="staff-stat-strong" id="salesOrders"></span></span>
+            </p>
+          </div>
           <div class="staff-chart-plot" id="chartPlot"></div>
           <details class="staff-chart-table">
             <summary>Show as table</summary>

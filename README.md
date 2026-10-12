@@ -130,7 +130,7 @@ Customers can cancel within 24 hours of ordering from the confirmation screen, o
 
 Staff open `/staff.html` (not linked from the site) and create an account there (or sign in with an existing site account). It shows their orders once the owner has added them to the `staff` table (see [CLOUDFLARE-SETUP.md](CLOUDFLARE-SETUP.md)). Each staff member sees only their store's orders; the owner can be given every store.
 
-- **Order activity** at the top shows live counts (to prepare, ready for pickup, to ship, completed today) and a chart of orders placed per day over the last 14 days, split into completed, in progress and cancelled, with a table view. It updates with the order list.
+- **Order activity** at the top shows live counts (to prepare, ready for pickup, to ship, completed today) and a sales chart: the last 7 days' sales against the 7 before, today's sales, the best and slowest days, and a line of daily sales over 14 days (hover or use the arrow keys for each day, or open the table view). It updates with the order list.
 - A light/dark switch in the header; the choice is shared with the shop.
 - **To do** lists paid and pay-at-pickup orders that still need something; **Done** lists shipped, picked-up, cancelled and refunded ones. It refreshes every minute.
 - **Pickup orders:** *Ready for pickup* emails the customer; *Picked up* closes the order.
