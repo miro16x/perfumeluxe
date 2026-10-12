@@ -323,7 +323,7 @@ test('the activity chart data comes in the same request, without customer detail
   assert.equal(lists.length, 2);
   const activity = lists.find((call) => call.url.includes('placed_at=gte.'));
   assert.match(activity.url, /pickup_store=eq\.Perfume%20World/);
-  assert.match(activity.url, /select=status,fulfillment,total,placed_at,shipped_at,collected_at&/);
+  assert.match(activity.url, /select=reference,status,fulfillment,pickup_store,total,placed_at,shipped_at,collected_at&/);
   assert.doesNotMatch(activity.url, /email|phone|customer_name/);
 });
 

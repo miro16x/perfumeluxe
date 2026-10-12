@@ -6,7 +6,7 @@
 const ST_SUPABASE_URL = 'https://bvffpffnyjfufprcdskb.supabase.co';
 const ST_SUPABASE_KEY = 'sb_publishable_NGGc4fVDwCVlsInS2NT51g_ymNOYi7w';
 const ST_SUPABASE_SDK = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
-const ST_REFRESH_MS = 60 * 1000;
+const ST_REFRESH_MS = 30 * 1000;   /* also how quickly new orders are noticed */
 const ST_TIMEOUT_MS = 15 * 1000;   /* give up on the sign-in service after this */
 
 const STATUS_LABEL = {
@@ -76,7 +76,9 @@ async function api(path, options = {}) {
   return { status: response.status, body };
 }
 
-async function loadOrders({ quiet = false } = {}) {
+/* keepForms: a background refresh while someone is filling in a ship or
+   refund form updates the counts and alerts but leaves the list alone. */
+async function loadOrders({ quiet = false, keepForms = false } = {}) {
   if (!quiet) flash('Loading orders…');
   let result;
   try {
@@ -114,7 +116,8 @@ async function loadOrders({ quiet = false } = {}) {
   $('staffName').textContent = body.staff.name;
   $('staffWho').hidden = false;
   showView('ordersView');
-  renderOrders();
+  checkNewOrders();
+  if (!(keepForms && document.querySelector('.staff-inline-form'))) renderOrders();
   renderActivity();
 }
 
@@ -135,6 +138,7 @@ async function runAction(order, action, extra = {}) {
   if (status === 401) return showSignIn();
 
   if (body.success) {
+    markSeen([order.reference]);
     const done = {
       ready: 'Marked ready for pickup.',
       collected: 'Marked picked up.',
@@ -208,13 +212,17 @@ function renderOrder(order) {
       : `Customer can cancel online until ${astTime(cancelUntil)}.` });
   }
 
-  const card = h('article', { class: `staff-order staff-order-${order.status}`, 'aria-busy': busy ? 'true' : null },
+  const isNew = alerts.unseen.has(order.reference);
+  const card = h('article', { class: `staff-order staff-order-${order.status}${isNew ? ' staff-order-new' : ''}`, 'aria-busy': busy ? 'true' : null },
     h('header', { class: 'staff-order-head' },
       h('div', {},
         h('span', { class: 'staff-kind', text: shipping ? 'Shipping' : 'Pickup' }),
         h('h3', { class: 'staff-ref', text: order.reference })
       ),
-      h('span', { class: `staff-badge staff-badge-${order.status}`, text: STATUS_LABEL[order.status] || order.status })
+      h('div', { class: 'staff-order-badges' },
+        isNew ? h('button', { type: 'button', class: 'staff-new-badge', text: 'New', title: 'Mark as seen',
+          'aria-label': `New order. Mark ${order.reference} as seen`, onclick: () => markSeen([order.reference]) }) : null,
+        h('span', { class: `staff-badge staff-badge-${order.status}`, text: STATUS_LABEL[order.status] || order.status }))
     ),
     details,
     items,
@@ -716,9 +724,164 @@ $('signOutBtn').addEventListener('click', async () => {
   state.email = '';
   $('staffName').textContent = '';
   state.orders = [];
+  alerts.owner = null;
+  updateAlertBadges();
   $('ordersList').replaceChildren();
   showSignIn();
 });
+
+/* ── NEW-ORDER ALERTS ─────────────────────────────────── */
+
+/* An order is new until someone acts on it, clicks its New badge or marks
+   all as seen. What each person has seen is remembered in this browser, so a
+   reload doesn't alert again; the very first visit treats everything already
+   there as seen rather than sounding off for every existing order. */
+const alerts = {
+  owner: null,               /* email the sets below belong to */
+  seen: new Set(),
+  unseen: new Set(),
+  on: true,
+  audio: null
+};
+const ALERT_STATUSES = ['placed', 'paid'];
+const SEEN_LIMIT = 1000;
+
+function readStore(key) {
+  try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
+}
+function writeStore(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+}
+try { alerts.on = localStorage.getItem('ul-staff-alerts') !== 'off'; } catch (e) {}
+
+function saveAlertState() {
+  if (!alerts.owner) return;
+  writeStore(`ul-staff-seen:${alerts.owner}`, [...alerts.seen].slice(-SEEN_LIMIT));
+  writeStore(`ul-staff-unseen:${alerts.owner}`, [...alerts.unseen]);
+}
+
+function checkNewOrders() {
+  const incoming = (state.activity?.orders || []).filter((order) => order.reference && ALERT_STATUSES.includes(order.status));
+  if (alerts.owner !== state.email) {
+    alerts.owner = state.email;
+    const seen = readStore(`ul-staff-seen:${alerts.owner}`);
+    alerts.unseen = new Set(readStore(`ul-staff-unseen:${alerts.owner}`) || []);
+    if (!Array.isArray(seen)) {
+      alerts.seen = new Set(incoming.map((order) => order.reference));
+      saveAlertState();
+      updateAlertBadges();
+      return;
+    }
+    alerts.seen = new Set(seen);
+  }
+
+  const fresh = incoming.filter((order) => !alerts.seen.has(order.reference));
+  for (const order of fresh) {
+    alerts.seen.add(order.reference);
+    alerts.unseen.add(order.reference);
+  }
+  /* Drop ones that someone (here or at another computer) has since handled. */
+  const waiting = new Set(incoming.map((order) => order.reference));
+  for (const reference of alerts.unseen) if (!waiting.has(reference)) alerts.unseen.delete(reference);
+
+  saveAlertState();
+  updateAlertBadges();
+  if (fresh.length) announce(fresh);
+}
+
+function markSeen(references) {
+  let changed = false;
+  for (const reference of references) changed = alerts.unseen.delete(reference) || changed;
+  if (!changed) return;
+  saveAlertState();
+  updateAlertBadges();
+  renderOrders();
+}
+
+function updateAlertBadges() {
+  const count = alerts.owner ? alerts.unseen.size : 0;
+  const base = $('ordersView').hidden ? 'Staff Orders' : $('staffTitle').textContent;
+  document.title = `${count ? `(${count}) ` : ''}${base} | Luxe Perfume`;
+  $('newOrdersBanner').hidden = !count;
+  $('newOrdersText').textContent = `${count} new order${count === 1 ? '' : 's'}`;
+}
+
+function announce(fresh) {
+  const total = fresh.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+  const kinds = fresh.map((order) => (order.fulfillment === 'shipping' ? 'shipping' : 'pickup'));
+  const kind = kinds.every((k) => k === kinds[0]) ? `${kinds[0]} ` : '';
+  const title = fresh.length === 1 ? `New ${kind}order · ${money(fresh[0].total)}` : `${fresh.length} new ${kind}orders · ${money(total)}`;
+  const body = fresh.length === 1
+    ? `${fresh[0].reference}${state.allStores ? ` · ${fresh[0].pickup_store}` : ''}`
+    : fresh.map((order) => order.reference).join(', ');
+  flash(`${title}. ${body}`);
+  if (!alerts.on) return;
+  playChime();
+  if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+    try {
+      const notification = new Notification(title, { body, tag: 'ul-staff-new-orders', renotify: true });
+      notification.onclick = () => { window.focus(); notification.close(); };
+    } catch (e) {}
+  }
+}
+
+/* A short two-note chime, made in the browser so there's no sound file. */
+function playChime() {
+  const ctx = alerts.audio;
+  if (!ctx || ctx.state !== 'running') return;
+  const start = ctx.currentTime;
+  [[880, 0], [1318.5, 0.16]].forEach(([frequency, delay]) => {
+    const tone = ctx.createOscillator();
+    const gain = ctx.createGain();
+    tone.type = 'sine';
+    tone.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.0001, start + delay);
+    gain.gain.exponentialRampToValueAtTime(0.25, start + delay + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + delay + 0.45);
+    tone.connect(gain).connect(ctx.destination);
+    tone.start(start + delay);
+    tone.stop(start + delay + 0.5);
+  });
+}
+
+/* Browsers only allow sound after the person has clicked or typed on the
+   page, so the audio is switched on at the first interaction. */
+function unlockAudio() {
+  const AudioCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtor) return;
+  alerts.audio ??= new AudioCtor();
+  if (alerts.audio.state === 'suspended') alerts.audio.resume().catch(() => {});
+}
+['pointerdown', 'keydown'].forEach((type) => document.addEventListener(type, unlockAudio, { capture: true }));
+
+function renderAlertsButton() {
+  const button = $('alertsBtn');
+  button.setAttribute('aria-pressed', String(alerts.on));
+  $('alertsLabel').textContent = alerts.on ? 'Alerts on' : 'Alerts off';
+}
+
+$('alertsBtn').addEventListener('click', async () => {
+  alerts.on = !alerts.on;
+  try { localStorage.setItem('ul-staff-alerts', alerts.on ? 'on' : 'off'); } catch (e) {}
+  renderAlertsButton();
+  if (!alerts.on) return flash('New-order alerts are off. New orders still show a New badge and the count in the tab title.');
+  unlockAudio();
+  setTimeout(playChime, 50);   /* a preview, so staff know what to listen for */
+  if (!('Notification' in window)) return flash('Alerts are on. This browser does not support notifications, so you will hear the chime instead.');
+  if (Notification.permission === 'default') await Notification.requestPermission().catch(() => {});
+  flash(Notification.permission === 'granted'
+    ? 'Alerts are on: a chime, plus a notification when this tab is in the background.'
+    : 'Alerts are on with the chime. Notifications are blocked in this browser\'s site settings; allow them there to get pop-up alerts.');
+});
+
+$('markAllSeenBtn').addEventListener('click', () => markSeen([...alerts.unseen]));
+$('showNewBtn').addEventListener('click', () => {
+  if (state.view !== 'open') document.querySelector('.staff-tab[data-view="open"]').click();
+  if (state.type !== 'all') document.querySelector('.staff-chip[data-type="all"]').click();
+  document.querySelector('.staff-order-new')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+renderAlertsButton();
 
 /* ── TABS, FILTERS, REFRESH ──────────────────────────── */
 
@@ -737,11 +900,11 @@ document.querySelectorAll('.staff-chip').forEach((chip) => chip.addEventListener
 
 $('refreshBtn').addEventListener('click', () => { flash(''); loadOrders(); });
 
-/* New orders appear on their own, but never while someone is mid-form. */
+/* Keeps checking in a background tab too, so new-order alerts still arrive
+   (browsers slow hidden-tab timers to about once a minute). */
 setInterval(() => {
-  if (document.hidden || $('ordersView').hidden || state.busy.size) return;
-  if (document.querySelector('.staff-inline-form')) return;
-  loadOrders({ quiet: true });
+  if ($('ordersView').hidden || state.busy.size) return;
+  loadOrders({ quiet: true, keepForms: true });
 }, ST_REFRESH_MS);
 
 /* ── START ───────────────────────────────────────────── */

@@ -131,7 +131,19 @@
           <button type="button" class="staff-chip" data-type="pickup" aria-pressed="false">Pickup</button>
           <button type="button" class="staff-chip" data-type="shipping" aria-pressed="false">Shipping</button>
         </div>
-        <button type="button" class="btn-ghost staff-refresh" id="refreshBtn">Refresh</button>
+        <div class="staff-toolbar-end">
+          <button type="button" class="staff-alerts" id="alertsBtn" aria-pressed="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><line class="staff-alerts-off" x1="3" y1="3" x2="21" y2="21"/></svg>
+            <span id="alertsLabel">Alerts on</span>
+          </button>
+          <button type="button" class="btn-ghost staff-refresh" id="refreshBtn">Refresh</button>
+        </div>
+      </div>
+      <div class="staff-new-banner" id="newOrdersBanner" role="status" hidden>
+        <span class="staff-new-dot" aria-hidden="true"></span>
+        <strong id="newOrdersText">0 new orders</strong>
+        <button type="button" class="staff-link" id="showNewBtn">Show</button>
+        <button type="button" class="staff-link" id="markAllSeenBtn">Mark all as seen</button>
       </div>
       <p class="staff-status" id="ordersStatus" role="status" aria-live="polite"></p>
       <div class="staff-orders" id="ordersList"></div>
