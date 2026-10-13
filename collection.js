@@ -3,7 +3,7 @@
 
   const womensCollections = {
     dior: /^(Miss Dior|J'adore)\b/i,
-    chanel: /^(Coco|Chance)\b/i,
+    chanel: /^(Coco Mademoiselle|Chance)\b/i,
     'carolina-herrera': /\bgood girl\b/i,
     valentino: /\bborn in roma\b/i,
     prada: /^Paradoxe\b/i,

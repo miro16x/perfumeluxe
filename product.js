@@ -115,7 +115,7 @@ function getRelatedFragrances(product, catalogue) {
   /* ── gallery ── */
   const mainImg  = document.getElementById('pdpMainImg');
   const thumbsEl = document.getElementById('pdpThumbs');
-  const images   = [product.img, product.imgHover].filter(Boolean);
+  const images   = [...new Set([product.img, product.imgHover].filter(Boolean))];
 
   if (images.length) {
     mainImg.src = images[0];
