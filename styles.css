@@ -2233,7 +2233,9 @@ a:focus:not(:focus-visible){outline:none}
 .shop-collapse-btn svg{transition:transform 0.28s ease}
 .shop-collapse-btn.collapsed svg{transform:rotate(180deg)}
 #shopBrowseBody{
-  overflow:hidden;
+  /* clip, not hidden: hidden turns this into a scroll container, which traps
+     the sticky filter sidebar so it scrolls away with the page. */
+  overflow:clip;
   transition:opacity 0.22s ease;
 }
 #shopBrowseBody.collapsed{display:none}
@@ -2243,11 +2245,17 @@ a:focus:not(:focus-visible){outline:none}
 .filter-sidebar{
   position:sticky;top:88px;
   background:var(--bg-1);border:1px solid var(--border);
-  border-radius:var(--radius-lg);overflow:hidden;
+  border-radius:var(--radius-lg);
+  /* Scroll the filters on their own; overscroll-behavior stops the page from
+     taking over once the list hits its top or bottom. */
+  max-height:calc(100vh - 88px - 24px);
+  overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
 }
 .filter-sidebar-header{
   display:flex;flex-direction:column;align-items:flex-start;gap:9px;
   padding:16px 20px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:1;background:inherit;
 }
 .filter-sidebar-title{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ivory)}
 .filter-clear-all{
@@ -2423,6 +2431,7 @@ a:focus:not(:focus-visible){outline:none}
     border-radius:0;
     transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
     overflow-y:auto;
+    max-height:none;
   }
   .filter-sidebar.mobile-open{transform:translateX(0)}
   .filter-sidebar-overlay{
