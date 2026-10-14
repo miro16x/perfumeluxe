@@ -2,14 +2,14 @@
 
 A responsive luxury fragrance storefront for Luxe Fragrances and Perfume World in St. Thomas, U.S. Virgin Islands. Live at [luxeperfume.uluxe.site](https://luxeperfume.uluxe.site).
 
-Customers browse the catalog, get personalized recommendations, and order for free in-store pickup or shipping within the United States and Puerto Rico, paying online through Stripe when they order.
+Customers browse the catalog, get personalized recommendations, and order for free in-store pickup or shipping within the United States and Puerto Rico, paying online through PayPal (with a PayPal account or by card) when they order.
 
 ## Features
 
 - Product catalog with filtering, search, collections and product pages
 - Signature Scent recommendation quiz
 - Customer accounts with saved taste preferences, likes and order history
-- Store pickup ordering with online payment (Stripe Checkout) and email confirmations to the store and the customer
+- Store pickup ordering with online payment (PayPal Checkout) and email confirmations to the store and the customer
 - Shipping to the 50 states, Washington, D.C. and Puerto Rico from Luxe Fragrances ($15, free on orders of $200 or more)
 - Online cancellation with an automatic refund within 24 hours of ordering
 - Staff dashboard for each store: mark orders ready, picked up or shipped (with tracking), and cancel or refund them
@@ -21,7 +21,7 @@ Customers browse the catalog, get personalized recommendations, and order for fr
 
 - HTML, CSS and vanilla JavaScript, with no framework or build step
 - [Cloudflare Workers](https://developers.cloudflare.com/workers/) serves the site and runs the order API
-- [Stripe Checkout](https://stripe.com/payments/checkout) for payments and refunds
+- [PayPal Checkout](https://developer.paypal.com/docs/checkout/) (Orders API v2) for payments and refunds
 - [Supabase](https://supabase.com/) for customer accounts, order history and paid-order records
 - [Resend](https://resend.com/) for order, cancellation and alert emails
 - [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) for bot protection
@@ -40,9 +40,9 @@ urban-luxe/
 ├── images/
 ├── worker.js           Routes /api/* to the handlers below and serves everything else
 ├── functions/api/
-│   ├── pickup-order.js         Validates and prices orders; starts Stripe Checkout (or emails the store when payment is off)
-│   ├── stripe-webhook.js       Receives Stripe's payment confirmation and emails the store
-│   ├── checkout-status.js      Confirmation details when the customer returns from Stripe
+│   ├── pickup-order.js         Validates and prices orders; starts PayPal Checkout (or emails the store when payment is off)
+│   ├── paypal-webhook.js       Takes approved payments and, once PayPal confirms one, emails the store
+│   ├── checkout-status.js      Takes the payment and returns confirmation details when the customer returns from PayPal
 │   ├── checkout-options.js     Tells the cart whether payment and shipping are available
 │   ├── cancel-pickup-order.js  Cancels within the 24-hour window and refunds paid orders
 │   ├── staff-orders.js         Lists a staff member's store orders
@@ -57,7 +57,8 @@ urban-luxe/
 │   ├── shipping.js             Shipping area, rates and address checks
 │   ├── staff.js                Staff access, carriers and dashboard emails
 │   ├── stores.js               Store addresses, phones and email routing
-│   ├── stripe.js               Stripe Checkout, webhook verification and refunds
+│   ├── paypal.js               PayPal orders, capture, webhook verification and refunds
+│   ├── checkout.js             Pairs a PayPal payment with the order details saved in Supabase
 │   └── supabase.js             Order records and account history
 ├── supabase/           Database schema and auth email templates (never published)
 ├── tests/              Node test suite (never published)
@@ -96,20 +97,22 @@ The Worker needs these secrets, set under Worker → Settings → Variables and 
 | `CANCEL_SIGNING_SECRET` | Signing cancellation tokens | Online cancellation is off; customers are told to call the store |
 | `SUPABASE_SERVICE_ROLE_KEY` | Saving orders to account history | Orders work but don't appear in accounts |
 | `TURNSTILE_SECRET_KEY` | Verifying the bot check | The bot check is off |
-| `STRIPE_SECRET_KEY` | Creating payments and refunds | Customers pay at pickup instead |
-| `STRIPE_WEBHOOK_SECRET` | Verifying Stripe's payment confirmations | Customers pay at pickup instead |
+| `PAYPAL_CLIENT_ID` | Creating payments and refunds | Customers pay at pickup instead |
+| `PAYPAL_CLIENT_SECRET` | Creating payments and refunds | Customers pay at pickup instead |
+| `PAYPAL_WEBHOOK_ID` | Verifying PayPal's payment confirmations | Customers pay at pickup instead |
+| `PAYPAL_ENV` | `live` for real payments, `sandbox` for testing | The sandbox is used |
 
 ## Store pickup and payment
 
 1. The customer adds products to the cart, chooses Luxe Fragrances or Perfume World, picks a date and time, and enters their contact details.
 2. Turnstile confirms a person submitted the form.
-3. The server prices every item from `products-data.js` (prices sent by the browser are ignored) and opens a Stripe Checkout page.
-4. Once Stripe confirms payment, its webhook records the order in Supabase and emails the store (BCC to the site owner) marked **PAID**, and the customer a confirmation with a unique pickup reference such as `LP-20261002-AB12CD34`.
+3. The server prices every item from `products-data.js` (prices sent by the browser are ignored) saves the order details in Supabase, and opens PayPal's payment page.
+4. The payment is captured when the customer returns (or by the webhook, if they closed the page). Once PayPal confirms it, its webhook records the order in Supabase and emails the store (BCC to the site owner) marked **PAID**, and the customer a confirmation with a unique pickup reference such as `LP-20261002-AB12CD34`.
 5. The customer returns to the site and sees the reference and a cancel button. Signed-in customers also see the order in their account history.
 
-If the customer leaves the Stripe page, they aren't charged and their cart is restored. Without the Stripe secrets, step 3 is skipped: the store is emailed straight away and the customer pays at pickup.
+If the customer leaves the PayPal page, they aren't charged and their cart is restored. Without the PayPal secrets (or the Supabase key), step 3 is skipped: the store is emailed straight away and the customer pays at pickup.
 
-A paid order confirms the store received it, not that the items are in stock. If something is unavailable, the store refunds it from the Stripe dashboard.
+A paid order confirms the store received it, not that the items are in stock. If something is unavailable, the store refunds it from the staff dashboard.
 
 ## Shipping
 
@@ -124,7 +127,7 @@ When the window has closed, staff mark the order shipped in the staff dashboard 
 
 ## Cancellation and refunds
 
-Customers can cancel within 24 hours of ordering from the confirmation screen, or by calling the store with their pickup reference. Each order gets a signed cancellation token, so the 24-hour window and order details can't be forged from the browser. Cancelling a paid order refunds it in full through Stripe first; only then are the store and customer emailed, and the order is marked refunded. Phone cancellations, and orders a store can't fill, are cancelled and refunded from the staff dashboard. Once an order is marked shipped or picked up, customers can no longer cancel it online.
+Customers can cancel within 24 hours of ordering from the confirmation screen, or by calling the store with their pickup reference. Each order gets a signed cancellation token, so the 24-hour window and order details can't be forged from the browser. Cancelling a paid order refunds it in full through PayPal first; only then are the store and customer emailed, and the order is marked refunded. Phone cancellations, and orders a store can't fill, are cancelled and refunded from the staff dashboard. Once an order is marked shipped or picked up, customers can no longer cancel it online.
 
 ## Staff dashboard
 
@@ -136,11 +139,11 @@ Staff open `/staff.html` (not linked from the site) and create an account there 
 - **To do** lists paid and pay-at-pickup orders that still need something; **Done** lists shipped, picked-up, cancelled and refunded ones. It refreshes every minute.
 - **Pickup orders:** *Ready for pickup* emails the customer; *Picked up* closes the order.
 - **Shipping orders:** *Mark shipped* takes the carrier (USPS, UPS, FedEx or DHL) and tracking number and emails the customer a tracking link, once the 24-hour cancellation window has closed.
-- **Cancel & refund** refunds a paid order in full through Stripe (or cancels a pay-at-pickup order) and emails the customer, with an optional reason. The site owner is copied.
+- **Cancel & refund** refunds a paid order in full through PayPal (or cancels a pay-at-pickup order) and emails the customer, with an optional reason. The site owner is copied.
 
 The server checks staff access and the order's current status on every action, so two people can't act on the same order at once, and an order is never refunded twice.
 
-Every order appears in the dashboard, from guests and signed-in customers alike: paid orders once Stripe confirms payment, pay-at-pickup orders (when Stripe is off) as soon as the store is emailed.
+Every order appears in the dashboard, from guests and signed-in customers alike: paid orders once PayPal confirms payment, pay-at-pickup orders (when PayPal is off) as soon as the store is emailed.
 
 ## Customer accounts
 
@@ -182,7 +185,7 @@ St. Thomas, VI 00802
 
 ## Not yet built
 
-- Partial refunds (one item of an order): refund these in the Stripe dashboard for now
+- Partial refunds (one item of an order): refund these in PayPal (Activity → the payment → Issue a refund) for now
 - Inventory and stock levels (on hold until the stores have a point-of-sale system)
 
 ## License

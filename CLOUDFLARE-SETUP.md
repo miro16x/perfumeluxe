@@ -26,7 +26,7 @@ The Function sends from `orders@luxeperfume.uluxe.site`. That mailbox does not h
 
 ## Local verification
 
-Run `node --test tests/*.test.mjs` from the repository root. These tests mock Resend, Supabase and Turnstile and do not send emails. After deployment, coordinate a test order and cancellation with the store and check delivery in the Resend Emails dashboard.
+Run `node --test tests/*.test.mjs` from the repository root. These tests mock Resend, Supabase, PayPal and Turnstile and do not send emails or take payments. After deployment, coordinate a test order and cancellation with the store and check delivery in the Resend Emails dashboard.
 
 ## Customer accounts (Supabase)
 
@@ -39,31 +39,33 @@ Accounts, taste preferences, likes and order history are stored in the Supabase 
 
 `supabase/` is listed in `.assetsignore`, so the SQL file is not published with the site.
 
-## Online payment (Stripe)
+## Online payment (PayPal)
 
-Customers pay when they order, on Stripe's hosted Checkout page; card details never reach this site. The store is emailed only after Stripe confirms payment, and cancelling within 24 hours refunds the customer automatically. Until both Stripe secrets are set, ordering works as before (pay at pickup), so the code can be deployed before Stripe is ready.
+Customers pay when they order, on PayPal's hosted page, either with a PayPal account or by debit/credit card as a guest; card details never reach this site. The store is emailed only after PayPal confirms payment, and cancelling within 24 hours refunds the customer automatically. Until the PayPal secrets are set, ordering works as before (pay at pickup), so the code can be deployed before PayPal is ready. Online payment also needs `SUPABASE_SERVICE_ROLE_KEY`: the order details wait in Supabase while the customer is on PayPal's page.
 
-Do everything in **test mode** first (the toggle at the top of the Stripe dashboard), then repeat steps 2–4 in live mode.
+Do everything in the **sandbox** first, then repeat steps 2–4 for live.
 
-1. **Update the database.** Supabase dashboard → SQL Editor → paste `supabase/schema.sql` → Run. This adds the payment and shipping columns and lets guest orders be stored. It is safe to re-run.
-2. **API key.** Stripe dashboard → Developers → API keys → copy the **Secret key** (`sk_test_…`, later `sk_live_…`). Save it as a Worker secret named `STRIPE_SECRET_KEY`.
-3. **Webhook.** Stripe dashboard → Developers → Webhooks → Add endpoint:
-   - Endpoint URL: `https://luxeperfume.uluxe.site/api/stripe-webhook`
-   - Events: `checkout.session.completed` only
-   - After saving, reveal the **Signing secret** (`whsec_…`) and save it as a Worker secret named `STRIPE_WEBHOOK_SECRET`.
-4. **Business details.** Stripe dashboard → Settings → Public details: set the business name and support phone/email customers see on the payment page and their card statement.
-5. **Test.** Place an order on the live site and pay with the test card `4242 4242 4242 4242` (any future expiry, any CVC, any ZIP). Check that:
+1. **Update the database.** Supabase dashboard → SQL Editor → paste `supabase/schema.sql` → Run. This adds the `checkouts` table and the PayPal columns on orders. It is safe to re-run.
+2. **API credentials.** developer.paypal.com → log in with the business account → Apps & Credentials → **Sandbox** → Create App (type: Merchant). Save these as Worker secrets (Worker → Settings → Variables and Secrets, type **Secret**):
+   - `PAYPAL_CLIENT_ID`: the app's Client ID
+   - `PAYPAL_CLIENT_SECRET`: the app's Secret
+   - `PAYPAL_ENV`: `sandbox` (later `live`). Saved as a secret so deploys don't remove it. If it's missing, the sandbox is used.
+3. **Webhook.** In the same app → Webhooks → Add Webhook:
+   - Webhook URL: `https://luxeperfume.uluxe.site/api/paypal-webhook`
+   - Events: `Checkout order approved` (`CHECKOUT.ORDER.APPROVED`) and `Payment capture completed` (`PAYMENT.CAPTURE.COMPLETED`)
+   - Copy the **Webhook ID** it shows and save it as a Worker secret named `PAYPAL_WEBHOOK_ID`.
+4. **Card payments without a PayPal account.** In the live PayPal business account: Settings → Account settings → Website payments → Website preferences → set **PayPal account optional** to On. Without it, customers must log in to PayPal to pay.
+5. **Test.** Let the stores know first, since real store emails are sent. Place an order on the live site and pay with a sandbox buyer account (developer.paypal.com → Testing Tools → Sandbox Accounts, the "Personal" one), or as a guest with a test card from Testing Tools → Card Generator. Check that:
    - you return to the site and see the pickup reference and "Paid",
    - the store email says **PAID ONLINE**,
-   - the payment appears under Stripe → Payments,
-   - cancelling from the confirmation screen shows a refund in Stripe.
-   Then repeat with **Ship to me** and a U.S. address: the email should go to Luxe Fragrances as **New Shipping Order (PAID)** with the address, and the payment in Stripe should show the shipping details.
-   Let the stores know first, since real store emails are sent.
-6. **Go live.** Switch the Stripe dashboard to live mode, repeat steps 2–3 with the live key and a live-mode webhook (it has its own signing secret), and replace both Worker secrets.
+   - the payment appears in the sandbox business account (sandbox.paypal.com → Activity),
+   - cancelling from the confirmation screen shows a refund there.
+   Then repeat with **Ship to me** and a U.S. address: the email should go to Luxe Fragrances as **New Shipping Order (PAID)** with the address, and the payment should show the shipping address.
+6. **Go live.** Apps & Credentials → **Live** → Create App, add the same webhook there (it gets its own Webhook ID), then replace `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` and `PAYPAL_WEBHOOK_ID` with the live values and set `PAYPAL_ENV` to `live`. The keys and `PAYPAL_ENV` must match: live keys don't work against the sandbox, and the reverse.
 
-Refunds for orders cancelled by phone, or for items that turn out to be unavailable, are issued in the Stripe dashboard: Payments → find the order (search its `LP-…` reference) → Refund.
+Refunds for orders cancelled by phone, or for items that turn out to be unavailable, are issued from the staff dashboard, or in PayPal: Activity → find the payment (search its `LP-…` reference) → Issue a refund.
 
-To turn online payment off at any time, delete the `STRIPE_SECRET_KEY` Worker secret. Ordering immediately goes back to pay at pickup, and the shipping option disappears from the cart (shipping needs online payment). Carts already open in a browser may show it for up to five minutes, but the server refuses those shipping orders.
+To turn online payment off at any time, delete the `PAYPAL_CLIENT_SECRET` Worker secret. Ordering immediately goes back to pay at pickup, and the shipping option disappears from the cart (shipping needs online payment). Carts already open in a browser may show it for up to five minutes, but the server refuses those shipping orders.
 
 Shipping rates, the free-shipping threshold, the shipping store and the allowed states are set in `lib/shipping.js`. Perfume is shipped as a hazardous material (flammable liquid); confirm Luxe Fragrances' carrier account allows it before going live.
 
@@ -76,4 +78,4 @@ Shipping rates, the free-shipping threshold, the shipping store and the allowed 
    select id, 'Perfume World', 'Jane' from auth.users where email = 'jane@example.com';
    ```
    Use `'Luxe Fragrances'`, `'Perfume World'`, or `'all'` for someone who manages every store (such as the owner). To remove access: `delete from public.staff where user_id = (select id from auth.users where email = 'jane@example.com');`
-3. **Use it.** Staff go to `https://luxeperfume.uluxe.site/staff.html` and sign in. The dashboard needs `SUPABASE_SERVICE_ROLE_KEY` and `RESEND_API_KEY`, and refunds need the Stripe secrets.
+3. **Use it.** Staff go to `https://luxeperfume.uluxe.site/staff.html` and sign in. The dashboard needs `SUPABASE_SERVICE_ROLE_KEY` and `RESEND_API_KEY`, and refunds need the PayPal secrets.

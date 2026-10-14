@@ -5,7 +5,7 @@
 //   refund    cancels the order, refunding it in full if it was paid online
 import { accountOrdersEnabled, getStaffOrder, transitionOrder } from '../../lib/supabase.js';
 import { getStaff, staffLookupFailure, canManage, sendCustomerEmail, CARRIERS } from '../../lib/staff.js';
-import { paymentsEnabled, refundPayment } from '../../lib/stripe.js';
+import { paymentsEnabled, refundPayment } from '../../lib/paypal.js';
 import { alertOwner } from '../../lib/alerts.js';
 import { CANCEL_WINDOW_MS } from '../../lib/stores.js';
 
@@ -92,16 +92,16 @@ export async function onRequestPost({ request, env, waitUntil }) {
     Object.assign(details, { carrier, trackingNumber });
   } else if (action === 'refund') {
     details.reason = String(input.reason || '').trim().replace(/\s+/g, ' ').slice(0, 200);
-    if (order.stripe_payment_intent) {
+    if (order.paypal_capture_id) {
       if (!paymentsEnabled(env)) {
-        return json({ success: false, message: 'Online refunds are unavailable right now. Refund this order in the Stripe dashboard.' }, 503);
+        return json({ success: false, message: 'Online refunds are unavailable right now. Refund this order in PayPal.' }, 503);
       }
       try {
         /* Same idempotency key as customer cancellations: never refunded twice. */
-        await refundPayment(env, order.stripe_payment_intent, reference);
+        await refundPayment(env, order.paypal_capture_id, reference);
       } catch (error) {
         console.error('Staff refund failed', reference, error?.code, error?.message, error?.providerError);
-        return json({ success: false, message: 'Stripe could not refund this order. Nothing was changed. Try again, or refund it in the Stripe dashboard.' }, 502);
+        return json({ success: false, message: 'PayPal could not refund this order. Nothing was changed. Try again, or refund it in PayPal.' }, 502);
       }
       details.refunded = Number(order.total);
       Object.assign(fields, { status: 'refunded', cancelled_at: stamp, refunded_at: stamp });

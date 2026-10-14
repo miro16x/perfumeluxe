@@ -2,16 +2,18 @@ import { test, mock, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeAddress, shippingCost } from '../lib/shipping.js';
 import { onRequestPost as order } from '../functions/api/pickup-order.js';
-import { onRequestPost as webhook } from '../functions/api/stripe-webhook.js';
+import { onRequestPost as webhook } from '../functions/api/paypal-webhook.js';
 import { onRequestGet as checkoutStatus } from '../functions/api/checkout-status.js';
 import { onRequestGet as checkoutOptions } from '../functions/api/checkout-options.js';
 import { onRequestPost as cancel } from '../functions/api/cancel-pickup-order.js';
 
 const SUPABASE = 'https://bvffpffnyjfufprcdskb.supabase.co';
+const PAYPAL = 'https://api-m.sandbox.paypal.com';
 const env = {
   RESEND_API_KEY: 'test-key',
-  STRIPE_SECRET_KEY: 'sk_test_123',
-  STRIPE_WEBHOOK_SECRET: 'whsec_test_secret',
+  PAYPAL_CLIENT_ID: 'pp-client',
+  PAYPAL_CLIENT_SECRET: 'pp-secret',
+  PAYPAL_WEBHOOK_ID: 'WH-TEST-123',
   SUPABASE_SERVICE_ROLE_KEY: 'secret-key',
   CANCEL_SIGNING_SECRET: 'test-signing-secret'
 };
@@ -66,16 +68,35 @@ test('checkout options offer shipping only when payments are on', async () => {
 
 /* ── Placing a shipping order ─────────────────────────── */
 
-const mockNetwork = (session) => {
+const ORDER_ID = '7S1234567H8901234';
+const CAPTURE_ID = '8C123456AB7890123';
+
+/* One fake network: PayPal, Resend and Supabase. `checkout` is what Supabase
+   holds for the order while it is paid for. */
+const mockNetwork = (checkout = null) => {
   const calls = [];
   mock.method(console, 'error', () => {});
   mock.method(globalThis, 'fetch', async (url, options = {}) => {
     url = String(url);
     calls.push({ url, method: options.method || 'GET', body: options.body });
-    if (url === 'https://api.stripe.com/v1/checkout/sessions') return Response.json({ id: 'cs_test_new', url: 'https://checkout.stripe.com/c/pay/cs_test_new' });
-    if (url.startsWith('https://api.stripe.com/v1/checkout/sessions/')) return Response.json(session);
-    if (url === 'https://api.stripe.com/v1/refunds') return Response.json({ id: 're_123' });
+    if (url === `${PAYPAL}/v1/oauth2/token`) return Response.json({ access_token: 'pp-token', expires_in: 32400 });
+    if (url === `${PAYPAL}/v1/notifications/verify-webhook-signature`) return Response.json({ verification_status: 'SUCCESS' });
+    if (url === `${PAYPAL}/v2/checkout/orders`) {
+      return Response.json({ id: ORDER_ID, links: [{ rel: 'payer-action', href: `https://www.sandbox.paypal.com/checkoutnow?token=${ORDER_ID}` }] });
+    }
+    if (url === `${PAYPAL}/v2/checkout/orders/${ORDER_ID}`) {
+      return Response.json({
+        id: ORDER_ID, status: 'COMPLETED',
+        purchase_units: [{ reference_id: checkout.reference, custom_id: checkout.reference, payments: { captures: [
+          { id: CAPTURE_ID, status: 'COMPLETED', amount: { currency_code: 'USD', value: '179.00' } }
+        ] } }]
+      });
+    }
+    if (url === `${PAYPAL}/v2/payments/captures/${CAPTURE_ID}/refund`) return Response.json({ id: 'REFUND123', status: 'COMPLETED' });
     if (url === 'https://api.resend.com/emails') return Response.json({ id: 'email-id' });
+    if (url.startsWith(`${SUPABASE}/rest/v1/checkouts`)) {
+      return options.method === 'POST' ? new Response(null, { status: 201 }) : Response.json(checkout ? [checkout] : []);
+    }
     if (url.startsWith(`${SUPABASE}/rest/v1/orders`)) return new Response(null, { status: options.method === 'POST' ? 201 : 204 });
     throw new Error(`Unexpected request to ${url}`);
   });
@@ -89,36 +110,47 @@ const shippingRequest = (overrides = {}) => new Request('https://luxeperfume.ulu
     shippingAddress: address, items: [{ id: 11, size: '50ml', qty: 1 }], ...overrides
   })
 });
-const sessionForm = (calls) => new URLSearchParams(calls.find((call) => call.url === 'https://api.stripe.com/v1/checkout/sessions').body);
+const paypalOrder = (calls) => JSON.parse(calls.find((call) => call.url === `${PAYPAL}/v2/checkout/orders`).body);
+const savedDetails = (calls) => JSON.parse(calls.find((call) => call.url === `${SUPABASE}/rest/v1/checkouts`).body).details;
 
-test('a shipping order under $200 charges $15 shipping and records the address with Stripe', async () => {
+test('a shipping order under $200 charges $15 shipping and gives PayPal the address', async () => {
   const calls = mockNetwork();
   const response = await order({ request: shippingRequest(), env });
   assert.equal(response.status, 200);
-  const form = sessionForm(calls);
-  assert.equal(form.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '1500');
-  assert.equal(form.get('shipping_options[0][shipping_rate_data][display_name]'), 'Standard shipping');
-  assert.equal(form.get('payment_intent_data[shipping][address][state]'), 'FL');
-  assert.equal(form.get('payment_intent_data[shipping][address][country]'), 'US');
-  assert.equal(form.get('payment_intent_data[shipping][name]'), 'Test Customer');
-  assert.equal(form.get('metadata[fulfillment]'), 'shipping');
-  assert.equal(form.get('metadata[pickupStore]'), 'Luxe Fragrances');
-  assert.equal(form.get('metadata[shipZip]'), '33101');
+  const { purchase_units: [unit], payment_source: { paypal } } = paypalOrder(calls);
+  assert.equal(unit.amount.value, '179.00');
+  assert.equal(unit.amount.breakdown.shipping.value, '15.00');
+  assert.equal(unit.shipping.name.full_name, 'Test Customer');
+  assert.equal(unit.shipping.address.admin_area_1, 'FL');
+  assert.equal(unit.shipping.address.postal_code, '33101');
+  assert.equal(unit.shipping.address.country_code, 'US');
+  assert.equal(paypal.experience_context.shipping_preference, 'SET_PROVIDED_ADDRESS');
+  const details = savedDetails(calls);
+  assert.equal(details.fulfillment, 'shipping');
+  assert.equal(details.pickupStore, 'Luxe Fragrances');
+  assert.equal(details.shippingCost, 15);
+  assert.equal(details.shippingAddress.zip, '33101');
   assert.equal(calls.filter((call) => call.url.includes('resend')).length, 0);
 });
 
 test('a shipping order of $200 or more ships free', async () => {
   const calls = mockNetwork();
   await order({ request: shippingRequest({ items: [{ id: 11, size: '50ml', qty: 2 }] }), env });   /* $328 */
-  const form = sessionForm(calls);
-  assert.equal(form.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '0');
-  assert.equal(form.get('shipping_options[0][shipping_rate_data][display_name]'), 'Free shipping');
+  const { purchase_units: [unit] } = paypalOrder(calls);
+  assert.equal(unit.amount.value, '328.00');
+  assert.equal(unit.amount.breakdown.shipping.value, '0.00');
+});
+
+test('a Puerto Rico address is sent to PayPal as country PR', async () => {
+  const calls = mockNetwork();
+  await order({ request: shippingRequest({ shippingAddress: { ...address, state: 'PR', city: 'San Juan', zip: '00901' } }), env });
+  assert.equal(paypalOrder(calls).purchase_units[0].shipping.address.country_code, 'PR');
 });
 
 test('shipping needs online payment and a valid address', async () => {
   const calls = mockNetwork();
-  const { STRIPE_SECRET_KEY, ...noStripe } = env;
-  assert.equal((await order({ request: shippingRequest(), env: noStripe })).status, 409);
+  const { PAYPAL_CLIENT_SECRET, ...noPayPal } = env;
+  assert.equal((await order({ request: shippingRequest(), env: noPayPal })).status, 409);
   assert.equal((await order({ request: shippingRequest({ shippingAddress: { ...address, state: 'VI', zip: '00802' } }), env })).status, 400);
   assert.equal((await order({ request: shippingRequest({ shippingAddress: undefined }), env })).status, 400);
   assert.equal(calls.length, 0);
@@ -126,36 +158,32 @@ test('shipping needs online payment and a valid address', async () => {
 
 /* ── After payment ────────────────────────────────────── */
 
-const paidShippingSession = () => ({
-  id: 'cs_test_s1H2i3P4p5I6n7G8',
-  payment_status: 'paid',
-  amount_total: 17900,
-  shipping_cost: { amount_total: 1500 },
-  customer_email: 'customer@example.com',
-  payment_intent: 'pi_test_ship',
-  metadata: {
-    reference: 'LP-20261007-5A1B1234', customerName: 'Test Customer', phone: '3055550100',
-    pickupStore: 'Luxe Fragrances', placedAt: new Date().toISOString(), fulfillment: 'shipping',
-    shipLine1: '123 Main St', shipLine2: 'Apt 4', shipCity: 'Miami', shipState: 'FL', shipZip: '33101'
-  },
-  line_items: { data: [{
-    quantity: 1,
-    price: { unit_amount: 16400, product: { name: 'Miss Dior Essence · 50ml', description: 'DIOR', metadata: { productId: '11', size: '50ml', brand: 'DIOR' } } }
-  }] }
+const shippingCheckout = () => ({
+  reference: 'LP-20261007-5A1B1234',
+  paypal_order_id: ORDER_ID,
+  details: {
+    customerName: 'Test Customer', customerEmail: 'customer@example.com', phone: '3055550100',
+    pickupStore: 'Luxe Fragrances', pickupDate: '', pickupTime: '', fulfillment: 'shipping',
+    shippingAddress: { line1: '123 Main St', line2: 'Apt 4', city: 'Miami', state: 'FL', zip: '33101', country: 'US' },
+    shippingCost: 15, total: 179, placedAt: new Date().toISOString(), userId: null,
+    items: [{ id: 11, name: 'Miss Dior Essence', brand: 'DIOR', size: '50ml', price: 164, qty: 1 }]
+  }
 });
 
-async function signedWebhook(event) {
-  const body = JSON.stringify(event);
-  const timestamp = Math.floor(Date.now() / 1000);
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const signature = Buffer.from(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${timestamp}.${body}`))).toString('hex');
-  return new Request('https://x/api/stripe-webhook', { method: 'POST', headers: { 'Stripe-Signature': `t=${timestamp},v1=${signature}` }, body });
-}
+const webhookRequest = () => new Request('https://x/api/paypal-webhook', {
+  method: 'POST',
+  headers: {
+    'PayPal-Auth-Algo': 'SHA256withRSA', 'PayPal-Cert-Url': 'https://api.paypal.com/v1/notifications/certs/CERT',
+    'PayPal-Transmission-Id': 'id', 'PayPal-Transmission-Sig': 'sig', 'PayPal-Transmission-Time': '2026-10-07T12:00:00Z'
+  },
+  body: JSON.stringify({ event_type: 'PAYMENT.CAPTURE.COMPLETED', resource: { id: CAPTURE_ID, supplementary_data: { related_ids: { order_id: ORDER_ID } } } })
+});
+const statusRequest = () => new Request(`https://x/api/checkout-status?token=${ORDER_ID}`);
 const emails = (calls) => calls.filter((call) => call.url === 'https://api.resend.com/emails').map((call) => JSON.parse(call.body));
 
 test('a paid shipping order goes to Luxe Fragrances with the address and a ship-after time', async () => {
-  const calls = mockNetwork(paidShippingSession());
-  const response = await webhook({ request: await signedWebhook({ type: 'checkout.session.completed', data: { object: { id: 'cs_test_s1H2i3P4p5I6n7G8' } } }), env });
+  const calls = mockNetwork(shippingCheckout());
+  const response = await webhook({ request: webhookRequest(), env });
   assert.equal(response.status, 200);
 
   const row = JSON.parse(calls.find((call) => call.method === 'POST' && call.url.endsWith('/orders')).body);
@@ -177,8 +205,8 @@ test('a paid shipping order goes to Luxe Fragrances with the address and a ship-
 });
 
 test('the confirmation screen gets the shipping details', async () => {
-  mockNetwork(paidShippingSession());
-  const body = await (await checkoutStatus({ request: new Request('https://x/api/checkout-status?session_id=cs_test_s1H2i3P4p5I6n7G8'), env })).json();
+  mockNetwork(shippingCheckout());
+  const body = await (await checkoutStatus({ request: statusRequest(), env })).json();
   assert.equal(body.fulfillment, 'shipping');
   assert.equal(body.shippingAddress.city, 'Miami');
   assert.equal(body.shippingCost, 15);
@@ -186,14 +214,14 @@ test('the confirmation screen gets the shipping details', async () => {
 });
 
 test('cancelling a shipping order refunds it and tells the store not to ship', async () => {
-  const calls = mockNetwork(paidShippingSession());
-  const status = await (await checkoutStatus({ request: new Request('https://x/api/checkout-status?session_id=cs_test_s1H2i3P4p5I6n7G8'), env })).json();
+  const calls = mockNetwork(shippingCheckout());
+  const status = await (await checkoutStatus({ request: statusRequest(), env })).json();
   const response = await cancel({
     request: new Request('https://x/api/cancel-pickup-order', {
       method: 'POST',
       body: JSON.stringify({
         orderReference: status.orderReference, email: status.email, pickupStore: status.pickupStore,
-        placedAt: status.placedAt, cancelToken: status.cancelToken, sessionId: status.sessionId
+        placedAt: status.placedAt, cancelToken: status.cancelToken, paymentId: status.paymentId
       })
     }),
     env

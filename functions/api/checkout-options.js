@@ -1,5 +1,5 @@
 // Tells the cart what to offer: online payment, and shipping (which needs it).
-import { paymentsEnabled } from '../../lib/stripe.js';
+import { paymentsEnabled } from '../../lib/paypal.js';
 import { SHIPPING_STORE, FLAT_RATE, FREE_OVER, SHIPPING_STATES } from '../../lib/shipping.js';
 
 export function onRequestGet({ env }) {

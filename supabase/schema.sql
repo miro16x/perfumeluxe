@@ -90,13 +90,13 @@ create table if not exists public.orders (
 
 create index if not exists orders_user_placed_idx on public.orders (user_id, placed_at desc);
 
--- Online payment (Stripe). Paid orders are stored for guests too, so user_id
+-- Online payment (PayPal). Paid orders are stored for guests too, so user_id
 -- is optional; guest rows have no user_id and so are never readable by customers.
 alter table public.orders alter column user_id drop not null;
 alter table public.orders add column if not exists customer_name text;
 alter table public.orders add column if not exists phone text;
-alter table public.orders add column if not exists stripe_session_id text unique;
-alter table public.orders add column if not exists stripe_payment_intent text;
+alter table public.orders add column if not exists paypal_order_id text unique;
+alter table public.orders add column if not exists paypal_capture_id text;   -- refunds go to this
 alter table public.orders add column if not exists paid_at timestamptz;
 alter table public.orders add column if not exists refunded_at timestamptz;
 alter table public.orders add column if not exists notified_at timestamptz;  -- store email sent
@@ -130,6 +130,19 @@ alter table public.orders enable row level security;
 drop policy if exists "Orders: read own" on public.orders;
 create policy "Orders: read own" on public.orders
   for select to authenticated using ((select auth.uid()) = user_id);
+
+-- ── CHECKOUTS: orders waiting for PayPal payment ───────────────────
+-- PayPal keeps only the order reference, so the details the customer entered
+-- wait here while they pay; the webhook reads them back to record the paid
+-- order. No policies: only the Worker (secret key) can read or write it.
+create table if not exists public.checkouts (
+  reference       text primary key,             -- e.g. LP-20261002-AB12CD34
+  paypal_order_id text not null unique,
+  details         jsonb not null,               -- customer, store, items, shipping
+  created_at      timestamptz not null default now()
+);
+
+alter table public.checkouts enable row level security;
 
 -- ── STAFF: who can use the staff dashboard ─────────────────────────
 -- Each staff member signs up on the site like a customer, then is added here

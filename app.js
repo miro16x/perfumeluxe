@@ -267,7 +267,7 @@ function setupShippingOption(rules) {
         ? `Shipping is $${rules.flatRate}, or free on orders of $${rules.freeOver} or more. You can cancel for a full refund within 24 hours; your order ships after that.`
         : pickupNoteText;
     }
-    if (secure) secure.textContent = shipping ? 'Secure payment by Stripe · Ships within the U.S. and Puerto Rico' : secureText;
+    if (secure) secure.textContent = shipping ? 'Secure payment by PayPal · Ships within the U.S. and Puerto Rico' : secureText;
     pickupError.hidden = true;
     checkoutBtn.textContent = checkoutLabel();
     updateCart();
@@ -382,7 +382,7 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
       throw new Error(result.message || `Order email failed with status ${response.status}`);
     }
 
-    /* Online payment: keep the cart in case the customer backs out of Stripe's
+    /* Online payment: keep the cart in case the customer backs out of PayPal's
        page, then go there. The store is emailed only after payment. */
     if (result.checkoutUrl) {
       try { sessionStorage.setItem(CHECKOUT_CART_KEY, JSON.stringify(cart)); } catch (_) {}
@@ -407,10 +407,10 @@ if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
   }
 });
 
-const CHECKOUT_CART_KEY = 'ul-checkout-cart';   /* cart held while the customer is on Stripe */
+const CHECKOUT_CART_KEY = 'ul-checkout-cart';   /* cart held while the customer is on PayPal */
 
 /* Shows the order reference and cancellation option in the cart panel, for
-   pay-at-pickup orders and for paid orders when the customer returns from Stripe. */
+   pay-at-pickup orders and for paid orders when the customer returns from PayPal. */
 function showPickupConfirmation(result, { email, summary }) {
   const confirmedReference = result.orderReference;
   const savedOrder = {
@@ -420,7 +420,7 @@ function showPickupConfirmation(result, { email, summary }) {
     placedAt: result.placedAt,
     cancelBy: result.cancelBy,
     cancelToken: result.cancelToken,   /* server's signature over the details above */
-    ...(result.sessionId ? { sessionId: result.sessionId } : {}),   /* lets cancellation refund the payment */
+    ...(result.paymentId ? { paymentId: result.paymentId } : {}),   /* lets cancellation refund the payment */
     status: 'active'
   };
   try {
@@ -499,14 +499,15 @@ function showPickupConfirmation(result, { email, summary }) {
   });
 }
 
-/* Returning from Stripe: ?checkout=success&session_id=… or ?checkout=cancelled. */
+/* Returning from PayPal: ?checkout=success&token=…&PayerID=… or ?checkout=cancelled&token=…. */
 async function handleCheckoutReturn() {
   const params = new URLSearchParams(window.location.search);
   const outcome = params.get('checkout');
   if (!outcome || !cartBody) return;
-  const sessionId = params.get('session_id');
+  const paymentId = params.get('token');
   params.delete('checkout');
-  params.delete('session_id');
+  params.delete('token');
+  params.delete('PayerID');
   history.replaceState(null, '', `${window.location.pathname}${params.size ? `?${params}` : ''}${window.location.hash}`);
 
   let heldCart = [];
@@ -525,7 +526,7 @@ async function handleCheckoutReturn() {
   openCart();
   cartBody.innerHTML = '<div class="cart-empty"><p>Confirming your payment…</p></div>';
   try {
-    const response = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(sessionId || '')}`, { headers: { Accept: 'application/json' } });
+    const response = await fetch(`/api/checkout-status?token=${encodeURIComponent(paymentId || '')}`, { headers: { Accept: 'application/json' } });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.success) throw new Error(result.message || 'We could not confirm your payment.');
     try { sessionStorage.removeItem(CHECKOUT_CART_KEY); } catch (_) {}
@@ -832,7 +833,7 @@ function updateCart() {
         <h3>Information we collect</h3>
         <ul>
           <li><strong>Orders:</strong> your name, phone number, email address, the products, sizes and quantities you order, the order reference, and either your selected store and pickup date and time, or your shipping address.</li>
-          <li><strong>Payment:</strong> card details are entered on a secure payment page operated by Stripe and are not received or stored by Luxe Perfume. Stripe tells us whether a payment succeeded, the amount, and limited payment details needed for refunds and records.</li>
+          <li><strong>Payment:</strong> payment is made on a secure page operated by PayPal, with a PayPal account or by card; card and PayPal account details are not received or stored by Luxe Perfume. PayPal tells us whether a payment succeeded, the amount, and limited payment details needed for refunds and records.</li>
           <li><strong>Accounts:</strong> if you create an account, your name, email address, password (stored only in encrypted form by our account provider), fragrance preferences, liked fragrances, and order history.</li>
           <li><strong>Technical information:</strong> your IP address, browser details, the page you ordered from, and service logs, used for security checks, preventing automated or abusive orders, and troubleshooting.</li>
         </ul>
@@ -840,7 +841,7 @@ function updateCart() {
         <ul><li>Send your order to the store that will prepare it for pickup or shipping.</li><li>Take payment, issue refunds, and keep payment records.</li><li>Send order, payment, cancellation and refund confirmations, and contact you about availability, pickup, or shipping.</li><li>Ship your order to the address you provide.</li><li>Show your order history and personalized fragrance recommendations when you have an account.</li><li>Prevent fraud, block automated abuse, diagnose errors, and protect the website.</li><li>Comply with legal obligations and resolve disputes.</li></ul>
         <h3>Who receives order information</h3>
         <p>The store preparing your order receives the order details: the store you select for pickup, or Luxe Fragrances for shipped orders. An internal order administrator is privately notified of each order. Shipping carriers receive the name, address, and phone number needed to deliver a shipped order.</p>
-        <p>We also use service providers that process information on our behalf: Stripe (payments, refunds, and fraud screening), Supabase (customer accounts and order records), Resend (delivering order emails), and Cloudflare (website hosting, security, and bot protection). They may process information only to provide these services. We do not sell customer personal information.</p>
+        <p>We also use service providers that process information on our behalf: PayPal (payments, refunds, and fraud screening), Supabase (customer accounts and order records), Resend (delivering order emails), and Cloudflare (website hosting, security, and bot protection). They may process information only to provide these services. We do not sell customer personal information.</p>
         <h3>Information stored in your browser</h3>
         <p>Your sign-in session, theme choice, recently viewed recommendations, quiz answers in progress, your latest order details (so you can cancel it from the confirmation screen), your cart while you complete payment, and cookie choices may be stored locally on your device. You can remove local data through your browser settings. Clearing it may sign you out or reset those preferences.</p>
         <h3>Retention and security</h3>
@@ -870,7 +871,7 @@ function updateCart() {
           <li>Fragrances are regulated as hazardous materials for transport. If an item cannot be shipped to your address, we will contact you and refund it.</li>
         </ul>
         <h3>Prices and payment</h3>
-        <p>Prices are in U.S. dollars. When checkout offers online payment, and for every shipped order, you pay the full order total, including any shipping charge, when you place your order, through our payment provider, Stripe. Your total is shown before you pay, and the prices shown at checkout are the prices you are charged. Pickup orders placed without online payment are paid at the store when you collect them. Do not submit false, misleading, or unauthorized customer or payment information.</p>
+        <p>Prices are in U.S. dollars. When checkout offers online payment, and for every shipped order, you pay the full order total, including any shipping charge, when you place your order, through our payment provider, PayPal. Your total is shown before you pay, and the prices shown at checkout are the prices you are charged. Pickup orders placed without online payment are paid at the store when you collect them. Do not submit false, misleading, or unauthorized customer or payment information.</p>
         <h3>Cancellations and refunds</h3>
         <p>You may cancel an order within 24 hours of placing it, using the cancellation button on your order-confirmation screen or by contacting the store with your order reference. Orders paid online are refunded in full to your original payment method when cancelled; refunds can take 5–10 business days to appear, depending on your bank. After 24 hours, orders cannot be cancelled online.</p>
         <h3>Returns and exchanges</h3>
@@ -2637,5 +2638,5 @@ if (location.hash && location.hash !== '#') {
   if (hashTarget) scrollToTarget(hashTarget);
 }
 
-/* ── RETURN FROM STRIPE CHECKOUT ─────────────────────── */
+/* ── RETURN FROM PAYPAL CHECKOUT ─────────────────────── */
 handleCheckoutReturn();

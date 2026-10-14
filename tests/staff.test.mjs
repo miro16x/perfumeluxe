@@ -7,10 +7,13 @@ import { signCancellation } from '../lib/cancel-token.js';
 import worker from '../worker.js';
 
 const SUPABASE = 'https://bvffpffnyjfufprcdskb.supabase.co';
+const PAYPAL = 'https://api-m.sandbox.paypal.com';
+const REFUND_URL = `${PAYPAL}/v2/payments/captures/3C679366HH908993F/refund`;
 const env = {
   RESEND_API_KEY: 'test-key',
-  STRIPE_SECRET_KEY: 'sk_test_123',
-  STRIPE_WEBHOOK_SECRET: 'whsec_test_secret',
+  PAYPAL_CLIENT_ID: 'pp-client',
+  PAYPAL_CLIENT_SECRET: 'pp-secret',
+  PAYPAL_WEBHOOK_ID: 'WH-TEST-123',
   SUPABASE_SERVICE_ROLE_KEY: 'secret-key',
   CANCEL_SIGNING_SECRET: 'test-signing-secret'
 };
@@ -24,7 +27,7 @@ const pickupOrder = (overrides = {}) => ({
   shipping_address: null, shipping_cost: 0,
   items: [{ id: 11, name: 'Miss Dior Essence', brand: 'DIOR', size: '50ml', price: 164, qty: 2 }],
   item_count: 2, total: 328, placed_at: new Date(Date.now() - 2 * DAY).toISOString(),
-  stripe_payment_intent: 'pi_test_123',
+  paypal_capture_id: '3C679366HH908993F',
   ...overrides
 });
 const shippingOrder = (overrides = {}) => pickupOrder({
@@ -33,8 +36,8 @@ const shippingOrder = (overrides = {}) => pickupOrder({
   shipping_cost: 0, ...overrides
 });
 
-/* One fake network: Supabase auth, staff and orders tables, Stripe refunds and Resend. */
-const mockNetwork = ({ user = { id: 'staff-1', email: 'jane@example.com' }, staff = { user_id: 'staff-1', store: 'Perfume World', name: 'Jane' }, order = pickupOrder(), patched = true, refund = () => Response.json({ id: 're_123' }) } = {}) => {
+/* One fake network: Supabase auth, staff and orders tables, PayPal refunds and Resend. */
+const mockNetwork = ({ user = { id: 'staff-1', email: 'jane@example.com' }, staff = { user_id: 'staff-1', store: 'Perfume World', name: 'Jane' }, order = pickupOrder(), patched = true, refund = () => Response.json({ id: 'REFUND123', status: 'COMPLETED' }) } = {}) => {
   const calls = [];
   mock.method(console, 'error', () => {});
   mock.method(globalThis, 'fetch', async (url, options = {}) => {
@@ -49,7 +52,8 @@ const mockNetwork = ({ user = { id: 'staff-1', email: 'jane@example.com' }, staf
       if (call.method === 'PATCH') return Response.json(patched ? [{ reference: order?.reference }] : []);
       return Response.json(order ? [order] : []);
     }
-    if (url === 'https://api.stripe.com/v1/refunds') return refund(call);
+    if (url === `${PAYPAL}/v1/oauth2/token`) return Response.json({ access_token: 'pp-token', expires_in: 32400 });
+    if (url === REFUND_URL) return refund(call);
     if (url === 'https://api.resend.com/emails') return Response.json({ id: 'email-id' });
     throw new Error(`Unexpected request to ${url}`);
   });
@@ -57,7 +61,7 @@ const mockNetwork = ({ user = { id: 'staff-1', email: 'jane@example.com' }, staf
 };
 const emails = (calls) => calls.filter((call) => call.url === 'https://api.resend.com/emails').map((call) => JSON.parse(call.body));
 const patches = (calls) => calls.filter((call) => call.method === 'PATCH');
-const refunds = (calls) => calls.filter((call) => call.url === 'https://api.stripe.com/v1/refunds');
+const refunds = (calls) => calls.filter((call) => call.url === REFUND_URL);
 
 const listRequest = (view = '', token = 'staff-jwt') => new Request(`https://luxeperfume.uluxe.site/api/staff-orders${view ? `?view=${view}` : ''}`, {
   headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -86,7 +90,7 @@ test('only signed-in staff can see or change orders', async () => {
   assert.equal(calls.filter((call) => call.url.includes('/rest/v1/orders')).length, 0);
 });
 
-test('store staff see only their store and open orders, without Stripe ids', async () => {
+test('store staff see only their store and open orders, without PayPal ids', async () => {
   const calls = mockNetwork();
   const response = await listOrders({ request: listRequest(), env });
   const body = await response.json();
@@ -96,7 +100,7 @@ test('store staff see only their store and open orders, without Stripe ids', asy
   const list = calls.find((call) => call.url.startsWith(`${SUPABASE}/rest/v1/orders`));
   assert.match(list.url, /pickup_store=eq\.Perfume%20World/);
   assert.match(list.url, /status=in\.\(placed,paid,ready\)/);
-  assert.doesNotMatch(list.url, /stripe|user_id/);
+  assert.doesNotMatch(list.url, /paypal|user_id/);
   assert.equal(list.headers.apikey, 'secret-key');
 });
 
@@ -202,15 +206,15 @@ test('shipping needs a known carrier and a plausible tracking number', async () 
 
 /* ── Cancel and refund ────────────────────────────────── */
 
-test('cancelling a paid order refunds it in full through Stripe, then emails the customer', async () => {
+test('cancelling a paid order refunds it in full through PayPal, then emails the customer', async () => {
   const calls = mockNetwork({ order: pickupOrder({ status: 'ready' }) });
   const body = await (await act({ action: 'refund', reason: 'Out of stock' })).json();
   assert.equal(body.status, 'refunded');
   assert.equal(body.refunded, 328);
 
   const [refund] = refunds(calls);
-  assert.equal(refund.headers['Idempotency-Key'], 'refund-LP-20261007-ABCD1234');   /* same key as customer cancellations */
-  assert.equal(new URLSearchParams(refund.body).get('payment_intent'), 'pi_test_123');
+  assert.equal(refund.headers['PayPal-Request-Id'], 'refund-LP-20261007-ABCD1234');   /* same key as customer cancellations */
+  assert.equal(refund.body, '{}');   /* no amount: refund in full */
 
   const fields = JSON.parse(patches(calls)[0].body);
   assert.equal(fields.status, 'refunded');
@@ -224,7 +228,7 @@ test('cancelling a paid order refunds it in full through Stripe, then emails the
 });
 
 test('cancelling a pay-at-pickup order needs no refund', async () => {
-  const calls = mockNetwork({ order: pickupOrder({ status: 'placed', stripe_payment_intent: null }) });
+  const calls = mockNetwork({ order: pickupOrder({ status: 'placed', paypal_capture_id: null }) });
   const body = await (await act({ action: 'refund' })).json();
   assert.equal(body.status, 'cancelled');
   assert.equal(body.refunded, null);
@@ -233,7 +237,7 @@ test('cancelling a pay-at-pickup order needs no refund', async () => {
 });
 
 test('a failed refund changes nothing and emails nobody', async () => {
-  const calls = mockNetwork({ refund: () => Response.json({ error: { type: 'api_error' } }, { status: 500 }) });
+  const calls = mockNetwork({ refund: () => Response.json({ name: 'INTERNAL_SERVER_ERROR' }, { status: 500 }) });
   const response = await act({ action: 'refund' });
   assert.equal(response.status, 502);
   assert.match((await response.json()).message, /Nothing was changed/);
@@ -251,7 +255,8 @@ test('a refund that cannot be saved alerts the owner', async () => {
     if (url.startsWith(`${SUPABASE}/rest/v1/orders`)) {
       return options.method === 'PATCH' ? new Response(null, { status: 500 }) : Response.json([pickupOrder()]);
     }
-    if (url === 'https://api.stripe.com/v1/refunds') return Response.json({ id: 're_123' });
+    if (url === `${PAYPAL}/v1/oauth2/token`) return Response.json({ access_token: 'pp-token', expires_in: 32400 });
+    if (url === REFUND_URL) return Response.json({ id: 'REFUND123', status: 'COMPLETED' });
     if (url === 'https://api.resend.com/emails') return Response.json({ id: 'email-id' });
     throw new Error(`Unexpected request to ${url}`);
   });
@@ -273,7 +278,7 @@ test("customers can't cancel online once the order has been picked up", async ()
       body: JSON.stringify({
         orderReference: details.reference, email: details.email, pickupStore: details.pickupStore,
         placedAt: details.placedAt, cancelToken: await signCancellation(env, details),
-        sessionId: 'cs_test_a1B2c3D4e5F6g7H8'
+        paymentId: '5O190127TN364715T'
       })
     }),
     env

@@ -2,7 +2,8 @@ import { sendEmail } from '../../lib/email.js';
 import { accountOrdersEnabled, getOrder, markAccountOrderCancelled, updateOrder } from '../../lib/supabase.js';
 import { cancelSigningEnabled, verifyCancellation } from '../../lib/cancel-token.js';
 import { alertOwner } from '../../lib/alerts.js';
-import { paymentsEnabled, validSessionId, retrieveCheckoutSession, refundPayment } from '../../lib/stripe.js';
+import { paymentsEnabled, validPaymentId, refundPayment } from '../../lib/paypal.js';
+import { loadCheckout } from '../../lib/checkout.js';
 import { STORES, ALWAYS_NOTIFY, FROM_ADDRESS, CANCEL_WINDOW_MS as DAY_MS, escapeHtml } from '../../lib/stores.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -11,31 +12,33 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 });
 const validEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-/* Refunds a paid order in full. The session must belong to the signed order
-   reference, so a valid token can't be paired with someone else's payment.
+/* Refunds a paid order in full. The PayPal order must belong to the signed
+   order reference, so a valid token can't be paired with someone else's payment.
    Returns { amount refunded, shipping }, or a Response to send back on failure. */
-async function refundOrder(env, waitUntil, { reference, pickupStore, sessionId }) {
+async function refundOrder(env, waitUntil, { reference, pickupStore, paymentId }) {
   const store = STORES[pickupStore];
   if (!paymentsEnabled(env)) {
     return json({ success: false, message: `Online refunds are unavailable right now. Please call ${pickupStore} at ${store.phone} with your pickup reference.` }, 503);
   }
   try {
-    const session = await retrieveCheckoutSession(env, sessionId);
-    if (session.metadata?.reference !== reference) {
+    const { reference: paidReference, payment, order } = await loadCheckout(env, paymentId);
+    if (paidReference !== reference) {
       return json({ success: false, message: 'This order could not be verified. Please contact the store with your pickup reference.' }, 403);
     }
-    const shipping = session.metadata?.fulfillment === 'shipping';
-    if (session.payment_status !== 'paid') return { amount: 0, shipping };
-    const paymentIntent = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
-    await refundPayment(env, paymentIntent, reference);
-    return { amount: session.amount_total / 100, shipping };
+    const shipping = order?.fulfillment === 'shipping';
+    if (payment?.status === 'PENDING') {
+      return json({ success: false, message: `Your payment is still being reviewed by PayPal, so it can't be refunded yet. Please call ${pickupStore} at ${store.phone}.` }, 409);
+    }
+    if (!payment || payment.status === 'DECLINED' || payment.status === 'FAILED') return { amount: 0, shipping };
+    await refundPayment(env, payment.id, reference);
+    return { amount: payment.amount, shipping };
   } catch (error) {
     console.error('Pickup refund failed', reference, error?.code, error?.message, error?.providerError);
     await alertOwner(env, waitUntil, {
       kind: 'refund-failed',
       throttle: false,
       subject: `REFUND FAILED — ${reference}`,
-      details: `A customer tried to cancel paid order ${reference} (${pickupStore}) within 24 hours, but the refund failed (${error?.code || 'unknown error'}${error?.providerError ? `: ${error.providerError}` : ''}). The order was NOT cancelled and the store was not told.\nRefund it in the Stripe dashboard (search ${reference}) and let ${pickupStore} know, or ask the customer to try again.`
+      details: `A customer tried to cancel paid order ${reference} (${pickupStore}) within 24 hours, but the refund failed (${error?.code || 'unknown error'}${error?.providerError ? `: ${error.providerError}` : ''}). The order was NOT cancelled and the store was not told.\nRefund it in PayPal (Activity → search ${reference}) and let ${pickupStore} know, or ask the customer to try again.`
     });
     return json({ success: false, message: `We could not process your refund. Please try again, or call ${pickupStore} at ${store.phone}.` }, 502);
   }
@@ -92,14 +95,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
     }
   }
 
-  /* Paid orders carry their Stripe session id; refund before telling anyone. */
+  /* Paid orders carry their PayPal order id; refund before telling anyone. */
   let refunded = null;
   let shipping = false;
-  if (cancellation.sessionId !== undefined && cancellation.sessionId !== null) {
-    if (!validSessionId(cancellation.sessionId)) {
+  if (cancellation.paymentId !== undefined && cancellation.paymentId !== null) {
+    if (!validPaymentId(cancellation.paymentId)) {
       return json({ success: false, message: 'Order details are missing or invalid.' }, 400);
     }
-    const result = await refundOrder(env, waitUntil, { reference, pickupStore, sessionId: cancellation.sessionId });
+    const result = await refundOrder(env, waitUntil, { reference, pickupStore, paymentId: cancellation.paymentId });
     if (result instanceof Response) return result;
     refunded = result.amount || null;
     shipping = result.shipping;

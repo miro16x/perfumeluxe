@@ -1,9 +1,9 @@
-import { accountOrdersEnabled, getSignedInUser, saveOrder } from '../../lib/supabase.js';
+import { accountOrdersEnabled, getSignedInUser, saveOrder, saveCheckout } from '../../lib/supabase.js';
 import { cancelSigningEnabled, signCancellation } from '../../lib/cancel-token.js';
 import { turnstileEnabled, verifyTurnstile } from '../../lib/abuse-protection.js';
 import { alertOwner } from '../../lib/alerts.js';
 import { priceCartItem } from '../../lib/catalog.js';
-import { paymentsEnabled, createCheckoutSession } from '../../lib/stripe.js';
+import { paymentsEnabled, createCheckoutOrder } from '../../lib/paypal.js';
 import { sendOrderEmails, buildOrderEmails } from '../../lib/order-emails.js';
 import { STORES, CANCEL_WINDOW_MS } from '../../lib/stores.js';
 import { SHIPPING_STORE, normalizeAddress, shippingCost } from '../../lib/shipping.js';
@@ -76,46 +76,48 @@ export async function onRequestPost({ request, env, waitUntil }) {
     placedAt
   };
 
-  /* Online payment: the customer pays on Stripe's page first. The store is only
-     emailed once Stripe confirms payment (functions/api/stripe-webhook.js). */
+  /* Online payment: the customer pays on PayPal's page first. The store is only
+     emailed once PayPal confirms payment (functions/api/paypal-webhook.js). */
   if (paymentsEnabled(env)) {
     try {
       const user = request.headers.get('Authorization')
         ? await getSignedInUser(request, env).catch(() => null)
         : null;
-      const session = await createCheckoutSession(env, {
+      const payment = await createCheckoutOrder(env, {
         reference,
         origin: new URL(request.url).origin,
-        email: details.customerEmail,
         items,
-        metadata: {
+        pickupStore: details.pickupStore,
+        shipping: shipping
+          ? { cost: details.shippingCost, address: shippingAddress, name: details.customerName }
+          : undefined
+      });
+      await saveCheckout(env, {
+        reference,
+        paypal_order_id: payment.id,
+        details: {
           customerName: details.customerName,
+          customerEmail: details.customerEmail,
           phone: details.phone,
           pickupStore: details.pickupStore,
           pickupDate: details.pickupDate,
           pickupTime: details.pickupTime,
-          placedAt: placedAt.toISOString(),
-          userId: user?.id || '',
           fulfillment: details.fulfillment,
-          ...(shipping ? {
-            shipLine1: shippingAddress.line1,
-            shipLine2: shippingAddress.line2,
-            shipCity: shippingAddress.city,
-            shipState: shippingAddress.state,
-            shipZip: shippingAddress.zip
-          } : {})
-        },
-        shipping: shipping
-          ? { cost: details.shippingCost, address: shippingAddress, name: details.customerName, phone: details.phone }
-          : undefined
+          shippingAddress,
+          shippingCost: details.shippingCost,
+          items: items.map(({ id, name, brand, size, price, qty }) => ({ id, name, brand, size, price, qty })),
+          total: Number((items.reduce((sum, item) => sum + item.price * item.qty, 0) + details.shippingCost).toFixed(2)),
+          placedAt: placedAt.toISOString(),
+          userId: user?.id || null
+        }
       });
-      return json({ success: true, orderReference: reference, checkoutUrl: session.url });
+      return json({ success: true, orderReference: reference, checkoutUrl: payment.url });
     } catch (error) {
-      console.error('Stripe checkout failed', reference, error?.code, error?.message, error?.providerError);
+      console.error('PayPal checkout failed', reference, error?.code, error?.message, error?.providerError);
       await alertOwner(env, waitUntil, {
-        kind: 'stripe-checkout-failed',
+        kind: 'paypal-checkout-failed',
         subject: 'Customers cannot start payment',
-        details: `Stripe refused to start checkout for ${reference} (${error?.code || 'unknown error'}${error?.providerError ? `: ${error.providerError}` : ''}).\nCheck the STRIPE_SECRET_KEY Worker secret and the Stripe dashboard. To take orders without payment meanwhile, delete STRIPE_SECRET_KEY.`
+        details: `Checkout could not start for ${reference} (${error?.code || error?.message || 'unknown error'}${error?.providerError ? `: ${error.providerError}` : ''}).\nCheck the PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET Worker secrets, the PAYPAL_ENV variable (live or sandbox, matching the keys), and that the Supabase checkouts table exists. To take orders without payment meanwhile, delete PAYPAL_CLIENT_SECRET.`
       });
       return json({
         success: false,

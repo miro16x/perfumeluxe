@@ -4,7 +4,7 @@ import {
 import {
   onRequestPost as cancelPickupOrder
 } from './functions/api/cancel-pickup-order.js';
-import { onRequestPost as stripeWebhook } from './functions/api/stripe-webhook.js';
+import { onRequestPost as paypalWebhook } from './functions/api/paypal-webhook.js';
 import { onRequestGet as checkoutStatus } from './functions/api/checkout-status.js';
 import { onRequestGet as checkoutOptions } from './functions/api/checkout-options.js';
 import { onRequestGet as staffOrders } from './functions/api/staff-orders.js';
@@ -12,14 +12,14 @@ import { onRequestPost as staffOrderAction } from './functions/api/staff-order-a
 
 import { rateLimited } from './lib/abuse-protection.js';
 
-/* path → [method, handler, rate limited]. The Stripe webhook isn't rate
-   limited: it comes from Stripe's few servers and is signature-checked. */
+/* path → [method, handler, rate limited]. The PayPal webhook isn't rate
+   limited: it comes from PayPal's servers and is verified with PayPal. */
 const API_ROUTES = new Map([
   ['/api/pickup-order', ['POST', createPickupOrder, true]],
   ['/api/cancel-pickup-order', ['POST', cancelPickupOrder, true]],
   ['/api/checkout-status', ['GET', checkoutStatus, true]],
   ['/api/checkout-options', ['GET', checkoutOptions, false]],   /* cacheable, no side effects */
-  ['/api/stripe-webhook', ['POST', stripeWebhook, false]],
+  ['/api/paypal-webhook', ['POST', paypalWebhook, false]],
   ['/api/staff-orders', ['GET', staffOrders, true]],
   ['/api/staff-order-action', ['POST', staffOrderAction, true]]
 ]);
