@@ -9,6 +9,7 @@ import worker from '../worker.js';
 const SUPABASE = 'https://bvffpffnyjfufprcdskb.supabase.co';
 const PAYPAL = 'https://api-m.sandbox.paypal.com';
 const REFUND_URL = `${PAYPAL}/v2/payments/captures/3C679366HH908993F/refund`;
+const TRACK_URL = `${PAYPAL}/v2/checkout/orders/5O190127TN364715T/track`;
 const env = {
   RESEND_API_KEY: 'test-key',
   PAYPAL_CLIENT_ID: 'pp-client',
@@ -27,6 +28,7 @@ const pickupOrder = (overrides = {}) => ({
   shipping_address: null, shipping_cost: 0,
   items: [{ id: 11, name: 'Miss Dior Essence', brand: 'DIOR', size: '50ml', price: 164, qty: 2 }],
   item_count: 2, total: 328, placed_at: new Date(Date.now() - 2 * DAY).toISOString(),
+  paypal_order_id: '5O190127TN364715T',
   paypal_capture_id: '3C679366HH908993F',
   ...overrides
 });
@@ -37,7 +39,7 @@ const shippingOrder = (overrides = {}) => pickupOrder({
 });
 
 /* One fake network: Supabase auth, staff and orders tables, PayPal refunds and Resend. */
-const mockNetwork = ({ user = { id: 'staff-1', email: 'jane@example.com' }, staff = { user_id: 'staff-1', store: 'Perfume World', name: 'Jane' }, order = pickupOrder(), patched = true, refund = () => Response.json({ id: 'REFUND123', status: 'COMPLETED' }) } = {}) => {
+const mockNetwork = ({ user = { id: 'staff-1', email: 'jane@example.com' }, staff = { user_id: 'staff-1', store: 'Perfume World', name: 'Jane' }, order = pickupOrder(), patched = true, refund = () => Response.json({ id: 'REFUND123', status: 'COMPLETED' }), track = () => Response.json({ id: '5O190127TN364715T', status: 'COMPLETED' }) } = {}) => {
   const calls = [];
   mock.method(console, 'error', () => {});
   mock.method(globalThis, 'fetch', async (url, options = {}) => {
@@ -54,6 +56,7 @@ const mockNetwork = ({ user = { id: 'staff-1', email: 'jane@example.com' }, staf
     }
     if (url === `${PAYPAL}/v1/oauth2/token`) return Response.json({ access_token: 'pp-token', expires_in: 32400 });
     if (url === REFUND_URL) return refund(call);
+    if (url === TRACK_URL) return track(call);
     if (url === 'https://api.resend.com/emails') return Response.json({ id: 'email-id' });
     throw new Error(`Unexpected request to ${url}`);
   });
@@ -196,6 +199,48 @@ test('marking shipped saves the tracking number and emails the customer a tracki
   assert.match(email.text, /USPS tracking number: 9400100000000000000000/);
   assert.match(email.html, /tools\.usps\.com\/go\/TrackConfirmAction\?tLabels=9400100000000000000000/);
   assert.match(email.text, /Miami, FL 33101/);
+
+  /* PayPal gets the same tracking, for the order's captured payment. */
+  assert.equal(body.paypalTracking, true);
+  const [track] = calls.filter((call) => call.url === TRACK_URL);
+  assert.deepEqual(JSON.parse(track.body), {
+    capture_id: '3C679366HH908993F', tracking_number: '9400100000000000000000', carrier: 'USPS', notify_payer: false
+  });
+});
+
+test('each carrier is sent to PayPal under its PayPal code', async () => {
+  for (const [carrier, code] of [['ups', 'UPS'], ['fedex', 'FEDEX'], ['dhl', 'DHL']]) {
+    const calls = mockNetwork({ staff: allStores, order: shippingOrder() });
+    await act({ action: 'shipped', carrier, trackingNumber: '1Z999AA10123456784' });
+    assert.equal(JSON.parse(calls.find((call) => call.url === TRACK_URL).body).carrier, code);
+    mock.restoreAll();
+  }
+});
+
+test('if PayPal refuses the tracking, the order still ships and the owner is told to add it by hand', async () => {
+  const calls = mockNetwork({
+    staff: allStores, order: shippingOrder(),
+    track: () => Response.json({ name: 'UNPROCESSABLE_ENTITY', details: [{ issue: 'INVALID_CARRIER' }] }, { status: 422 })
+  });
+  const body = await (await act({ action: 'shipped', carrier: 'usps', trackingNumber: '9400 1000 0000 0000 0000 00' })).json();
+  assert.equal(body.success, true);
+  assert.equal(body.status, 'shipped');
+  assert.equal(body.paypalTracking, false);
+  const [alert, customerEmail] = [
+    emails(calls).find((email) => email.from.includes('alerts@')),
+    emails(calls).find((email) => !email.from.includes('alerts@'))
+  ];
+  assert.match(alert.subject, /Tracking not sent to PayPal — LP-20261007-ABCD1234/);
+  assert.match(alert.text, /INVALID_CARRIER/);
+  assert.match(customerEmail.subject, /has shipped/);
+});
+
+test('an order with no PayPal payment sends no tracking to PayPal', async () => {
+  const calls = mockNetwork({ staff: allStores, order: shippingOrder({ paypal_order_id: null, paypal_capture_id: null }) });
+  const body = await (await act({ action: 'shipped', carrier: 'usps', trackingNumber: '9400 1000 0000 0000 0000 00' })).json();
+  assert.equal(body.status, 'shipped');
+  assert.equal(body.paypalTracking, null);
+  assert.ok(!calls.some((call) => call.url === TRACK_URL));
 });
 
 test('shipping needs a known carrier and a plausible tracking number', async () => {

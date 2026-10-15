@@ -123,7 +123,7 @@ When online payment is on, the cart offers **Ship to me** next to store pickup. 
 - are always sent to **Luxe Fragrances**. The store email is marked **New Shipping Order (PAID)**, shows the address, and asks the store to ship after the 24-hour cancellation window closes, so an order is never refunded after it has left.
 - appear in the customer's account history as "Shipping to City, ST".
 
-When the window has closed, staff mark the order shipped in the staff dashboard with the carrier and tracking number, and the customer is emailed a tracking link. The dashboard won't mark an order shipped before then.
+When the window has closed, staff mark the order shipped in the staff dashboard with the carrier and tracking number, and the customer is emailed a tracking link. The tracking number is also added to the PayPal payment, which helps PayPal release held payments and protects the store in "item not received" disputes; if PayPal refuses it, the order still ships and the site owner is emailed to add it by hand. The dashboard won't mark an order shipped before then.
 
 ## Cancellation and refunds
 

@@ -2,10 +2,11 @@
 //   ready     pickup order is ready; emails the customer
 //   collected pickup order was picked up
 //   shipped   shipping order left the store; emails the customer tracking
+//             and gives it to PayPal
 //   refund    cancels the order, refunding it in full if it was paid online
 import { accountOrdersEnabled, getStaffOrder, transitionOrder } from '../../lib/supabase.js';
 import { getStaff, staffLookupFailure, canManage, sendCustomerEmail, CARRIERS } from '../../lib/staff.js';
-import { paymentsEnabled, refundPayment } from '../../lib/paypal.js';
+import { paymentsEnabled, refundPayment, addTracking } from '../../lib/paypal.js';
 import { alertOwner } from '../../lib/alerts.js';
 import { CANCEL_WINDOW_MS } from '../../lib/stores.js';
 
@@ -130,6 +131,29 @@ export async function onRequestPost({ request, env, waitUntil }) {
     return json({ success: false, message: 'This order was changed by someone else. Refresh to see its current status.' }, 409);
   }
 
+  /* Best-effort: the order has shipped either way. If PayPal can't take the
+     tracking, the owner is asked to add it by hand. null: nothing to send. */
+  let paypalTracking = null;
+  if (action === 'shipped' && order.paypal_order_id && order.paypal_capture_id && paymentsEnabled(env)) {
+    try {
+      await addTracking(env, {
+        orderId: order.paypal_order_id,
+        captureId: order.paypal_capture_id,
+        carrier: CARRIERS[details.carrier].paypal,
+        trackingNumber: details.trackingNumber
+      });
+      paypalTracking = true;
+    } catch (error) {
+      console.error('PayPal tracking failed', reference, error?.code, error?.providerError);
+      paypalTracking = false;
+      await alertOwner(env, waitUntil, {
+        kind: `paypal-tracking-failed:${reference}`,
+        subject: `Tracking not sent to PayPal — ${reference}`,
+        details: `Order ${reference} was marked shipped (${CARRIERS[details.carrier].name} ${details.trackingNumber}) and the customer was told, but PayPal didn't accept the tracking number (${error?.code || 'unknown error'}${error?.providerError ? `: ${error.providerError}` : ''}).\nAdd it by hand so PayPal can release the payment and protect you in a dispute: PayPal → Activity → find ${reference} → Add tracking.`
+      });
+    }
+  }
+
   /* null: this action sends no email. The order is already updated, so a
      failed email is reported to staff rather than undoing it. */
   let customerEmailed = null;
@@ -143,7 +167,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     }
   }
 
-  return json({ success: true, reference, status: fields.status, customerEmailed, refunded: details.refunded ?? null });
+  return json({ success: true, reference, status: fields.status, customerEmailed, paypalTracking, refunded: details.refunded ?? null });
 }
 
 export function onRequest() {
