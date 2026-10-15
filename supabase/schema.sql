@@ -135,6 +135,7 @@ create policy "Orders: read own" on public.orders
 -- PayPal keeps only the order reference, so the details the customer entered
 -- wait here while they pay; the webhook reads them back to record the paid
 -- order. No policies: only the Worker (secret key) can read or write it.
+-- The Worker deletes rows older than two weeks every day (lib/checkout.js).
 create table if not exists public.checkouts (
   reference       text primary key,             -- e.g. LP-20261002-AB12CD34
   paypal_order_id text not null unique,

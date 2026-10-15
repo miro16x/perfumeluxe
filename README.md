@@ -156,6 +156,7 @@ The browser keeps a small cache in `localStorage` (the last signed-in profile, q
 - **Bot protection:** the order API rejects submissions without a valid Turnstile token before sending any email.
 - **Rate limiting:** each visitor IP can call each API route 10 times a minute (`API_RATE_LIMITER` in `wrangler.jsonc`).
 - **Secrets:** API keys exist only as Worker secrets and never reach the browser.
+- **Data retention:** order details saved while a customer pays (the `checkouts` table) are deleted after two weeks by a daily cron trigger (`wrangler.jsonc`). Paid orders are kept in the `orders` table.
 - **Logs:** Workers Logs is enabled; view every request and error under Cloudflare → Workers → luxeperfume → Logs.
 - **Alerts:** the site owner is emailed when:
   - a store doesn't receive an order or cancellation. Every one is sent, with the full details, so it can be passed on by hand.

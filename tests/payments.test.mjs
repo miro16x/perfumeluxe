@@ -5,6 +5,7 @@ import { onRequestPost as webhook } from '../functions/api/paypal-webhook.js';
 import { onRequestGet as checkoutStatus } from '../functions/api/checkout-status.js';
 import { onRequestPost as cancel } from '../functions/api/cancel-pickup-order.js';
 import { verifyCancellation } from '../lib/cancel-token.js';
+import { cleanUpCheckouts } from '../lib/checkout.js';
 import worker from '../worker.js';
 
 const SUPABASE = 'https://bvffpffnyjfufprcdskb.supabase.co';
@@ -425,4 +426,39 @@ test('the webhook is never rate limited; checkout status is', async () => {
   assert.equal((await worker.fetch(statusRequest(ORDER_ID), { ...env, API_RATE_LIMITER }, ctx)).status, 429);
   assert.deepEqual(keys, ['/api/checkout-status:unknown']);
   assert.equal((await worker.fetch(new Request('https://x/api/paypal-webhook'), env, ctx)).status, 405);
+});
+
+/* ── Cleanup ──────────────────────────────────────────── */
+
+test('the daily cleanup deletes only checkouts started more than two weeks ago', async () => {
+  const calls = mockNetwork();
+  await cleanUpCheckouts(env, undefined, new Date('2026-10-15T08:00:00Z'));
+  const [cleanup] = calls.filter((call) => call.method === 'DELETE');
+  assert.equal(cleanup.url, `${SUPABASE}/rest/v1/checkouts?created_at=lt.${encodeURIComponent('2026-10-01T08:00:00.000Z')}`);
+  assert.equal(cleanup.headers.Authorization, 'Bearer secret-key');
+  assert.ok(!calls.some((call) => call.method === 'DELETE' && call.url.includes('/orders')));
+});
+
+test('a failed cleanup alerts the owner; without Supabase there is nothing to clean', async () => {
+  let calls = mockNetwork();
+  const original = globalThis.fetch;
+  mock.method(globalThis, 'fetch', async (url, options) => (
+    options?.method === 'DELETE' ? new Response(null, { status: 401 }) : original(url, options)
+  ));
+  await cleanUpCheckouts(env);
+  assert.match(alerts(calls)[0].subject, /Old checkouts are not being deleted/);
+  mock.restoreAll();
+
+  calls = mockNetwork();
+  const { SUPABASE_SERVICE_ROLE_KEY, ...noSupabase } = env;
+  await cleanUpCheckouts(noSupabase);
+  assert.equal(calls.length, 0);
+});
+
+test('the Worker runs the cleanup on its daily schedule', async () => {
+  const calls = mockNetwork();
+  const pending = [];
+  await worker.scheduled({ cron: '0 8 * * *' }, env, { waitUntil: (task) => pending.push(task) });
+  await Promise.all(pending);
+  assert.equal(calls.filter((call) => call.method === 'DELETE' && call.url.startsWith(`${SUPABASE}/rest/v1/checkouts`)).length, 1);
 });

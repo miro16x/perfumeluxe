@@ -11,6 +11,7 @@ import { onRequestGet as staffOrders } from './functions/api/staff-orders.js';
 import { onRequestPost as staffOrderAction } from './functions/api/staff-order-action.js';
 
 import { rateLimited } from './lib/abuse-protection.js';
+import { cleanUpCheckouts } from './lib/checkout.js';
 
 /* path → [method, handler, rate limited]. The PayPal webhook isn't rate
    limited: it comes from PayPal's servers and is verified with PayPal. */
@@ -54,5 +55,10 @@ export default {
     if (request.method !== method) return methodNotAllowed(method);
     if (limited && await rateLimited(env, request, pathname)) return tooManyRequests();
     return handler({ request, env, waitUntil: ctx.waitUntil.bind(ctx) });
+  },
+
+  /* Daily, from the cron trigger in wrangler.jsonc. */
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(cleanUpCheckouts(env, ctx.waitUntil.bind(ctx)));
   }
 };
