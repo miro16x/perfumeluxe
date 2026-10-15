@@ -388,6 +388,18 @@ test('cancelling a paid order refunds it in full, then tells the store and custo
   assert.equal(JSON.parse(update.body).status, 'refunded');
 });
 
+test('a customer cancelling after the store refunded an item gets back only the rest', async () => {
+  const partlyRefunded = capturedOrder({ status: 'PARTIALLY_REFUNDED' });
+  partlyRefunded.purchase_units[0].payments.refunds = [{ id: 'REFUND1', status: 'COMPLETED', amount: { currency_code: 'USD', value: '164.00' } }];
+  const calls = mockNetwork();
+  const request = await cancelRequest();
+  mock.restoreAll();
+  mockNetwork({ paypalOrder: partlyRefunded });
+  const body = await (await cancel({ request, env })).json();
+  assert.equal(body.refunded, 164);
+  assert.ok(calls.length);
+});
+
 test('an already-refunded payment still completes the cancellation', async () => {
   const calls = mockNetwork({
     refund: () => Response.json({ name: 'UNPROCESSABLE_ENTITY', details: [{ issue: 'CAPTURE_FULLY_REFUNDED' }] }, { status: 422 })

@@ -309,7 +309,120 @@ test('a refund that cannot be saved alerts the owner', async () => {
   assert.equal(response.status, 502);
   assert.match((await response.json()).message, /refund went through/);
   const [alert] = emails(calls);
-  assert.match(alert.subject, /Refunded order not marked refunded/);
+  assert.match(alert.subject, /Refund not recorded — LP-20261007-ABCD1234/);
+  assert.match(alert.text, /Set its status to refunded by hand/);
+});
+
+/* ── Refunding some items ─────────────────────────────── */
+
+const twoItemOrder = (overrides = {}) => pickupOrder({
+  items: [
+    { id: 11, name: 'Miss Dior Essence', brand: 'DIOR', size: '50ml', price: 164, qty: 1 },
+    { id: 20, name: 'Eros', brand: 'VERSACE', size: '100ml', price: 95, qty: 2 }
+  ],
+  item_count: 3, total: 354, refunded_amount: 0, ...overrides
+});
+
+test('refunding one item refunds just its price through PayPal and tells the customer', async () => {
+  const calls = mockNetwork({ order: twoItemOrder({ status: 'ready' }) });
+  const body = await (await act({ action: 'refund-items', items: [{ index: 1, qty: 1 }], reason: 'Out of stock' })).json();
+  assert.equal(body.success, true);
+  assert.equal(body.status, 'ready');   /* the rest of the order goes ahead */
+  assert.equal(body.refunded, 95);
+
+  const [refund] = refunds(calls);
+  assert.deepEqual(JSON.parse(refund.body), { amount: { currency_code: 'USD', value: '95.00' }, note_to_payer: 'Out of stock' });
+  assert.match(refund.headers['PayPal-Request-Id'], /^refund-LP-20261007-ABCD1234-[0-9a-f]{16}$/);
+
+  const [patch] = patches(calls);
+  assert.match(patch.url, /status=in\.\(paid,ready\)&refunded_amount=eq\.0&/);   /* nobody refunded in between */
+  const fields = JSON.parse(patch.body);
+  assert.equal(fields.refunded_amount, 95);
+  assert.equal(fields.items[0].refunded_qty, undefined);
+  assert.equal(fields.items[1].refunded_qty, 1);
+  assert.equal(fields.status, undefined);
+
+  const [email] = emails(calls);
+  assert.match(email.subject, /Part of your order has been refunded — LP-20261007-ABCD1234/);
+  assert.match(email.text, /- 1× VERSACE · Eros · 100ml: \$95\.00/);
+  assert.match(email.text, /Reason: Out of stock/);
+  assert.match(email.text, /A refund of \$95\.00 has been issued/);
+  assert.match(email.text, /The rest of your order is ready for pickup at Perfume World/);
+  assert.deepEqual(email.bcc, ['amirsslem679@gmail.com']);
+});
+
+test('a double click asks PayPal for the same refund, so it is made only once', async () => {
+  const calls = mockNetwork({ order: twoItemOrder() });
+  await act({ action: 'refund-items', items: [{ index: 1, qty: 1 }] });
+  await act({ action: 'refund-items', items: [{ index: 1, qty: 1 }] });
+  const [first, second] = refunds(calls);
+  assert.equal(first.headers['PayPal-Request-Id'], second.headers['PayPal-Request-Id']);
+
+  /* A later refund of the second bottle is a different refund. */
+  mock.restoreAll();
+  const later = mockNetwork({ order: twoItemOrder({ items: twoItemOrder().items.map((item, i) => (i === 1 ? { ...item, refunded_qty: 1 } : item)), refunded_amount: 95 }) });
+  await act({ action: 'refund-items', items: [{ index: 1, qty: 1 }] });
+  assert.notEqual(refunds(later)[0].headers['PayPal-Request-Id'], first.headers['PayPal-Request-Id']);
+  assert.match(patches(later)[0].url, /refunded_amount=eq\.95&/);
+  assert.equal(JSON.parse(patches(later)[0].body).refunded_amount, 190);
+});
+
+test('item refunds that are impossible or not needed are refused before any money moves', async () => {
+  const calls = mockNetwork({ order: twoItemOrder() });
+  for (const [items, status] of [
+    [[{ index: 0, qty: 1 }, { index: 1, qty: 2 }], 409],   /* everything: use Cancel & refund */
+    [[{ index: 1, qty: 3 }], 400],                         /* more than were ordered */
+    [[{ index: 1, qty: 1 }, { index: 1, qty: 1 }], 400],   /* same line twice */
+    [[{ index: 5, qty: 1 }], 400],
+    [[{ index: 0, qty: 0 }], 400],
+    [[{ index: 0, qty: 1.5 }], 400],
+    [[], 400],
+    ['all', 400]
+  ]) {
+    assert.equal((await act({ action: 'refund-items', items })).status, status, JSON.stringify(items));
+  }
+  assert.match((await (await act({ action: 'refund-items', items: [{ index: 0, qty: 1 }, { index: 1, qty: 2 }] })).json()).message, /Cancel & refund/);
+  mock.restoreAll();
+
+  const unpaid = mockNetwork({ order: twoItemOrder({ status: 'ready', paypal_capture_id: null }) });
+  assert.equal((await act({ action: 'refund-items', items: [{ index: 1, qty: 1 }] })).status, 409);
+  mock.restoreAll();
+  const shipped = mockNetwork({ order: twoItemOrder({ status: 'collected' }) });
+  assert.equal((await act({ action: 'refund-items', items: [{ index: 1, qty: 1 }] })).status, 409);
+
+  assert.equal([...refunds(calls), ...refunds(unpaid), ...refunds(shipped)].length, 0);
+  assert.equal([...patches(calls), ...patches(unpaid), ...patches(shipped)].length, 0);
+});
+
+test('a failed item refund changes nothing and emails nobody', async () => {
+  const calls = mockNetwork({ order: twoItemOrder(), refund: () => Response.json({ name: 'UNPROCESSABLE_ENTITY' }, { status: 422 }) });
+  const response = await act({ action: 'refund-items', items: [{ index: 1, qty: 1 }] });
+  assert.equal(response.status, 502);
+  assert.match((await response.json()).message, /Nothing was changed/);
+  assert.equal(patches(calls).length, 0);
+  assert.equal(emails(calls).length, 0);
+});
+
+test('if someone else changed the order while the refund went through, the owner is told what to record', async () => {
+  const calls = mockNetwork({ order: twoItemOrder(), patched: false });
+  const response = await act({ action: 'refund-items', items: [{ index: 1, qty: 1 }] });
+  assert.equal(response.status, 409);
+  assert.match((await response.json()).message, /refund went through/);
+  const [alert] = emails(calls);
+  assert.match(alert.subject, /Refund not recorded — LP-20261007-ABCD1234/);
+  assert.match(alert.text, /add 95\.00 to refunded_amount/);
+  assert.match(alert.text, /1× Eros 100ml/);
+});
+
+test('cancelling after an item refund refunds only what is left', async () => {
+  const calls = mockNetwork({ order: twoItemOrder({ items: twoItemOrder().items.map((item, i) => (i === 1 ? { ...item, refunded_qty: 1 } : item)), refunded_amount: 95 }) });
+  const body = await (await act({ action: 'refund' })).json();
+  assert.equal(body.refunded, 259);
+  assert.equal(refunds(calls)[0].body, '{}');   /* PayPal refunds whatever is left */
+  const fields = JSON.parse(patches(calls)[0].body);
+  assert.equal(fields.status, 'refunded');
+  assert.equal(fields.refunded_amount, 354);
+  assert.match(emails(calls)[0].text, /A refund of the remaining \$259\.00 has been issued/);
 });
 
 /* ── Customer cancellation after hand-over ────────────── */
@@ -373,7 +486,7 @@ test('the activity chart data comes in the same request, without customer detail
   assert.equal(lists.length, 2);
   const activity = lists.find((call) => call.url.includes('placed_at=gte.'));
   assert.match(activity.url, /pickup_store=eq\.Perfume%20World/);
-  assert.match(activity.url, /select=reference,status,fulfillment,pickup_store,total,placed_at,shipped_at,collected_at&/);
+  assert.match(activity.url, /select=reference,status,fulfillment,pickup_store,total,refunded_amount,placed_at,shipped_at,collected_at&/);
   assert.doesNotMatch(activity.url, /email|phone|customer_name/);
 });
 

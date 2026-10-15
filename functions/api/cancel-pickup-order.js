@@ -31,7 +31,8 @@ async function refundOrder(env, waitUntil, { reference, pickupStore, paymentId }
     }
     if (!payment || payment.status === 'DECLINED' || payment.status === 'FAILED') return { amount: 0, shipping };
     await refundPayment(env, payment.id, reference);
-    return { amount: payment.amount, shipping };
+    /* Items refunded by staff earlier were already paid back. */
+    return { amount: Number((payment.amount - payment.refunded).toFixed(2)), shipping };
   } catch (error) {
     console.error('Pickup refund failed', reference, error?.code, error?.message, error?.providerError);
     await alertOwner(env, waitUntil, {

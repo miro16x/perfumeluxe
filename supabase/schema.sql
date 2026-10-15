@@ -97,6 +97,9 @@ alter table public.orders add column if not exists customer_name text;
 alter table public.orders add column if not exists phone text;
 alter table public.orders add column if not exists paypal_order_id text unique;
 alter table public.orders add column if not exists paypal_capture_id text;   -- refunds go to this
+-- Partial refunds (staff dashboard → Refund items): the running total refunded.
+-- Each refunded item also gets a refunded_qty in items.
+alter table public.orders add column if not exists refunded_amount numeric(10, 2) not null default 0;
 alter table public.orders add column if not exists paid_at timestamptz;
 alter table public.orders add column if not exists refunded_at timestamptz;
 alter table public.orders add column if not exists notified_at timestamptz;  -- store email sent

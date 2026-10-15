@@ -626,7 +626,8 @@ function renderRecommendations() {
         : `${order.pickup_store} · ${order.pickup_date}, ${order.pickup_time}`;
       const total = document.createElement('span');
       total.className = 'account-order-meta';
-      total.textContent = `${order.item_count} ${order.item_count === 1 ? 'item' : 'items'} · $${Number(order.total).toFixed(2)}`;
+      const refunded = order.status === 'refunded' ? 0 : Number(order.refunded_amount) || 0;   /* items refunded by the store */
+      total.textContent = `${order.item_count} ${order.item_count === 1 ? 'item' : 'items'} · $${Number(order.total).toFixed(2)}${refunded ? ` · $${refunded.toFixed(2)} refunded` : ''}`;
       row.append(head, meta, total);
       return row;
     }));

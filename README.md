@@ -112,7 +112,7 @@ The Worker needs these secrets, set under Worker → Settings → Variables and 
 
 If the customer leaves the PayPal page, they aren't charged and their cart is restored. Without the PayPal secrets (or the Supabase key), step 3 is skipped: the store is emailed straight away and the customer pays at pickup.
 
-A paid order confirms the store received it, not that the items are in stock. If something is unavailable, the store refunds it from the staff dashboard.
+A paid order confirms the store received it, not that the items are in stock. If something is unavailable, the store refunds just that item (**Refund items**) or the whole order from the staff dashboard.
 
 ## Shipping
 
@@ -139,7 +139,8 @@ Staff open `/staff.html` (not linked from the site) and create an account there 
 - **To do** lists paid and pay-at-pickup orders that still need something; **Done** lists shipped, picked-up, cancelled and refunded ones. It refreshes every minute.
 - **Pickup orders:** *Ready for pickup* emails the customer; *Picked up* closes the order.
 - **Shipping orders:** *Mark shipped* takes the carrier (USPS, UPS, FedEx or DHL) and tracking number and emails the customer a tracking link, once the 24-hour cancellation window has closed.
-- **Cancel & refund** refunds a paid order in full through PayPal (or cancels a pay-at-pickup order) and emails the customer, with an optional reason. The site owner is copied.
+- **Refund items** refunds some items of a paid order (for example, one that is out of stock) through PayPal and emails the customer which items were refunded and for how much; the rest of the order goes ahead. Shipping isn't refunded, and refunding everything left is done with Cancel & refund instead. The order shows what was refunded, and the sales chart and the customer's order history count it.
+- **Cancel & refund** refunds a paid order in full through PayPal (only what's left, after any item refunds), or cancels a pay-at-pickup order, and emails the customer, with an optional reason. The site owner is copied on both kinds of refund.
 
 The server checks staff access and the order's current status on every action, so two people can't act on the same order at once, and an order is never refunded twice.
 
@@ -186,7 +187,6 @@ St. Thomas, VI 00802
 
 ## Not yet built
 
-- Partial refunds (one item of an order): refund these in PayPal (Activity → the payment → Issue a refund) for now
 - Inventory and stock levels (on hold until the stores have a point-of-sale system)
 
 ## License

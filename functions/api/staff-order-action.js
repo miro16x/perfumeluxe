@@ -4,6 +4,7 @@
 //   shipped   shipping order left the store; emails the customer tracking
 //             and gives it to PayPal
 //   refund    cancels the order, refunding it in full if it was paid online
+//   refund-items  refunds some items of a paid order; the rest goes ahead
 import { accountOrdersEnabled, getStaffOrder, transitionOrder } from '../../lib/supabase.js';
 import { getStaff, staffLookupFailure, canManage, sendCustomerEmail, CARRIERS } from '../../lib/staff.js';
 import { paymentsEnabled, refundPayment, addTracking } from '../../lib/paypal.js';
@@ -20,8 +21,45 @@ const ACTIONS = {
   ready: { fulfillment: 'pickup', from: ['placed', 'paid'] },
   collected: { fulfillment: 'pickup', from: ['placed', 'paid', 'ready'] },
   shipped: { fulfillment: 'shipping', from: ['paid'] },
-  refund: { fulfillment: null, from: ['placed', 'paid', 'ready'] }
+  refund: { fulfillment: null, from: ['placed', 'paid', 'ready'] },
+  'refund-items': { fulfillment: null, from: ['paid', 'ready'] }
 };
+
+const cents = (dollars) => Math.round(Number(dollars) * 100);
+
+/* Checks a request to refund `requested` ([{ index, qty }] into the order's
+   items) and returns the items with their new refunded_qty, the amount, the
+   refunded lines for the email, and whether nothing would be left; or null. */
+function refundSelection(requested, items) {
+  if (!Array.isArray(requested) || !requested.length || requested.length > items.length) return null;
+  const counts = new Map();
+  for (const entry of requested) {
+    const index = Number(entry?.index);
+    const qty = Number(entry?.qty);
+    const item = Number.isInteger(index) ? items[index] : undefined;
+    if (!item || counts.has(index) || !Number.isInteger(qty) || qty < 1) return null;
+    if (qty > item.qty - (item.refunded_qty || 0)) return null;
+    counts.set(index, qty);
+  }
+  const updated = items.map((item, index) => (counts.has(index)
+    ? { ...item, refunded_qty: (item.refunded_qty || 0) + counts.get(index) }
+    : item));
+  return {
+    updated,
+    amount: [...counts].reduce((sum, [index, qty]) => sum + cents(items[index].price) * qty, 0) / 100,
+    lines: [...counts].map(([index, qty]) => ({ ...items[index], qty })),
+    nothingLeft: updated.every((item) => (item.refunded_qty || 0) >= item.qty)
+  };
+}
+
+/* One PayPal request id per resulting set of refunded quantities: a double
+   click asks for the same refund twice and PayPal makes it only once. */
+async function partialRefundId(reference, items) {
+  const state = items.map((item) => item.refunded_qty || 0).join(',');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(state));
+  const hex = [...new Uint8Array(digest)].slice(0, 8).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `refund-${reference}-${hex}`;
+}
 
 const astTime = (date) => new Intl.DateTimeFormat('en-US', {
   dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/St_Thomas'
@@ -72,6 +110,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   const stamp = now.toISOString();
   const fields = { updated_by: staff.userId };
   const details = {};
+  let match = {};
 
   if (action === 'ready') {
     Object.assign(fields, { status: 'ready', ready_at: stamp });
@@ -94,6 +133,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   } else if (action === 'refund') {
     details.reason = String(input.reason || '').trim().replace(/\s+/g, ' ').slice(0, 200);
     if (order.paypal_capture_id) {
+      details.alreadyRefunded = Number(order.refunded_amount) || 0;
       if (!paymentsEnabled(env)) {
         return json({ success: false, message: 'Online refunds are unavailable right now. Refund this order in PayPal.' }, 503);
       }
@@ -104,30 +144,70 @@ export async function onRequestPost({ request, env, waitUntil }) {
         console.error('Staff refund failed', reference, error?.code, error?.message, error?.providerError);
         return json({ success: false, message: 'PayPal could not refund this order. Nothing was changed. Try again, or refund it in PayPal.' }, 502);
       }
-      details.refunded = Number(order.total);
-      Object.assign(fields, { status: 'refunded', cancelled_at: stamp, refunded_at: stamp });
+      /* Whatever items staff refunded earlier were already paid back. */
+      details.refunded = (cents(order.total) - cents(details.alreadyRefunded)) / 100;
+      Object.assign(fields, { status: 'refunded', cancelled_at: stamp, refunded_at: stamp, refunded_amount: Number(order.total) });
     } else {
       Object.assign(fields, { status: 'cancelled', cancelled_at: stamp });
     }
+  } else if (action === 'refund-items') {
+    if (!order.paypal_capture_id) {
+      return json({ success: false, message: 'This order was not paid online, so there is nothing to refund.' }, 409);
+    }
+    const selection = refundSelection(input.items, order.items || []);
+    if (!selection) return json({ success: false, message: 'Choose the items and how many of each to refund.' }, 400);
+    if (selection.nothingLeft) {
+      return json({ success: false, message: 'That is everything left in the order. Use Cancel & refund instead.' }, 409);
+    }
+    if (!paymentsEnabled(env)) {
+      return json({ success: false, message: 'Online refunds are unavailable right now. Refund these items in PayPal.' }, 503);
+    }
+    details.reason = String(input.reason || '').trim().replace(/\s+/g, ' ').slice(0, 200);
+    const previous = Number(order.refunded_amount) || 0;
+    try {
+      await refundPayment(env, order.paypal_capture_id, reference, {
+        amount: selection.amount,
+        requestId: await partialRefundId(reference, selection.updated),
+        note: details.reason || undefined
+      });
+    } catch (error) {
+      console.error('Staff item refund failed', reference, error?.code, error?.message, error?.providerError);
+      return json({ success: false, message: 'PayPal could not refund these items. Nothing was changed. Try again, or refund them in PayPal.' }, 502);
+    }
+    details.refunded = selection.amount;
+    details.refundedItems = selection.lines;
+    Object.assign(fields, { items: selection.updated, refunded_amount: (cents(previous) + cents(selection.amount)) / 100 });
+    /* Only if no one else refunded items in the meantime. */
+    match = { refunded_amount: previous };
   }
+
+  /* A refund that went through but couldn't be recorded must reach a person:
+     the order would otherwise still show the money as kept. */
+  const refundUnsaved = (problem) => alertOwner(env, waitUntil, {
+    kind: `staff-refund-unsaved:${reference}`,
+    throttle: false,
+    subject: `Refund not recorded — ${reference}`,
+    details: `${staff.name} refunded $${details.refunded.toFixed(2)} on order ${reference} from the staff dashboard and the refund DID go through, but the order could not be updated: ${problem}\n${action === 'refund'
+      ? 'Set its status to refunded by hand.'
+      : `Record it by hand: add ${details.refunded.toFixed(2)} to refunded_amount, and set refunded_qty on the refunded items (${details.refundedItems.map((item) => `${item.qty}× ${item.name} ${item.size}`).join(', ')}).`} The customer has not been emailed.`
+  });
 
   let updated;
   try {
-    updated = await transitionOrder(env, reference, rule.from, fields);
+    updated = await transitionOrder(env, reference, rule.from, fields, match);
   } catch (error) {
     console.error('Staff order update failed', reference, action, error?.message);
     if (details.refunded) {
-      await alertOwner(env, waitUntil, {
-        kind: `staff-refund-unsaved:${reference}`,
-        throttle: false,
-        subject: `Refunded order not marked refunded — ${reference}`,
-        details: `${staff.name} refunded order ${reference} from the staff dashboard and the refund DID go through, but the order could not be updated in Supabase: ${error?.message}\nSet its status to refunded by hand. The customer has not been emailed.`
-      });
+      await refundUnsaved(error?.message);
       return json({ success: false, message: 'The refund went through, but the order could not be updated. The site owner has been alerted.' }, 502);
     }
     return json({ success: false, message: 'Unable to update this order right now. Please try again.' }, 502);
   }
   if (!updated) {
+    if (details.refunded) {
+      await refundUnsaved('someone else changed the order at the same moment.');
+      return json({ success: false, message: 'The refund went through, but someone else changed this order at the same moment, so it was not updated. The site owner has been alerted.' }, 409);
+    }
     return json({ success: false, message: 'This order was changed by someone else. Refresh to see its current status.' }, 409);
   }
 
@@ -167,7 +247,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     }
   }
 
-  return json({ success: true, reference, status: fields.status, customerEmailed, paypalTracking, refunded: details.refunded ?? null });
+  return json({ success: true, reference, status: fields.status ?? order.status, customerEmailed, paypalTracking, refunded: details.refunded ?? null });
 }
 
 export function onRequest() {

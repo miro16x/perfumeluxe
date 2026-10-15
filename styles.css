@@ -2842,11 +2842,17 @@ a:focus:not(:focus-visible){outline:none}
 .staff-danger{color:var(--staff-danger);border-color:var(--staff-danger)}
 .staff-danger-solid{background:var(--staff-danger-bg)}
 .staff-inline-form{display:flex;flex-direction:column;gap:12px;width:100%}
-.staff-inline-form select{
+.staff-inline-form select,.staff-refund-items input{
   padding:12px 14px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);
   color:var(--ivory);font-size:14px;font-family:var(--font-sans);outline:none;
 }
-.staff-inline-form select:focus{border-color:var(--gold)}
+.staff-inline-form select:focus,.staff-refund-items input:focus{border-color:var(--gold)}
+.staff-item-refunded{color:var(--staff-danger);font-size:12px;font-weight:600}
+.staff-refund-items{display:grid;gap:10px;font-size:13px}
+.staff-refund-items label{display:grid;grid-template-columns:1fr 84px;grid-template-rows:auto auto;column-gap:12px;align-items:center}
+.staff-refund-items .staff-item-name{color:var(--ivory)}
+.staff-refund-items .staff-muted{grid-row:2;font-size:12px}
+.staff-refund-items input{grid-column:2;grid-row:1 / span 2;width:84px;text-align:center;padding:10px 8px}
 .staff-warning{font-size:13px;color:var(--staff-danger);padding:10px 12px;background:var(--staff-danger-bg);border-radius:var(--radius)}
 @media(max-width:520px){
   .staff-refresh{margin-left:0}

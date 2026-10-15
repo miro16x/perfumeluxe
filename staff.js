@@ -143,7 +143,8 @@ async function runAction(order, action, extra = {}) {
       ready: 'Marked ready for pickup.',
       collected: 'Marked picked up.',
       shipped: 'Marked shipped.',
-      refund: body.refunded ? `Cancelled and refunded ${money(body.refunded)}.` : 'Cancelled.'
+      refund: body.refunded ? `Cancelled and refunded ${money(body.refunded)}.` : 'Cancelled.',
+      'refund-items': `Refunded ${money(body.refunded)}.`
     }[action];
     const emailNote = {
       true: ' The customer has been emailed.',
@@ -188,9 +189,11 @@ function renderOrder(order) {
 
   const items = h('ul', { class: 'staff-items' }, (order.items || []).map((item) => h('li', {},
     h('span', { class: 'staff-item-qty', text: `${item.qty}×` }),
-    h('span', { class: 'staff-item-name', text: [item.brand, item.name, item.size].filter(Boolean).join(' · ') }),
+    h('span', { class: 'staff-item-name', text: [item.brand, item.name, item.size].filter(Boolean).join(' · ') },
+      item.refunded_qty ? h('span', { class: 'staff-item-refunded', text: ` ${item.refunded_qty === item.qty ? 'Refunded' : `${item.refunded_qty} refunded`}` }) : null),
     h('span', { class: 'staff-item-price', text: money(item.price * item.qty) })
   )));
+  const refunded = Number(order.refunded_amount) || 0;
 
   const details = h('dl', { class: 'staff-details' },
     detailRow('Customer', order.customer_name || '—'),
@@ -202,7 +205,8 @@ function renderOrder(order) {
     state.allStores ? detailRow('Store', order.pickup_store) : null,
     detailRow('Placed', astTime(order.placed_at)),
     order.tracking_number ? detailRow('Tracking', `${CARRIERS[order.tracking_carrier] || order.tracking_carrier} ${order.tracking_number}`) : null,
-    detailRow('Total', h('strong', { text: money(order.total) }), shipping ? ` (incl. ${Number(order.shipping_cost) ? money(order.shipping_cost) : 'free'} shipping)` : '')
+    detailRow('Total', h('strong', { text: money(order.total) }), shipping ? ` (incl. ${Number(order.shipping_cost) ? money(order.shipping_cost) : 'free'} shipping)` : ''),
+    refunded && order.status !== 'refunded' ? detailRow('Refunded', `${money(refunded)} · ${money(order.total - refunded)} kept`) : null
   );
 
   let note = null;
@@ -251,8 +255,13 @@ function renderActions(order, { busy, withinWindow }) {
     if (withinWindow) shipButton.title = 'Available once the 24-hour cancellation window closes';
     actions.append(shipButton);
   }
+  /* paid_at is set only for orders paid online; a pay-at-pickup order marked
+     ready has nothing to refund. */
+  const paid = Boolean(order.paid_at);
+  if (paid && ['paid', 'ready'].includes(order.status) && unitsLeft(order) > 1) {
+    actions.append(button('Refund items', () => openRefundItemsForm(actions, order), 'btn-ghost'));
+  }
   if (['placed', 'paid', 'ready'].includes(order.status)) {
-    const paid = order.status !== 'placed';
     actions.append(button(paid ? 'Cancel & refund' : 'Cancel order', () => openRefundForm(actions, order, paid), 'btn-ghost staff-danger'));
   }
   if (busy) actions.append(h('span', { class: 'staff-muted', text: 'Working…' }));
@@ -279,20 +288,66 @@ function openShipForm(container, order) {
 }
 
 function openRefundForm(container, order, paid) {
+  const due = order.total - (Number(order.refunded_amount) || 0);   /* what's left after item refunds */
   const reason = h('input', { name: 'reason', type: 'text', maxlength: '200', placeholder: 'e.g. Out of stock (optional)' });
   const form = h('form', { class: 'staff-inline-form', onsubmit: (event) => {
     event.preventDefault();
     runAction(order, 'refund', { reason: reason.value });
   } },
     h('p', { class: 'staff-warning', text: paid
-      ? `This refunds ${money(order.total)} to the customer's card and emails them. It can't be undone.`
+      ? `This refunds ${money(due)}${due < order.total ? ' (what is left after the items already refunded)' : ''} to the customer's card and emails them. It can't be undone.`
       : 'This cancels the order and emails the customer. It can\'t be undone.' }),
     h('label', { class: 'account-field' }, h('span', { text: 'Reason shown to the customer' }), reason),
     h('div', { class: 'staff-actions' },
-      h('button', { type: 'submit', class: 'btn-ghost staff-action staff-danger staff-danger-solid', text: paid ? `Refund ${money(order.total)}` : 'Cancel order' }),
+      h('button', { type: 'submit', class: 'btn-ghost staff-action staff-danger staff-danger-solid', text: paid ? `Refund ${money(due)}` : 'Cancel order' }),
       h('button', { type: 'button', class: 'btn-ghost staff-action', text: 'Back', onclick: renderOrders })));
   container.replaceChildren(form);
   reason.focus();
+}
+
+const unitsLeft = (order) => (order.items || []).reduce((sum, item) => sum + item.qty - (item.refunded_qty || 0), 0);
+
+/* Refund some items of a paid order, for example one that turned out to be
+   out of stock. Shipping isn't refunded: the rest of the order still goes. */
+function openRefundItemsForm(container, order) {
+  const rows = (order.items || [])
+    .map((item, index) => ({ item, index, left: item.qty - (item.refunded_qty || 0) }))
+    .filter((row) => row.left > 0);
+  const reason = h('input', { name: 'reason', type: 'text', maxlength: '200', placeholder: 'e.g. Out of stock (optional)' });
+  const submit = h('button', { type: 'submit', class: 'btn-ghost staff-action staff-danger staff-danger-solid', disabled: true, text: 'Refund $0.00' });
+  const inputs = rows.map((row) => h('input', {
+    type: 'number', min: '0', max: String(row.left), step: '1', value: '0', inputmode: 'numeric',
+    'aria-label': `How many ${row.item.name} ${row.item.size} to refund (up to ${row.left})`,
+    oninput: update
+  }));
+  const chosen = () => rows
+    .map((row, i) => ({ index: row.index, qty: Math.min(row.left, Math.max(0, Math.floor(Number(inputs[i].value) || 0))), price: row.item.price }))
+    .filter((entry) => entry.qty > 0);
+  function update() {
+    const selected = chosen();
+    const amount = selected.reduce((sum, entry) => sum + Math.round(entry.price * 100) * entry.qty, 0) / 100;
+    const everything = selected.reduce((sum, entry) => sum + entry.qty, 0) >= unitsLeft(order);
+    submit.disabled = !selected.length || everything;
+    submit.textContent = everything ? 'Use Cancel & refund for everything' : `Refund ${money(amount)}`;
+  }
+  const form = h('form', { class: 'staff-inline-form', onsubmit: (event) => {
+    event.preventDefault();
+    const selected = chosen();
+    if (!selected.length || submit.disabled) return;
+    runAction(order, 'refund-items', { items: selected.map(({ index, qty }) => ({ index, qty })), reason: reason.value });
+  } },
+    h('p', { class: 'staff-warning', text: "Choose how many of each item to refund. The amount goes back to the customer's card and they're emailed. Shipping isn't refunded. It can't be undone." }),
+    h('ul', { class: 'staff-refund-items' }, rows.map((row, i) => h('li', {},
+      h('label', {},
+        h('span', { class: 'staff-item-name', text: [row.item.brand, row.item.name, row.item.size].filter(Boolean).join(' · ') }),
+        h('span', { class: 'staff-muted', text: `${money(row.item.price)} each · ${row.left} in order` }),
+        inputs[i])))),
+    h('label', { class: 'account-field' }, h('span', { text: 'Reason shown to the customer' }), reason),
+    h('div', { class: 'staff-actions' },
+      submit,
+      h('button', { type: 'button', class: 'btn-ghost staff-action', text: 'Back', onclick: renderOrders })));
+  container.replaceChildren(form);
+  inputs[0]?.focus();
 }
 
 /* ── ORDER ACTIVITY (tiles + sales chart) ────────────── */
@@ -333,7 +388,7 @@ function activityDays() {
     if (!row || !series) continue;
     row[series] += 1;
     row.total += 1;
-    if (series !== 'cancelled') row.sales += Number(order.total) || 0;
+    if (series !== 'cancelled') row.sales += (Number(order.total) || 0) - (Number(order.refunded_amount) || 0);
   }
   return rows;
 }
