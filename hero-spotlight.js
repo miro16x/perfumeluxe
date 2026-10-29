@@ -26,20 +26,21 @@
     ],
     men: [
       { id: 1009, model: 'models/web/dior-sauvage-extrait.glb', mood: 'sauvage', tone: 'dark' },
-      { id: 994, model: 'models/web/rabanne-1-million-black.glb', mood: 'million', tone: 'dark' },
+      /* phoneScale: shrinks a tall bottle on phones so it doesn't fill the screen. */
+      { id: 994, model: 'models/web/rabanne-1-million-black.glb', mood: 'million', tone: 'dark', phoneScale: 0.8 },
       { id: 952, model: 'models/web/valentino-vendetta-uomo.glb', mood: 'vendetta', tone: 'dark' },
-      { id: 949, model: 'models/web/ysl-myslf-intense.glb', mood: 'myslf', tone: 'dark' }
+      { id: 949, model: 'models/web/ysl-myslf-intense.glb', mood: 'myslf', tone: 'dark', phoneScale: 0.9 }
     ]
   };
   const STORAGE_KEY = 'ul-spotlight-audience';
   const AUDIENCES = ['women', 'men'];
 
-  /* Where the bottle's base sits and how tall it stands, as fractions of the
-     model area (0 = bottom, 1 = top). The pedestal top in styles.css sits at
-     BASE, so every bottle stands on it whatever its shape. */
-  const BASE = 0.19;
-  const HEIGHT = 0.6;
+  /* Where the bottle's base sits (--base) and how tall it stands
+     (--bottle-height) come from .spotlight-stage in styles.css, as fractions
+     of the stage, so the pedestal top and the bottle always line up; phones
+     set their own. FOOTPRINT keeps wide bottles on the pedestal top. */
   const FOOTPRINT = 0.6;
+  const compactLayout = window.matchMedia('(max-width: 900px)');
   const FIELD_OF_VIEW = 24;
   const POLAR = 82;   /* degrees from straight above: slightly above eye level, so the shadow shows */
 
@@ -86,10 +87,14 @@
   const familyLabel = (product) => product.scents.map((scent) => scent.charAt(0).toUpperCase() + scent.slice(1)).join(' · ');
   const productUrl = (product) => `product.html?id=${product.id}`;
 
-  /* Points the camera so the bottle's base is at BASE and its height fills
-     HEIGHT of the model area, while staying inside the sides as it turns. */
+  /* Points the camera so the bottle's base is at --base and its height fills
+     --bottle-height of the stage, while staying inside the sides as it turns. */
   function frame(viewer) {
     if (!viewer.loaded) return;
+    const stageStyle = getComputedStyle(el('spotlightStage'));
+    const BASE = parseFloat(stageStyle.getPropertyValue('--base')) / 100 || 0.19;
+    const HEIGHT = parseFloat(stageStyle.getPropertyValue('--bottle-height')) || 0.6;
+    const scale = compactLayout.matches ? Number(viewer.dataset.phoneScale) || 1 : 1;
     const size = viewer.getDimensions();
     const center = viewer.getBoundingBoxCenter();
     const aspect = viewer.clientWidth / Math.max(viewer.clientHeight, 1);
@@ -98,7 +103,7 @@
     /* viewHalf: half the visible height, in metres, at the bottle. The
        second term keeps the turning footprint within the pedestal top
        (FOOTPRINT of the half-width), so wide bottles shrink to stand on it. */
-    const viewHalf = Math.max(size.y / (2 * HEIGHT), turningRadius / (FOOTPRINT * aspect));
+    const viewHalf = Math.max(size.y / (2 * HEIGHT), turningRadius / (FOOTPRINT * aspect)) / scale;
     const baseY = center.y - size.y / 2;
     const targetY = baseY + (1 - 2 * BASE) * viewHalf;
     viewer.cameraTarget = `${center.x}m ${targetY}m ${center.z}m`;
@@ -121,6 +126,7 @@
     /* Without WebGL a plain placeholder stands in: model-viewer would only throw. */
     const viewer = document.createElement(canRender3d ? 'model-viewer' : 'div');
     viewer.dataset.src = item.model;
+    if (item.phoneScale) viewer.dataset.phoneScale = item.phoneScale;
     viewer.setAttribute('alt', `${product.brand} ${product.name} bottle`);
     viewer.setAttribute('field-of-view', `${FIELD_OF_VIEW}deg`);
     viewer.setAttribute('min-field-of-view', `${FIELD_OF_VIEW}deg`);
@@ -138,7 +144,6 @@
     viewer.setAttribute('rotation-per-second', '16deg');
     viewer.setAttribute('auto-rotate-delay', '0');
     viewer.setAttribute('loading', 'eager');
-    if (!reducedMotion.matches) viewer.setAttribute('auto-rotate', '');
     viewer.addEventListener('load', () => {
       frame(viewer);
       link.classList.remove('is-failed');
@@ -244,6 +249,12 @@
   document.addEventListener('visibilitychange', updatePlayback);
 
   /* Lifts the bottle and shows the details, or puts it back. */
+  /* Only the bottle on screen turns. A turning bottle is redrawn every frame,
+     even when hidden, so the preloaded neighbours stay still. */
+  function updateRotation() {
+    slides.forEach(({ viewer }, i) => viewer.toggleAttribute('auto-rotate', i === active && !reducedMotion.matches));
+  }
+
   function setRevealed(open) {
     revealed = open;
     section.classList.toggle('is-revealed', open);
@@ -339,6 +350,7 @@
     preloadAround(index);
     loadScene(index);
     updatePlayback();
+    updateRotation();
   }
 
   /* ── Scroll: each fragrance gets an equal stretch of the section. ── */
@@ -388,7 +400,7 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', () => slides.forEach(({ viewer }) => frame(viewer)));
   reducedMotion.addEventListener?.('change', () => {
-    slides.forEach(({ viewer }) => viewer.toggleAttribute('auto-rotate', !reducedMotion.matches));
+    updateRotation();
     updatePlayback();
   });
 

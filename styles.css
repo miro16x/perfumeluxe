@@ -2738,6 +2738,14 @@ body.nav-over-hero .nav,body.nav-over-hero .nav.scrolled{
 }
 body.nav-over-hero .logo-sub,body.nav-over-hero .nav-links a.nav-active{color:var(--m-accent)}
 body.nav-over-hero .nav-links a::after{background:var(--m-accent)}
+/* The header icons, their badges and the menu button take the scene's accent. */
+body.nav-over-hero .nav-inner .nav-icon{color:var(--m-accent)}
+body.nav-over-hero .nav-inner .nav-icon:hover{color:var(--ivory);background:color-mix(in srgb, var(--m-accent) 18%, transparent)}
+body.nav-over-hero .nav-inner .cart-badge{background:var(--m-accent);color:var(--m-base)}
+body.nav-over-hero .nav-inner .account-dot{background:var(--m-accent);border-color:var(--m-base)}
+body.nav-over-hero .nav-inner .nav-divider{background:color-mix(in srgb, var(--m-accent) 40%, transparent)}
+body.nav-over-hero .nav-inner .nav-hamburger span{background:var(--m-accent)}
+.cart-badge,.account-dot,.nav-divider,.nav-hamburger span{transition-property:opacity,transform,background,color,border-color;transition-duration:.25s,.25s,.6s,.6s,.6s}
 
 .spotlight-inner{
   position:relative;z-index:2;pointer-events:none;height:100%;max-width:1320px;margin:0 auto;
@@ -2771,9 +2779,10 @@ body.nav-over-hero .nav-links a::after{background:var(--m-accent)}
    control in it can be used; clicking outside the panel closes it. */
 .spotlight.is-atmosphere-open .spotlight-bgs{z-index:5}
 
-/* Stage: pedestal and beam. The pedestal top sits 19% up the stage, where
-   hero-spotlight.js stands each bottle (its BASE). */
-.spotlight-stage{position:relative;min-height:0;width:min(100%, 720px);justify-self:center;--pedestal:min(54%, 380px)}
+/* Stage: pedestal and beam. The pedestal top sits --base up the stage, where
+   hero-spotlight.js stands each bottle, which stands --bottle-height of the
+   stage tall (both read by hero-spotlight.js; phones set their own). */
+.spotlight-stage{position:relative;min-height:0;width:min(100%, 720px);justify-self:center;--pedestal:min(54%, 380px);--base:19%;--bottle-height:.6}
 /* The bottle, pedestal and beam move as one: up and smaller when revealed. */
 .spotlight-showcase{
   position:absolute;inset:0;transform-origin:50% 0;transition:transform .9s cubic-bezier(.2,.7,.2,1);
@@ -2783,17 +2792,17 @@ body.nav-over-hero .nav-links a::after{background:var(--m-accent)}
 .spotlight.is-revealed .spotlight-showcase{transform:translateY(-5%) scale(.62)}
 /* Engraved on the pedestal's face until the bottle is selected. */
 .spotlight-hint{
-  position:absolute;left:50%;bottom:12%;transform:translateX(-50%);pointer-events:none;
+  position:absolute;left:50%;bottom:calc(var(--base) * .63);transform:translateX(-50%);pointer-events:none;
   color:color-mix(in srgb, var(--m-accent, #c9a84c) 80%, transparent);font-size:9px;font-weight:600;letter-spacing:.38em;text-transform:uppercase;
   transition:opacity .4s ease;
 }
 .spotlight.is-revealed .spotlight-hint{opacity:0}
 .spotlight-beam{
-  position:absolute;inset:-100px 0 19% 0;pointer-events:none;
+  position:absolute;inset:-100px 0 var(--base) 0;pointer-events:none;
   background:linear-gradient(180deg, color-mix(in srgb, var(--m-glow, rgba(201,168,76,.4)) 90%, transparent), transparent 92%);
   clip-path:polygon(44% 0, 56% 0, 78% 100%, 22% 100%);filter:blur(22px);opacity:.75;
 }
-.spotlight-pedestal{position:absolute;left:50%;bottom:0;height:19%;width:var(--pedestal);transform:translateX(-50%)}
+.spotlight-pedestal{position:absolute;left:50%;bottom:0;height:var(--base);width:var(--pedestal);transform:translateX(-50%)}
 .spotlight-pedestal-top,.spotlight-pedestal-body{position:absolute;left:0;right:0}
 .spotlight-pedestal-body{
   top:0;bottom:0;
@@ -2824,7 +2833,7 @@ button.spotlight-model{width:100%;height:100%;padding:0;border:0;background:none
 .spotlight-model.is-active{visibility:visible;transition-delay:0s}
 .spotlight-model.is-active.is-loaded,.spotlight-model.is-active.is-failed{opacity:1;transform:none;pointer-events:auto;cursor:pointer}
 /* Product photo instead of the 3D bottle (no WebGL, or the model failed). */
-.spotlight-photo{display:none;position:absolute;left:50%;bottom:19%;width:min(46%, 300px);aspect-ratio:4 / 5;transform:translateX(-50%);object-fit:cover;border-radius:6px;box-shadow:0 24px 50px rgba(0,0,0,.45)}
+.spotlight-photo{display:none;position:absolute;left:50%;bottom:var(--base);width:min(46%, 300px);aspect-ratio:4 / 5;transform:translateX(-50%);object-fit:cover;border-radius:6px;box-shadow:0 24px 50px rgba(0,0,0,.45)}
 .spotlight-model.is-failed model-viewer{visibility:hidden}
 .spotlight-model.is-failed .spotlight-photo{display:block}
 .spotlight-model:focus-visible{outline:none}
@@ -2884,9 +2893,10 @@ button.spotlight-model{width:100%;height:100%;padding:0;border:0;background:none
   .spotlight-head{align-items:center;justify-content:center;text-align:center;gap:12px}
   .spotlight-head h1{font-size:clamp(1.5rem,6.4vw,2.2rem);width:100%}
   .spotlight-controls{gap:8px}
-  .spotlight-stage{--pedestal:min(62%, 300px)}
+  /* Phones: bottles smaller and standing higher. */
+  .spotlight-stage{--pedestal:min(62%, 300px);--base:30%;--bottle-height:.44}
   .spotlight-stage{width:100%}
-  .spotlight.is-revealed .spotlight-showcase{transform:translateY(-1%) scale(.6)}
+  .spotlight.is-revealed .spotlight-showcase{transform:translateY(-3%) scale(.76)}
   .spotlight-details{bottom:4%}
   .spotlight-family{margin-bottom:6px}
   .spotlight-name{font-size:clamp(1.6rem,7vw,2.2rem);margin:2px 0 10px}
@@ -2906,6 +2916,18 @@ button.spotlight-model{width:100%;height:100%;padding:0;border:0;background:none
   .spotlight-stage .spotlight-pedestal-top{animation:none !important}
 }
 @media(prefers-reduced-motion:reduce){.spotlight-scroll i{animation:none}}
+/* Phones: no live blur over the hero. Each blur is redone every frame while the
+   scene animates behind it; a slightly more solid tint looks nearly the same. */
+@media(max-width:900px){
+  body.nav-over-hero .nav,body.nav-over-hero .nav.scrolled{
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+    background:color-mix(in srgb, var(--m-base) 80%, transparent);
+  }
+  .spotlight-audience,.spotlight-atmosphere,.spotlight-shop{-webkit-backdrop-filter:none;backdrop-filter:none}
+  .spotlight-audience,.spotlight-atmosphere{background:color-mix(in srgb, var(--m-base, #050403) 78%, transparent)}
+  .spotlight-shop{background:color-mix(in srgb, var(--m-accent, #c9a84c) 16%, color-mix(in srgb, var(--m-base, #050403) 72%, transparent))}
+}
+
 
 /* ── COLLECTION DETAIL PAGE ────────────────────────── */
 .collection-page{background:var(--bg-0);color:var(--ivory)}
