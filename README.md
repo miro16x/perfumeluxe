@@ -6,6 +6,7 @@ Customers browse the catalog, get personalized recommendations, and order for fr
 
 ## Features
 
+- 3D hero: featured fragrances turning on a pedestal, one per scroll step, each with its own animated background and Atmosphere panel; the men's or women's set follows the visitor's choice or account preference (`hero-spotlight.js`, models in `models/web/`, backgrounds in `hero-scenes/`)
 - Product catalog with filtering, search, collections and product pages
 - Signature Scent recommendation quiz
 - Customer accounts with saved taste preferences, likes and order history
@@ -30,7 +31,7 @@ Customers browse the catalog, get personalized recommendations, and order for fr
 
 ```text
 urban-luxe/
-├── index.html, shop.html, collection.html, product.html, about.html, contact.html
+├── index.html, shop.html, new-arrivals.html, collections.html, collection.html, product.html, about.html, contact.html
 ├── staff.html, staff.js  Staff dashboard (not linked from the site)
 ├── styles.css
 ├── app.js              Navigation, cart, search, pickup ordering and the Turnstile widget
@@ -84,6 +85,16 @@ Run the tests (they mock Resend, Supabase and Turnstile, and send nothing):
 ```bash
 node --test tests/*.test.mjs
 ```
+
+## Homepage hero backgrounds
+
+Each featured fragrance's animated background is designed as a standalone page in `components/` (for example `components/diorbg.txt` for Sauvage Extrait). The site uses built copies in `hero-scenes/`, which keep the design and its Atmosphere panel but use compiled styles instead of Tailwind's in-browser compiler. After editing a design, rebuild them:
+
+```bash
+node tools/build-hero-scenes.mjs
+```
+
+Which design belongs to which fragrance is listed at the top of `tools/build-hero-scenes.mjs`; the fragrances themselves are in `FEATURED` in `hero-spotlight.js`. `components/` and `tools/` are not published with the site.
 
 ## Deployment
 

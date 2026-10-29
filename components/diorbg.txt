@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dior Sauvage Extrait Midnight Desert Atmosphere</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Syncopate & Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#07090e',
+            nightindigo: '#0b1325',
+            twilightblue: '#162b4d',
+            sauvageblue: '#1c4273',
+            electricblue: '#3b82f6',
+            amberember: '#ff8a3d',
+            copperflame: '#ff5722'
+          },
+          fontFamily: {
+            display: ['"Syncopate"', 'sans-serif'],
+            sans: ['"Montserrat"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: #07090e;
+      color: #cbd5e1;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Dynamic Moonlight Corona and Horizon Aurora */
+    .ambient-moonlight-glow {
+      background: radial-gradient(circle 800px at var(--mouse-x, 50%) var(--mouse-y, 35%), 
+        rgba(56, 126, 219, 0.22) 0%, 
+        rgba(28, 66, 115, 0.14) 35%, 
+        rgba(15, 23, 42, 0.08) 60%, 
+        transparent 80%);
+      transition: background 0.15s ease-out;
+    }
+
+    /* Midnight Desert Twilight Horizon Gradient */
+    .horizon-gradient {
+      background: linear-gradient(180deg, 
+        transparent 0%, 
+        rgba(11, 19, 37, 0.4) 45%, 
+        rgba(28, 66, 115, 0.3) 72%, 
+        rgba(217, 119, 6, 0.15) 88%, 
+        rgba(7, 9, 14, 0.95) 100%);
+    }
+
+    /* Sleek Brushed Zinc & Obsidian Glassmorphism */
+    .glass-obsidian {
+      background: rgba(11, 15, 25, 0.78);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(71, 85, 105, 0.35);
+      box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.85), 
+                  inset 0 1px 1px rgba(255, 255, 255, 0.1),
+                  0 0 30px rgba(28, 66, 115, 0.2);
+    }
+
+    /* Minimalist Dark Sliders */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 9999px;
+      height: 3px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #60a5fa, #ff9800);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+      border: 1.5px solid #0f172a;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+      box-shadow: 0 0 14px rgba(255, 152, 0, 0.8);
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen font-sans bg-obsidian">
+
+  <!-- ================= CANVAS & ATMOSPHERIC LAYERS ================= -->
+  <!-- Layer 0: Obsidian & Night Sky Gradient -->
+  <div class="fixed inset-0 bg-gradient-to-b from-[#040609] via-[#090e1a] to-[#04060a] z-0"></div>
+
+  <!-- Layer 1: Reactive Moonlight Corona & Twilight Glow -->
+  <div id="ambientGlow" class="fixed inset-0 pointer-events-none z-0 ambient-moonlight-glow"></div>
+
+  <!-- Layer 2: Twilight Horizon Color Layer -->
+  <div class="fixed inset-0 z-0 horizon-gradient pointer-events-none"></div>
+
+  <!-- Layer 3: Layered Silhouette Desert Dunes & Horizon Canvas -->
+  <canvas id="duneCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-10"></canvas>
+
+  <!-- Layer 4: Interactive Desert Embers, Mineral Dust, Sand & Sage Foliage Canvas -->
+  <canvas id="mainCanvas" class="fixed inset-0 w-full h-full pointer-events-auto z-20 cursor-crosshair"></canvas>
+
+  <!-- Layer 5: Fast Stardust & Interactive Cursor Spark Trail -->
+  <canvas id="sparkCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-30"></canvas>
+
+  <!-- ================= TOP-RIGHT MINIMAL CONTROL TRIGGER ================= -->
+  <div class="fixed top-6 right-6 z-40">
+    <button id="toggleControlsBtn" aria-label="Sauvage Atmosphere Settings" class="glass-obsidian px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs text-slate-300 hover:text-white hover:border-slate-500 transition-all duration-300 shadow-xl group">
+      <i data-lucide="compass" class="w-3.5 h-3.5 text-blue-400 group-hover:rotate-90 transition-transform duration-500"></i>
+      <span class="text-[9.5px] font-display tracking-[0.28em] uppercase font-bold text-slate-200">Atmosphere</span>
+    </button>
+  </div>
+
+  <!-- ================= FOOTER SUBTLE HINT ================= -->
+  <div class="fixed bottom-6 left-6 z-40 pointer-events-none flex items-center gap-2.5 text-slate-400/60 text-[9px] font-display tracking-[0.25em] uppercase font-light">
+    <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-500 animate-pulse"></i>
+    <span>Sweep to whip night desert wind &bull; Click to ignite ember storm</span>
+  </div>
+
+  <!-- ================= ATMOSPHERE BRUSHED OBSIDIAN DRAWER ================= -->
+  <div id="ambientPopover" class="hidden fixed top-20 right-6 z-50 w-84 max-w-[92vw] glass-obsidian rounded-2xl p-5 text-slate-300 transition-all duration-300 transform scale-95 opacity-0">
+    <div class="flex justify-between items-center pb-3 border-b border-slate-700/60">
+      <div class="flex items-center gap-2">
+        <i data-lucide="sliders" class="w-3.5 h-3.5 text-blue-400"></i>
+        <h3 class="text-[10px] font-display font-bold tracking-[0.26em] uppercase text-slate-100">Midnight Dunes</h3>
+      </div>
+      <button id="closeControlsBtn" class="text-slate-400 hover:text-white transition-colors p-1">
+        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+
+    <!-- Sliders and Controls -->
+    <div class="mt-4 space-y-4 text-xs font-light">
+      
+      <!-- Scent Profiles / Harmonies -->
+      <div>
+        <label class="block text-[9px] font-display tracking-[0.2em] uppercase text-blue-400 mb-2 font-medium">Scent & Sky Profile</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button class="palette-btn active py-2.5 px-2.5 text-[9px] tracking-wider uppercase font-medium rounded-xl border border-blue-500/80 bg-blue-950/40 text-white text-left flex items-center gap-2 shadow-sm" data-palette="midnightSauvage">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-500 to-amber-400 shadow-[0_0_8px_#3b82f6]"></span>
+            <span>Midnight Sauvage</span>
+          </button>
+          <button class="palette-btn py-2.5 px-2.5 text-[9px] tracking-wider uppercase font-medium rounded-xl border border-slate-700/60 bg-slate-900/40 hover:bg-slate-800/50 text-slate-400 text-left flex items-center gap-2" data-palette="campfireAmber">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-orange-600 to-amber-300 shadow-[0_0_8px_#ff9800]"></span>
+            <span>Campfire Amber</span>
+          </button>
+          <button class="palette-btn py-2.5 px-2.5 text-[9px] tracking-wider uppercase font-medium rounded-xl border border-slate-700/60 bg-slate-900/40 hover:bg-slate-800/50 text-slate-400 text-left flex items-center gap-2" data-palette="desertMineral">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-cyan-400 to-slate-200 shadow-[0_0_8px_#38bdf8]"></span>
+            <span>Desert Mineral</span>
+          </button>
+          <button class="palette-btn py-2.5 px-2.5 text-[9px] tracking-wider uppercase font-medium rounded-xl border border-slate-700/60 bg-slate-900/40 hover:bg-slate-800/50 text-slate-400 text-left flex items-center gap-2" data-palette="rawCedar">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-emerald-600 via-amber-600 to-orange-400 shadow-[0_0_8px_#10b981]"></span>
+            <span>Raw Cedar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Desert Wind Speed -->
+      <div>
+        <div class="flex justify-between text-[9.5px] tracking-[0.16em] uppercase text-slate-400 mb-1.5">
+          <span>Desert Wind Speed</span>
+          <span id="windVal" class="text-blue-400 font-mono font-medium">Nocturnal Breeze</span>
+        </div>
+        <input id="windSpeed" type="range" min="0.4" max="2.8" step="0.1" value="1.0" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Ember Density -->
+      <div>
+        <div class="flex justify-between text-[9.5px] tracking-[0.16em] uppercase text-slate-400 mb-1.5">
+          <span>Ember & Sage Density</span>
+          <span id="densityVal" class="text-blue-400 font-mono font-medium">Campfire (90)</span>
+        </div>
+        <input id="emberDensity" type="range" min="40" max="180" step="10" value="90" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Moonlight Radiance -->
+      <div>
+        <div class="flex justify-between text-[9.5px] tracking-[0.16em] uppercase text-slate-400 mb-1.5">
+          <span>Moonlight Radiance</span>
+          <span id="radianceVal" class="text-blue-400 font-mono font-medium">Luminescent</span>
+        </div>
+        <input id="moonlightRadiance" type="range" min="0.3" max="2.4" step="0.1" value="1.2" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Wind Dynamics Mode -->
+      <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+        <span class="text-[9.5px] tracking-[0.16em] uppercase text-slate-400">Wind Vortex Mode</span>
+        <button id="toggleVortexBtn" class="px-3 py-1 rounded-full text-[9px] font-display tracking-wider uppercase font-bold border border-blue-500/50 bg-blue-900/30 text-blue-300 hover:bg-blue-800/40 transition-all">
+          Desert Vortex
+        </button>
+      </div>
+
+      <!-- Ember Storm Action -->
+      <div class="pt-1">
+        <button id="triggerStormBtn" class="w-full py-2.5 bg-gradient-to-r from-blue-700 via-indigo-600 to-amber-600 hover:from-blue-600 hover:to-amber-500 text-white rounded-xl text-[9px] font-display tracking-[0.25em] uppercase font-bold transition-all flex items-center justify-center gap-2 shadow-lg border border-blue-400/40">
+          <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-300"></i>
+          <span>Trigger Ember Storm</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= CANVAS ANIMATION & PARTICLE PHYSICS ================= -->
+  <script>
+    lucide.createIcons();
+
+    // Canvas references
+    const duneCanvas = document.getElementById('duneCanvas');
+    const duneCtx = duneCanvas.getContext('2d');
+
+    const mainCanvas = document.getElementById('mainCanvas');
+    const mainCtx = mainCanvas.getContext('2d');
+
+    const sparkCanvas = document.getElementById('sparkCanvas');
+    const sparkCtx = sparkCanvas.getContext('2d');
+
+    const ambientGlow = document.getElementById('ambientGlow');
+
+    let width = 0;
+    let height = 0;
+
+    // Simulation Settings
+    const config = {
+      emberCount: 90,
+      starCount: 160,
+      windFactor: 1.0,
+      radianceFactor: 1.2,
+      isVortexActive: true,
+      activePalette: 'midnightSauvage',
+      repelRadius: 220
+    };
+
+    // Palettes matching Sauvage Extrait aesthetics
+    const palettes = {
+      midnightSauvage: {
+        glow: 'rgba(56, 126, 219, 0.28)',
+        horizonHaze: 'rgba(217, 119, 6, 0.16)',
+        embers: ['#ff8a3d', '#ffab40', '#38bdf8', '#60a5fa', '#ffa726'],
+        foliage: ['#334155', '#475569', '#1e293b'],
+        stars: ['#93c5fd', '#ffffff', '#cbd5e1', '#fde047'],
+        sparks: ['#60a5fa', '#ff9800', '#93c5fd', '#ffcc80']
+      },
+      campfireAmber: {
+        glow: 'rgba(249, 115, 22, 0.3)',
+        horizonHaze: 'rgba(234, 88, 12, 0.22)',
+        embers: ['#ff5722', '#ff9800', '#ffb74d', '#ff7043', '#ffeb3b'],
+        foliage: ['#422006', '#291403', '#78350f'],
+        stars: ['#fed7aa', '#ffffff', '#ffedd5', '#f59e0b'],
+        sparks: ['#ff5722', '#ff9800', '#ffd54f']
+      },
+      desertMineral: {
+        glow: 'rgba(56, 189, 248, 0.25)',
+        horizonHaze: 'rgba(14, 165, 233, 0.14)',
+        embers: ['#38bdf8', '#7dd3fc', '#cbd5e1', '#e2e8f0', '#0284c7'],
+        foliage: ['#1e293b', '#334155', '#0f172a'],
+        stars: ['#e0f2fe', '#ffffff', '#94a3b8'],
+        sparks: ['#38bdf8', '#bae6fd', '#ffffff']
+      },
+      rawCedar: {
+        glow: 'rgba(16, 185, 129, 0.22)',
+        horizonHaze: 'rgba(180, 83, 9, 0.18)',
+        embers: ['#34d399', '#f59e0b', '#fbbf24', '#059669', '#d97706'],
+        foliage: ['#064e3b', '#022c22', '#14532d'],
+        stars: ['#d1fae5', '#ffffff', '#fef3c7'],
+        sparks: ['#34d399', '#f59e0b', '#a7f3d0']
+      }
+    };
+
+    // Cursor coordinates
+    const mouse = {
+      x: window.innerWidth * 0.5,
+      y: window.innerHeight * 0.45,
+      targetX: window.innerWidth * 0.5,
+      targetY: window.innerHeight * 0.45,
+      vx: 0,
+      vy: 0,
+      isDown: false
+    };
+
+    // ================= STATIC BACKGROUND STARS & DUNES =================
+    let stars = [];
+    class Star {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * (height * 0.72);
+        this.size = 0.6 + Math.random() * 1.6;
+        this.twinkleSpeed = 0.015 + Math.random() * 0.035;
+        this.phase = Math.random() * Math.PI * 2;
+        this.baseAlpha = 0.2 + Math.random() * 0.7;
+      }
+      update() {
+        this.phase += this.twinkleSpeed;
+      }
+      draw(c) {
+        const pal = palettes[config.activePalette];
+        const alpha = Math.max(0.1, (Math.sin(this.phase) * 0.4 + 0.6) * this.baseAlpha);
+        c.save();
+        c.globalAlpha = alpha;
+        c.fillStyle = pal.stars[Math.floor(this.phase) % pal.stars.length];
+        c.beginPath();
+        c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+      }
+    }
+
+    // Procedural Layered Desert Dunes & Ridge
+    function drawDesertDunes() {
+      duneCtx.clearRect(0, 0, width, height);
+
+      // Render celestial stars
+      for (let s of stars) {
+        s.update();
+        s.draw(duneCtx);
+      }
+
+      // Parallax mouse offsets
+      const offsetX = (mouse.x - width / 2) * 0.03;
+      const offsetY = (mouse.y - height / 2) * 0.02;
+
+      // Layer 1: Distant Jagged Ridge (Low Poly / Rocky)
+      duneCtx.save();
+      duneCtx.beginPath();
+      duneCtx.moveTo(0, height);
+      duneCtx.lineTo(0, height * 0.68 + offsetY * 0.3);
+
+      const ridgePoints = 12;
+      for (let i = 0; i <= ridgePoints; i++) {
+        const x = (width / ridgePoints) * i + offsetX * 0.2;
+        const baseline = height * 0.68;
+        const variance = Math.sin(i * 1.1) * 35 + Math.cos(i * 2.3) * 22;
+        duneCtx.lineTo(x, baseline + variance + offsetY * 0.3);
+      }
+      duneCtx.lineTo(width, height);
+      duneCtx.closePath();
+      duneCtx.fillStyle = '#0a101d';
+      duneCtx.fill();
+      duneCtx.restore();
+
+      // Layer 2: Mid-ground Sand Dune Silhouette
+      duneCtx.save();
+      duneCtx.beginPath();
+      duneCtx.moveTo(0, height);
+      duneCtx.lineTo(0, height * 0.78 + offsetY * 0.6);
+      duneCtx.bezierCurveTo(
+        width * 0.28 + offsetX * 0.5, height * 0.73 + offsetY * 0.6,
+        width * 0.6 + offsetX * 0.5, height * 0.86 + offsetY * 0.6,
+        width, height * 0.79 + offsetY * 0.6
+      );
+      duneCtx.lineTo(width, height);
+      duneCtx.closePath();
+
+      const duneGrad1 = duneCtx.createLinearGradient(0, height * 0.72, 0, height);
+      duneGrad1.addColorStop(0, '#090e18');
+      duneGrad1.addColorStop(1, '#05070c');
+      duneCtx.fillStyle = duneGrad1;
+      duneCtx.fill();
+      duneCtx.restore();
+
+      // Layer 3: Foreground sweeping midnight dune
+      duneCtx.save();
+      duneCtx.beginPath();
+      duneCtx.moveTo(0, height);
+      duneCtx.lineTo(0, height * 0.89 + offsetY);
+      duneCtx.bezierCurveTo(
+        width * 0.45 + offsetX, height * 0.82 + offsetY,
+        width * 0.75 + offsetX, height * 0.94 + offsetY,
+        width, height * 0.88 + offsetY
+      );
+      duneCtx.lineTo(width, height);
+      duneCtx.closePath();
+
+      const duneGrad2 = duneCtx.createLinearGradient(0, height * 0.82, 0, height);
+      duneGrad2.addColorStop(0, '#07090f');
+      duneGrad2.addColorStop(1, '#020306');
+      duneCtx.fillStyle = duneGrad2;
+      duneCtx.fill();
+      duneCtx.restore();
+    }
+
+    // ================= PARTICLES: EMBERS, SAND DUST & SAGE LEAVES =================
+    class DesertElement {
+      constructor(isInitial = false) {
+        this.reset(isInitial);
+      }
+
+      reset(isInitial = false) {
+        // Types: 0 = glowing campfire ember, 1 = fine mineral sand dust, 2 = desert sage / cedar needle
+        const rand = Math.random();
+        this.type = rand > 0.45 ? 0 : (rand > 0.18 ? 1 : 2);
+
+        this.x = isInitial ? Math.random() * width : Math.random() * width * 1.2 - width * 0.1;
+        // Campfire embers drift upwards from bottom/dunes; foliage & dust sweep across
+        this.y = isInitial ? Math.random() * height : height + 20 + Math.random() * 50;
+
+        this.depth = 0.5 + Math.random() * 0.9;
+        this.angle = Math.random() * Math.PI * 2;
+        this.angularSpeed = (Math.random() - 0.5) * 0.05;
+
+        if (this.type === 0) {
+          // Glowing Ember
+          this.size = (1.5 + Math.random() * 2.8) * this.depth;
+          this.vx = (Math.random() - 0.5) * 0.8;
+          this.vy = -(1.2 + Math.random() * 2.2) * this.depth; // Upward buoyant rise
+          this.life = 1.0;
+          this.decay = 0.003 + Math.random() * 0.007;
+          this.pulse = Math.random() * Math.PI * 2;
+        } else if (this.type === 1) {
+          // Fine Sand / Mica dust
+          this.size = (0.7 + Math.random() * 1.5) * this.depth;
+          this.vx = (0.8 + Math.random() * 1.6) * this.depth;
+          this.vy = -(0.2 + Math.random() * 0.8) * this.depth;
+          this.life = 0.8;
+          this.decay = 0.002 + Math.random() * 0.004;
+          this.pulse = 0;
+        } else {
+          // Desert Sage Needle / Cedar Fragment
+          this.size = (8 + Math.random() * 10) * this.depth;
+          this.vx = (0.7 + Math.random() * 1.4) * this.depth;
+          this.vy = -(0.4 + Math.random() * 0.9) * this.depth;
+          this.flip = Math.random() * Math.PI;
+          this.flipSpeed = 0.02 + Math.random() * 0.04;
+          this.life = 1.0;
+          this.decay = 0.0015 + Math.random() * 0.003;
+        }
+
+        this.updateColor();
+      }
+
+      updateColor() {
+        const pal = palettes[config.activePalette];
+        if (this.type === 0) {
+          this.color = pal.embers[Math.floor(Math.random() * pal.embers.length)];
+        } else if (this.type === 1) {
+          this.color = pal.sparks[Math.floor(Math.random() * pal.sparks.length)];
+        } else {
+          this.color = pal.foliage[Math.floor(Math.random() * pal.foliage.length)];
+        }
+      }
+
+      update() {
+        this.life -= this.decay;
+        this.angle += this.angularSpeed * config.windFactor;
+
+        // Apply wind velocity
+        this.x += (this.vx * config.windFactor + 0.4 * config.windFactor);
+        this.y += (this.vy * config.windFactor);
+
+        if (this.type === 0) {
+          // Ember jitter & sway
+          this.pulse += 0.08;
+          this.x += Math.sin(this.pulse) * 0.65;
+        } else if (this.type === 2) {
+          this.flip += this.flipSpeed * config.windFactor;
+        }
+
+        // Interactive cursor wind vortex
+        const dx = this.x - mouse.x;
+        const dy = this.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < config.repelRadius) {
+          const normDist = 1 - dist / config.repelRadius;
+          const angle = Math.atan2(dy, dx);
+
+          if (config.isVortexActive) {
+            // Desert whirlwind swirling around cursor
+            const tangentAngle = angle + Math.PI / 2;
+            const swirlStrength = normDist * 4.5 * this.depth;
+            const outwardPush = normDist * 2.8 * this.depth;
+
+            this.x += Math.cos(tangentAngle) * swirlStrength + Math.cos(angle) * outwardPush;
+            this.y += Math.sin(tangentAngle) * swirlStrength + Math.sin(angle) * outwardPush;
+          } else {
+            // Direct desert blast displacement
+            const push = normDist * 6.5 * this.depth;
+            this.x += Math.cos(angle) * push;
+            this.y += Math.sin(angle) * push;
+          }
+        }
+
+        // Reset if offscreen or expired
+        if (this.life <= 0 || this.y < -30 || this.x > width + 60 || this.x < -60) {
+          this.reset(false);
+        }
+      }
+
+      draw(c) {
+        c.save();
+        c.translate(this.x, this.y);
+        c.rotate(this.angle);
+
+        if (this.type === 0) {
+          // Luminous Ember with intense glowing core
+          const emberAlpha = Math.max(0, this.life * (Math.sin(this.pulse) * 0.25 + 0.75));
+          c.globalAlpha = emberAlpha;
+          c.shadowColor = this.color;
+          c.shadowBlur = 12 * config.radianceFactor;
+
+          c.fillStyle = this.color;
+          c.beginPath();
+          c.arc(0, 0, this.size, 0, Math.PI * 2);
+          c.fill();
+
+          // White-hot center
+          c.fillStyle = '#ffffff';
+          c.beginPath();
+          c.arc(0, 0, this.size * 0.4, 0, Math.PI * 2);
+          c.fill();
+
+        } else if (this.type === 1) {
+          // Mineral Sand particle
+          c.globalAlpha = this.life * 0.6;
+          c.fillStyle = this.color;
+          c.beginPath();
+          c.arc(0, 0, this.size, 0, Math.PI * 2);
+          c.fill();
+
+        } else {
+          // Dried Desert Sage needle / Cedar splinter
+          const flipScale = Math.sin(this.flip);
+          c.scale(1, Math.abs(flipScale) < 0.15 ? 0.15 : flipScale);
+          c.globalAlpha = this.life * 0.75;
+
+          c.beginPath();
+          c.moveTo(-this.size * 0.5, 0);
+          c.quadraticCurveTo(0, -1.8, this.size * 0.5, 0);
+          c.quadraticCurveTo(0, 1.8, -this.size * 0.5, 0);
+          c.closePath();
+
+          c.fillStyle = this.color;
+          c.fill();
+
+          // Subtle pine needle spine
+          c.beginPath();
+          c.moveTo(-this.size * 0.45, 0);
+          c.lineTo(this.size * 0.45, 0);
+          c.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+          c.lineWidth = 0.5;
+          c.stroke();
+        }
+
+        c.restore();
+      }
+    }
+
+    // Cursor Fast Spark Trail
+    const sparks = [];
+    function addSparks(x, y, count = 1) {
+      const pal = palettes[config.activePalette];
+      for (let i = 0; i < count; i++) {
+        if (sparks.length > 70) sparks.shift();
+        sparks.push({
+          x: x + (Math.random() - 0.5) * 20,
+          y: y + (Math.random() - 0.5) * 20,
+          vx: (Math.random() - 0.5) * 2.2,
+          vy: (Math.random() - 0.5) * 2.2 - 1.2,
+          radius: 1.2 + Math.random() * 2.4,
+          color: pal.sparks[Math.floor(Math.random() * pal.sparks.length)],
+          life: 1.0,
+          decay: 0.025 + Math.random() * 0.03
+        });
+      }
+    }
+
+    let elements = [];
+
+    function syncElementCount() {
+      if (elements.length < config.emberCount) {
+        while (elements.length < config.emberCount) {
+          elements.push(new DesertElement(false));
+        }
+      } else if (elements.length > config.emberCount) {
+        elements.splice(config.emberCount);
+      }
+    }
+
+    function resize() {
+      width = duneCanvas.width = mainCanvas.width = sparkCanvas.width = window.innerWidth;
+      height = duneCanvas.height = mainCanvas.height = sparkCanvas.height = window.innerHeight;
+
+      stars = Array.from({ length: config.starCount }, () => new Star());
+      elements = Array.from({ length: config.emberCount }, () => new DesertElement(true));
+
+      drawDesertDunes();
+    }
+
+    // ================= MAIN ANIMATION LOOP =================
+    function render() {
+      mouse.vx = mouse.targetX - mouse.x;
+      mouse.vy = mouse.targetY - mouse.y;
+      mouse.x += mouse.vx * 0.08;
+      mouse.y += mouse.vy * 0.08;
+
+      // Update Moonlight Corona Position
+      if (ambientGlow) {
+        const xPercent = (mouse.x / width) * 100;
+        const yPercent = (mouse.y / height) * 100;
+        ambientGlow.style.setProperty('--mouse-x', `${xPercent}%`);
+        ambientGlow.style.setProperty('--mouse-y', `${yPercent}%`);
+      }
+
+      // Redraw background dunes with parallax
+      drawDesertDunes();
+
+      mainCtx.clearRect(0, 0, width, height);
+
+      // Render embers, sage needles & sand particles
+      for (let i = 0; i < elements.length; i++) {
+        elements[i].update();
+        elements[i].draw(mainCtx);
+      }
+
+      // Render interactive cursor stardust trail
+      sparkCtx.clearRect(0, 0, width, height);
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const sp = sparks[i];
+        sp.x += sp.vx;
+        sp.y += sp.vy;
+        sp.life -= sp.decay;
+
+        if (sp.life <= 0) {
+          sparks.splice(i, 1);
+          continue;
+        }
+
+        sparkCtx.save();
+        sparkCtx.globalAlpha = sp.life * 0.95;
+        sparkCtx.fillStyle = sp.color;
+        sparkCtx.shadowColor = sp.color;
+        sparkCtx.shadowBlur = 10;
+        sparkCtx.beginPath();
+        sparkCtx.arc(sp.x, sp.y, sp.radius * sp.life, 0, Math.PI * 2);
+        sparkCtx.fill();
+        sparkCtx.restore();
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // ================= POINTER & CLICK INTERACTIONS =================
+    function handlePointer(e) {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      mouse.targetX = clientX;
+      mouse.targetY = clientY;
+
+      addSparks(clientX, clientY, 1);
+      if (mouse.isDown) addSparks(clientX, clientY, 2);
+    }
+
+    window.addEventListener('mousemove', handlePointer, { passive: true });
+    window.addEventListener('touchmove', handlePointer, { passive: true });
+
+    window.addEventListener('mousedown', (e) => {
+      if (e.target.closest('#ambientPopover, #toggleControlsBtn')) return;
+      mouse.isDown = true;
+      triggerEmberBurst(e.clientX, e.clientY, 16);
+    });
+
+    window.addEventListener('mouseup', () => { mouse.isDown = false; });
+
+    // Ember Storm / Burst effect
+    function triggerEmberBurst(x, y, amount = 16) {
+      addSparks(x, y, 24);
+      for (let i = 0; i < amount; i++) {
+        const el = new DesertElement(false);
+        el.type = 0; // Force glowing campfire ember
+        el.x = x + (Math.random() - 0.5) * 30;
+        el.y = y + (Math.random() - 0.5) * 30;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 3.0 + Math.random() * 6.5;
+        el.vx = Math.cos(angle) * speed;
+        el.vy = Math.sin(angle) * speed - 1.5;
+        el.life = 1.0;
+        el.size = 2.0 + Math.random() * 3.2;
+        el.updateColor();
+        elements.push(el);
+      }
+
+      if (elements.length > config.emberCount + 30) {
+        elements.splice(0, amount);
+      }
+    }
+
+    // ================= CONTROLS LOGIC =================
+    const toggleBtn = document.getElementById('toggleControlsBtn');
+    const popover = document.getElementById('ambientPopover');
+    const closeBtn = document.getElementById('closeControlsBtn');
+
+    const windSpeedInput = document.getElementById('windSpeed');
+    const emberDensityInput = document.getElementById('emberDensity');
+    const moonlightRadianceInput = document.getElementById('moonlightRadiance');
+    const toggleVortexBtn = document.getElementById('toggleVortexBtn');
+    const triggerStormBtn = document.getElementById('triggerStormBtn');
+    const paletteButtons = document.querySelectorAll('.palette-btn');
+
+    function toggleMenu(show) {
+      if (show) {
+        popover.classList.remove('hidden');
+        requestAnimationFrame(() => {
+          popover.classList.remove('scale-95', 'opacity-0');
+          popover.classList.add('scale-100', 'opacity-100');
+        });
+      } else {
+        popover.classList.remove('scale-100', 'opacity-100');
+        popover.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => popover.classList.add('hidden'), 250);
+      }
+    }
+
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isClosed = popover.classList.contains('hidden');
+      toggleMenu(isClosed);
+    });
+
+    closeBtn.addEventListener('click', () => toggleMenu(false));
+
+    // Wind Speed Slider
+    windSpeedInput.addEventListener('input', (e) => {
+      config.windFactor = parseFloat(e.target.value);
+      document.getElementById('windVal').textContent =
+        config.windFactor > 2.0 ? 'Desert Gale' : config.windFactor > 1.1 ? 'Night Wind' : 'Nocturnal Breeze';
+    });
+
+    // Ember Density Slider
+    emberDensityInput.addEventListener('input', (e) => {
+      config.emberCount = parseInt(e.target.value, 10);
+      document.getElementById('densityVal').textContent = `${config.emberCount > 130 ? 'Blazing' : config.emberCount > 75 ? 'Campfire' : 'Sparse'} (${config.emberCount})`;
+      syncElementCount();
+    });
+
+    // Moonlight Radiance Slider
+    moonlightRadianceInput.addEventListener('input', (e) => {
+      config.radianceFactor = parseFloat(e.target.value);
+      document.getElementById('radianceVal').textContent =
+        config.radianceFactor > 1.8 ? 'Full Moon' : config.radianceFactor > 1.0 ? 'Luminescent' : 'Deep Twilight';
+    });
+
+    // Scent Palette Switcher
+    paletteButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        paletteButtons.forEach(b => {
+          b.classList.remove('active', 'border-blue-500/80', 'bg-blue-950/40', 'text-white', 'shadow-sm');
+          b.classList.add('border-slate-700/60', 'bg-slate-900/40', 'text-slate-400');
+        });
+        btn.classList.add('active', 'border-blue-500/80', 'bg-blue-950/40', 'text-white', 'shadow-sm');
+        btn.classList.remove('border-slate-700/60', 'bg-slate-900/40', 'text-slate-400');
+
+        config.activePalette = btn.getAttribute('data-palette');
+        elements.forEach(el => el.updateColor());
+      });
+    });
+
+    // Wind Dynamics Vortex Toggle
+    toggleVortexBtn.addEventListener('click', () => {
+      config.isVortexActive = !config.isVortexActive;
+      toggleVortexBtn.textContent = config.isVortexActive ? 'Desert Vortex' : 'Direct Gust';
+      toggleVortexBtn.classList.toggle('border-blue-500/50');
+      toggleVortexBtn.classList.toggle('border-amber-500/50');
+    });
+
+    // Ember Storm Button
+    triggerStormBtn.addEventListener('click', () => {
+      triggerEmberBurst(width * 0.5, height * 0.65, 30);
+      elements.forEach(el => {
+        el.vy = -3.5 - Math.random() * 5.5;
+        el.vx = (Math.random() - 0.5) * 8.0;
+      });
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!popover.contains(e.target) && !toggleBtn.contains(e.target)) {
+        toggleMenu(false);
+      }
+    });
+
+    window.addEventListener('resize', resize);
+
+    window.onload = function() {
+      resize();
+      render();
+    };
+  </script>
+</body>
+</html>

@@ -64,7 +64,13 @@
     }
   };
 
-  const key = new URLSearchParams(location.search).get('collection') || 'men';
+  /* new-arrivals.html names its collection on <body>; collection.html takes ?collection=. */
+  const key = document.body.dataset.collection || new URLSearchParams(location.search).get('collection') || 'men';
+  /* New Arrivals has its own page now; old links to it land there. */
+  if (key === 'new-arrivals' && !document.body.dataset.collection) {
+    location.replace('new-arrivals.html');
+    return;
+  }
   const collection = definitions[key] || definitions.men;
   const products = PRODUCTS.filter(collection.match);
   document.title = `${collection.title.replace(/<[^>]+>/g, '')} | Luxe Perfume`;
@@ -140,6 +146,11 @@
       });
       currentFilter = btn.dataset.filter;
       render();
+      /* As on the old homepage section: choosing men's or women's here also
+         picks the homepage hero's featured set (hero-spotlight.js). */
+      if (key === 'new-arrivals' && (currentFilter === 'men' || currentFilter === 'women')) {
+        try { localStorage.setItem('ul-spotlight-audience', currentFilter); } catch { /* private mode */ }
+      }
     });
   });
 

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YSL MYSLF - Cool Ozone & Architecture Atmosphere</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Montserrat & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Montserrat:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#040608',
+            steel: '#0c131a',
+            iceBlue: '#7ee7f8',
+            ozoneCyan: '#38bdf8',
+            silverMist: '#e2e8f0',
+            bergamotGlow: '#c7f9cc'
+          },
+          fontFamily: {
+            display: ['"Cinzel"', 'serif'],
+            sans: ['"Montserrat"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: #040608;
+      color: #f1f5f9;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Cool Ozone & Ice Silver Ambient Light Bloom */
+    .ambient-cool-glow {
+      background: radial-gradient(circle 800px at var(--mouse-x, 50%) var(--mouse-y, 45%), 
+        rgba(56, 189, 248, 0.16) 0%, 
+        rgba(14, 116, 144, 0.10) 35%, 
+        rgba(15, 23, 42, 0.05) 65%, 
+        transparent 80%);
+      transition: background 0.15s ease-out;
+    }
+
+    /* Wet Asphalt & Obsidian Reflection Vignette */
+    .asphalt-vignette {
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(4, 6, 8, 0.75) 80%, #040608 100%);
+    }
+
+    /* Frosted Ultra-Black Glass & Brushed Steel */
+    .glass-steel {
+      background: rgba(9, 14, 20, 0.82);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(226, 232, 240, 0.18);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.95), 
+                  inset 0 1px 1px rgba(255, 255, 255, 0.12),
+                  0 0 30px rgba(56, 189, 248, 0.1);
+    }
+
+    /* Custom Range Sliders */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 9999px;
+      height: 3px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f8fafc, #38bdf8, #0284c7);
+      cursor: pointer;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.85);
+      border: 1.5px solid #040608;
+      transition: transform 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+      box-shadow: 0 0 18px rgba(126, 231, 248, 1);
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen font-sans bg-obsidian">
+
+  <!-- ================= BACKGROUND LAYERS ================= -->
+  <!-- Layer 0: Mineral Steel & Midnight Deep Gradient -->
+  <div class="fixed inset-0 bg-gradient-to-b from-[#0b1219] via-[#05080c] to-[#020305] z-0"></div>
+
+  <!-- Layer 1: Cursor-Reactive Cool Ozone Cyan Glow -->
+  <div id="ambientGlow" class="fixed inset-0 pointer-events-none z-0 ambient-cool-glow"></div>
+
+  <!-- Layer 2: Architectural Monoliths Canvas -->
+  <canvas id="architectureCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-10"></canvas>
+
+  <!-- Layer 3: Glass Vignette -->
+  <div class="fixed inset-0 z-10 asphalt-vignette pointer-events-none"></div>
+
+  <!-- Layer 4: Main Interactive Canvas (Water Droplets, Facets, Blossom Petals) -->
+  <canvas id="mainCanvas" class="fixed inset-0 w-full h-full pointer-events-auto z-20 cursor-crosshair"></canvas>
+
+  <!-- Layer 5: Cool Electric Silver Spark Trail Canvas -->
+  <canvas id="sparkCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-30"></canvas>
+
+  <!-- ================= TOP-RIGHT MINIMAL CONTROL TRIGGER ================= -->
+  <div class="fixed top-6 right-6 z-40">
+    <button id="toggleControlsBtn" aria-label="MYSLF Atmosphere" class="glass-steel px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs text-slate-200 hover:text-white hover:border-cyan-400/60 transition-all duration-300 shadow-2xl group">
+      <i data-lucide="zap" class="w-3.5 h-3.5 text-iceBlue group-hover:scale-125 transition-transform duration-300"></i>
+      <span class="text-[9.5px] font-sans tracking-[0.28em] uppercase font-semibold text-slate-200">Atmosphere</span>
+    </button>
+  </div>
+
+  <!-- ================= BOTTOM LUXURY INTERACTION HINT ================= -->
+  <div class="fixed bottom-6 left-6 z-40 pointer-events-none flex items-center gap-2.5 text-cyan-200/40 text-[9px] font-sans tracking-[0.28em] uppercase font-light">
+    <span class="w-2 h-2 rounded-full bg-iceBlue animate-ping"></span>
+    <span>Drag to carve ozone wake &bull; Click to trigger cold shockwave</span>
+  </div>
+
+  <!-- ================= FROSTED STEEL ATMOSPHERE DRAWER ================= -->
+  <div id="ambientPopover" class="hidden fixed top-20 right-6 z-50 w-84 max-w-[92vw] glass-steel rounded-2xl p-5 text-slate-200 transition-all duration-300 transform scale-95 opacity-0">
+    <div class="flex justify-between items-center pb-3 border-b border-cyan-500/20">
+      <div class="flex items-center gap-2">
+        <i data-lucide="shield" class="w-3.5 h-3.5 text-iceBlue"></i>
+        <h3 class="text-[10px] font-sans font-bold tracking-[0.26em] uppercase text-slate-100">MYSLF Intense</h3>
+      </div>
+      <button id="closeControlsBtn" class="text-slate-400 hover:text-white transition-colors p-1">
+        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+
+    <!-- Controls Container -->
+    <div class="mt-4 space-y-4 text-xs font-light">
+      
+      <!-- Fragrance Harmonies -->
+      <div>
+        <label class="block text-[9px] font-sans tracking-[0.22em] uppercase text-cyan-400/90 mb-2 font-medium">Fragrance Profile</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button class="palette-btn active py-2.5 px-2.5 text-[9px] font-sans tracking-wider uppercase font-semibold rounded-xl border border-cyan-400/80 bg-cyan-950/40 text-cyan-200 text-left flex items-center gap-2 shadow-[0_0_12px_rgba(56,189,248,0.25)]" data-palette="coolOzone">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-cyan-600 via-sky-400 to-white shadow-[0_0_8px_#38bdf8]"></span>
+            <span>Cool Ozone</span>
+          </button>
+          <button class="palette-btn py-2.5 px-2.5 text-[9px] font-sans tracking-wider uppercase font-semibold rounded-xl border border-slate-700 bg-slate-900/60 hover:bg-slate-800/40 text-slate-400 text-left flex items-center gap-2" data-palette="bergamotCrisp">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-400 to-lime-200 shadow-[0_0_8px_#2dd4bf]"></span>
+            <span>Bergamot Crisp</span>
+          </button>
+          <button class="palette-btn py-2.5 px-2.5 text-[9px] font-sans tracking-wider uppercase font-semibold rounded-xl border border-slate-700 bg-slate-900/60 hover:bg-slate-800/40 text-slate-400 text-left flex items-center gap-2" data-palette="orangeBlossomNight">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-blue-900 via-indigo-400 to-amber-100 shadow-[0_0_8px_#e0e7ff]"></span>
+            <span>Blossom Night</span>
+          </button>
+          <button class="palette-btn py-2.5 px-2.5 text-[9px] font-sans tracking-wider uppercase font-semibold rounded-xl border border-slate-700 bg-slate-900/60 hover:bg-slate-800/40 text-slate-400 text-left flex items-center gap-2" data-palette="steelMonolith">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-black via-slate-500 to-slate-200 shadow-[0_0_8px_#94a3b8]"></span>
+            <span>Steel Monolith</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ozone Breeze Velocity -->
+      <div>
+        <div class="flex justify-between text-[9.5px] font-sans tracking-[0.18em] uppercase text-cyan-200/70 mb-1.5">
+          <span>Ozone Breeze Speed</span>
+          <span id="windVal" class="text-iceBlue font-mono font-medium">1.1x Crisp</span>
+        </div>
+        <input id="windSpeed" type="range" min="0.4" max="2.8" step="0.1" value="1.1" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Droplet & Shard Density -->
+      <div>
+        <div class="flex justify-between text-[9.5px] font-sans tracking-[0.18em] uppercase text-cyan-200/70 mb-1.5">
+          <span>Droplets & Shards</span>
+          <span id="densityVal" class="text-iceBlue font-mono font-medium">Balanced (80)</span>
+        </div>
+        <input id="particleDensity" type="range" min="35" max="150" step="5" value="80" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Cool Radiance Glow -->
+      <div>
+        <div class="flex justify-between text-[9.5px] font-sans tracking-[0.18em] uppercase text-cyan-200/70 mb-1.5">
+          <span>Cool Radiance Glow</span>
+          <span id="radianceVal" class="text-iceBlue font-mono font-medium">Electric Cool</span>
+        </div>
+        <input id="coolRadiance" type="range" min="0.4" max="2.4" step="0.1" value="1.3" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Monolith Architecture Presence -->
+      <div>
+        <div class="flex justify-between text-[9.5px] font-sans tracking-[0.18em] uppercase text-cyan-200/70 mb-1.5">
+          <span>Monolith Reflection</span>
+          <span id="monolithVal" class="text-iceBlue font-mono font-medium">Glossy Specular</span>
+        </div>
+        <input id="monolithPresence" type="range" min="0.2" max="1.0" step="0.05" value="0.7" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Vortex Flow Mode -->
+      <div class="pt-2 border-t border-cyan-500/20 flex items-center justify-between">
+        <span class="text-[9.5px] font-sans tracking-[0.18em] uppercase text-cyan-200/70">Air Vortex</span>
+        <button id="toggleVortexBtn" class="px-3 py-1 rounded-full text-[9px] font-sans tracking-wider uppercase font-bold border border-cyan-400/40 bg-cyan-950/40 text-cyan-200 hover:bg-cyan-900/50 transition-all">
+          Active Wake
+        </button>
+      </div>
+
+      <!-- Cold Blast Shockwave Trigger -->
+      <div class="pt-1">
+        <button id="triggerBurstBtn" class="w-full py-2.5 bg-gradient-to-r from-cyan-500 via-sky-400 to-slate-100 hover:brightness-110 text-black rounded-xl text-[9px] font-sans tracking-[0.26em] uppercase font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_22px_rgba(56,189,248,0.4)]">
+          <i data-lucide="snowflake" class="w-3.5 h-3.5 text-black"></i>
+          <span>Trigger Cold Blast</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT SIMULATION ENGINE ================= -->
+  <script>
+    lucide.createIcons();
+
+    const archCanvas = document.getElementById('architectureCanvas');
+    const archCtx = archCanvas.getContext('2d');
+
+    const mainCanvas = document.getElementById('mainCanvas');
+    const mainCtx = mainCanvas.getContext('2d');
+
+    const sparkCanvas = document.getElementById('sparkCanvas');
+    const sparkCtx = sparkCanvas.getContext('2d');
+
+    const ambientGlow = document.getElementById('ambientGlow');
+
+    let width = 0;
+    let height = 0;
+
+    const config = {
+      particleCount: 80,
+      windFactor: 1.1,
+      radianceFactor: 1.3,
+      monolithFactor: 0.7,
+      isVortexActive: true,
+      activePalette: 'coolOzone',
+      pullRadius: 260
+    };
+
+    const palettes = {
+      coolOzone: {
+        glow: 'rgba(56, 189, 248, 0.16)',
+        droplets: ['rgba(125, 211, 252, 0.75)', 'rgba(186, 230, 253, 0.85)', 'rgba(255, 255, 255, 0.9)'],
+        shards: ['rgba(56, 189, 248, 0.4)', 'rgba(125, 211, 252, 0.6)', 'rgba(224, 242, 254, 0.7)'],
+        blossoms: ['#f8fafc', '#e0f2fe', '#bae6fd'],
+        sparks: ['#38bdf8', '#7dd3fc', '#ffffff', '#e0f2fe'],
+        monolithEdge: 'rgba(56, 189, 248, 0.45)'
+      },
+      bergamotCrisp: {
+        glow: 'rgba(45, 212, 191, 0.16)',
+        droplets: ['rgba(94, 234, 212, 0.75)', 'rgba(167, 243, 208, 0.85)', 'rgba(240, 253, 250, 0.9)'],
+        shards: ['rgba(45, 212, 191, 0.4)', 'rgba(110, 231, 183, 0.6)', 'rgba(204, 251, 241, 0.7)'],
+        blossoms: ['#f0fdf4', '#dcfce7', '#ccfbf1'],
+        sparks: ['#2dd4bf', '#a7f3d0', '#f0fdfa', '#5eead4'],
+        monolithEdge: 'rgba(45, 212, 191, 0.45)'
+      },
+      orangeBlossomNight: {
+        glow: 'rgba(129, 140, 248, 0.16)',
+        droplets: ['rgba(199, 210, 254, 0.75)', 'rgba(224, 231, 255, 0.85)', 'rgba(255, 255, 255, 0.9)'],
+        shards: ['rgba(129, 140, 248, 0.35)', 'rgba(165, 180, 252, 0.55)', 'rgba(254, 243, 199, 0.6)'],
+        blossoms: ['#ffffff', '#fdf4ff', '#fffbeb'],
+        sparks: ['#818cf8', '#c7d2fe', '#fef08a', '#ffffff'],
+        monolithEdge: 'rgba(165, 180, 252, 0.45)'
+      },
+      steelMonolith: {
+        glow: 'rgba(148, 163, 184, 0.15)',
+        droplets: ['rgba(203, 213, 225, 0.7)', 'rgba(241, 245, 249, 0.85)', 'rgba(255, 255, 255, 0.9)'],
+        shards: ['rgba(100, 116, 139, 0.4)', 'rgba(148, 163, 184, 0.6)', 'rgba(226, 232, 240, 0.7)'],
+        blossoms: ['#f8fafc', '#e2e8f0', '#cbd5e1'],
+        sparks: ['#94a3b8', '#cbd5e1', '#ffffff', '#e2e8f0'],
+        monolithEdge: 'rgba(226, 232, 240, 0.5)'
+      }
+    };
+
+    const mouse = {
+      x: window.innerWidth * 0.5,
+      y: window.innerHeight * 0.45,
+      targetX: window.innerWidth * 0.5,
+      targetY: window.innerHeight * 0.45,
+      isDown: false
+    };
+
+    // ================= ARCHITECTURAL MONOLITHS (YSL TOTEM GEOMETRY) =================
+    let monoliths = [];
+
+    class Monolith {
+      constructor(x, y, w, h, depthFactor, bevel) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.depthFactor = depthFactor; // Parallax response
+        this.bevel = bevel;
+      }
+
+      draw(ctx, parallaxX, parallaxY, pal) {
+        ctx.save();
+        const shiftX = (parallaxX - width / 2) * this.depthFactor;
+        const shiftY = (parallaxY - height / 2) * this.depthFactor * 0.4;
+
+        ctx.translate(this.x + shiftX, this.y + shiftY);
+
+        const presence = config.monolithFactor;
+        const grad = ctx.createLinearGradient(0, 0, this.w, this.h);
+        grad.addColorStop(0, `rgba(16, 24, 38, ${0.45 * presence})`);
+        grad.addColorStop(0.5, `rgba(6, 10, 16, ${0.75 * presence})`);
+        grad.addColorStop(1, `rgba(2, 4, 6, ${0.9 * presence})`);
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.rect(0, 0, this.w, this.h);
+        ctx.fill();
+
+        // Sleek specular edge light
+        ctx.strokeStyle = pal.monolithEdge;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.5 * presence;
+        ctx.strokeRect(0, 0, this.w, this.h);
+
+        // Center vertical refraction facet slit (reminiscent of the YSL MYSLF black monolith center facet)
+        const centerGrad = ctx.createLinearGradient(this.w * 0.48, 0, this.w * 0.52, 0);
+        centerGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        centerGrad.addColorStop(0.5, `rgba(255, 255, 255, ${0.25 * presence})`);
+        centerGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = centerGrad;
+        ctx.fillRect(this.w * 0.48, 0, this.w * 0.04, this.h);
+
+        ctx.restore();
+      }
+    }
+
+    function createMonoliths() {
+      monoliths = [];
+      const count = Math.max(4, Math.floor(width / 320));
+      const spacing = width / count;
+
+      for (let i = 0; i < count; i++) {
+        const w = 90 + Math.random() * 80;
+        const h = height * (0.65 + Math.random() * 0.3);
+        const x = spacing * i + (spacing - w) / 2 + (Math.random() - 0.5) * 40;
+        const y = height - h + (Math.random() - 0.5) * 40;
+        const depth = 0.015 + (i % 2) * 0.015;
+        monoliths.push(new Monolith(x, y, w, h + 50, depth, 4));
+      }
+    }
+
+    // ================= MAIN PARTICLES: DROPLETS, GLASS FACETS & BLOSSOMS =================
+    class Particle {
+      constructor(isInitial = false) {
+        this.reset(isInitial);
+      }
+
+      reset(isInitial = false) {
+        const r = Math.random();
+        if (r > 0.55) {
+          this.type = 0; // Pure Ozone Condensation Droplet
+        } else if (r > 0.25) {
+          this.type = 1; // 3D Crystalline Glass Shard / Hexagonal Facet
+        } else {
+          this.type = 2; // Delicate White Orange Blossom Petal
+        }
+
+        this.x = isInitial ? Math.random() * width : Math.random() * width * 1.3 - width * 0.15;
+        this.y = isInitial ? Math.random() * height : -30 - Math.random() * 60;
+
+        this.depth = 0.4 + Math.random() * 0.85;
+        this.angle = Math.random() * Math.PI * 2;
+        this.angularSpeed = (Math.random() - 0.5) * 0.035;
+
+        if (this.type === 0) {
+          // Water Droplet
+          this.size = (2.2 + Math.random() * 4.5) * this.depth;
+          this.vx = (Math.random() - 0.5) * 0.5;
+          this.vy = (1.2 + Math.random() * 2.2) * this.depth;
+          this.life = 1.0;
+          this.decay = 0.0006 + Math.random() * 0.0014;
+        } else if (this.type === 1) {
+          // Glass Facet / Crystalline Shard
+          this.size = (7 + Math.random() * 12) * this.depth;
+          this.aspect = 0.4 + Math.random() * 0.5;
+          this.vx = 0.3 + Math.random() * 0.9;
+          this.vy = (0.8 + Math.random() * 1.6) * this.depth;
+          this.flip = Math.random() * Math.PI;
+          this.flipSpeed = 0.02 + Math.random() * 0.035;
+          this.life = 1.0;
+          this.decay = 0.0008 + Math.random() * 0.0016;
+        } else {
+          // Orange Blossom Petal
+          this.size = (9 + Math.random() * 13) * this.depth;
+          this.vx = 0.4 + Math.random() * 1.0;
+          this.vy = (0.7 + Math.random() * 1.4) * this.depth;
+          this.flip = Math.random() * Math.PI;
+          this.flipSpeed = 0.015 + Math.random() * 0.03;
+          this.sway = Math.random() * Math.PI * 2;
+          this.swaySpeed = 0.02 + Math.random() * 0.03;
+          this.life = 1.0;
+          this.decay = 0.0007 + Math.random() * 0.0015;
+        }
+
+        this.updateColor();
+      }
+
+      updateColor() {
+        const pal = palettes[config.activePalette];
+        if (this.type === 0) {
+          this.color = pal.droplets[Math.floor(Math.random() * pal.droplets.length)];
+        } else if (this.type === 1) {
+          this.color = pal.shards[Math.floor(Math.random() * pal.shards.length)];
+        } else {
+          this.color = pal.blossoms[Math.floor(Math.random() * pal.blossoms.length)];
+        }
+      }
+
+      update() {
+        this.life -= this.decay;
+        this.angle += this.angularSpeed * config.windFactor;
+
+        if (this.type === 0) {
+          this.x += this.vx * config.windFactor;
+          this.y += this.vy * config.windFactor;
+        } else if (this.type === 1) {
+          this.flip += this.flipSpeed * config.windFactor;
+          this.x += this.vx * config.windFactor;
+          this.y += this.vy * config.windFactor;
+        } else {
+          this.sway += this.swaySpeed * config.windFactor;
+          this.flip += this.flipSpeed * config.windFactor;
+          this.x += (this.vx + Math.sin(this.sway) * 1.2) * config.windFactor;
+          this.y += this.vy * config.windFactor;
+        }
+
+        // Pointer Magnetic Wake / Fluid Air Displacement
+        const dx = this.x - mouse.x;
+        const dy = this.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < config.pullRadius) {
+          const norm = 1 - dist / config.pullRadius;
+          const angle = Math.atan2(dy, dx);
+
+          if (config.isVortexActive) {
+            const tangent = angle + Math.PI / 2;
+            const swirl = norm * 4.6 * this.depth;
+            const pull = norm * 1.5 * this.depth;
+            this.x += Math.cos(tangent) * swirl - Math.cos(angle) * pull;
+            this.y += Math.sin(tangent) * swirl - Math.sin(angle) * pull;
+          } else {
+            const push = norm * 5.8 * this.depth;
+            this.x += Math.cos(angle) * push;
+            this.y += Math.sin(angle) * push;
+          }
+        }
+
+        // Reset off-screen or end of life
+        if (this.life <= 0 || this.y > height + 50 || this.x > width + 60 || this.x < -60) {
+          this.reset(false);
+        }
+      }
+
+      draw(c) {
+        c.save();
+        c.translate(this.x, this.y);
+        c.rotate(this.angle);
+
+        if (this.type === 0) {
+          // Ozone Water Droplet / Crisp Condensation Sphere
+          c.globalAlpha = Math.max(0.1, this.life * 0.85);
+          c.shadowColor = '#38bdf8';
+          c.shadowBlur = 9 * config.radianceFactor;
+
+          // Liquid Body
+          c.fillStyle = this.color;
+          c.beginPath();
+          c.arc(0, 0, this.size, 0, Math.PI * 2);
+          c.fill();
+
+          // Specular Glint Highlight
+          c.fillStyle = '#ffffff';
+          c.beginPath();
+          c.arc(-this.size * 0.35, -this.size * 0.35, this.size * 0.35, 0, Math.PI * 2);
+          c.fill();
+
+        } else if (this.type === 1) {
+          // Geometric Glass Facet / Ice Shard
+          const flipScale = Math.sin(this.flip);
+          c.scale(1, Math.abs(flipScale) < 0.15 ? 0.15 : flipScale);
+          c.globalAlpha = Math.max(0.1, this.life * 0.85);
+
+          const s = this.size;
+          c.shadowColor = '#7dd3fc';
+          c.shadowBlur = 10 * config.radianceFactor;
+
+          // Rhombus / Facet Shape
+          c.fillStyle = this.color;
+          c.beginPath();
+          c.moveTo(0, -s);
+          c.lineTo(s * this.aspect, 0);
+          c.lineTo(0, s);
+          c.lineTo(-s * this.aspect, 0);
+          c.closePath();
+          c.fill();
+
+          // Precision Edge Wire
+          c.strokeStyle = '#ffffff';
+          c.lineWidth = 0.8;
+          c.globalAlpha = 0.55;
+          c.stroke();
+
+        } else {
+          // Orange Blossom White Petal
+          const flipScale = Math.cos(this.flip);
+          c.scale(Math.abs(flipScale) < 0.15 ? 0.15 : flipScale, 1);
+          c.globalAlpha = Math.max(0.1, this.life * 0.82);
+
+          const s = this.size;
+          c.shadowColor = '#e0f2fe';
+          c.shadowBlur = 12 * config.radianceFactor;
+
+          // Curved floral petal contour
+          c.fillStyle = this.color;
+          c.beginPath();
+          c.moveTo(0, -s);
+          c.bezierCurveTo(s * 0.5, -s * 0.6, s * 0.6, s * 0.2, 0, s);
+          c.bezierCurveTo(-s * 0.6, s * 0.2, -s * 0.5, -s * 0.6, 0, -s);
+          c.fill();
+
+          // Tender central spine
+          c.strokeStyle = '#38bdf8';
+          c.lineWidth = 0.7;
+          c.globalAlpha = 0.35;
+          c.beginPath();
+          c.moveTo(0, -s * 0.8);
+          c.lineTo(0, s * 0.8);
+          c.stroke();
+        }
+
+        c.restore();
+      }
+    }
+
+    // ================= COOL ELECTRIC SILVER / CYAN TRAIL =================
+    const sparks = [];
+    function addSparks(x, y, count = 1) {
+      const pal = palettes[config.activePalette];
+      for (let i = 0; i < count; i++) {
+        if (sparks.length > 80) sparks.shift();
+        sparks.push({
+          x: x + (Math.random() - 0.5) * 14,
+          y: y + (Math.random() - 0.5) * 14,
+          vx: (Math.random() - 0.5) * 1.8,
+          vy: (Math.random() - 0.5) * 1.8 - 0.6,
+          radius: 1.2 + Math.random() * 2.2,
+          color: pal.sparks[Math.floor(Math.random() * pal.sparks.length)],
+          life: 1.0,
+          decay: 0.025 + Math.random() * 0.03
+        });
+      }
+    }
+
+    let particles = [];
+
+    function syncParticleCount() {
+      if (particles.length < config.particleCount) {
+        while (particles.length < config.particleCount) {
+          particles.push(new Particle(false));
+        }
+      } else if (particles.length > config.particleCount) {
+        particles.splice(config.particleCount);
+      }
+    }
+
+    function resize() {
+      width = archCanvas.width = mainCanvas.width = sparkCanvas.width = window.innerWidth;
+      height = archCanvas.height = mainCanvas.height = sparkCanvas.height = window.innerHeight;
+
+      createMonoliths();
+      particles = Array.from({ length: config.particleCount }, () => new Particle(true));
+    }
+
+    // ================= MAIN ANIMATION LOOP =================
+    function render() {
+      mouse.x += (mouse.targetX - mouse.x) * 0.08;
+      mouse.y += (mouse.targetY - mouse.y) * 0.08;
+
+      // Update Cursor Cool Bloom
+      if (ambientGlow) {
+        const xPercent = (mouse.x / width) * 100;
+        const yPercent = (mouse.y / height) * 100;
+        ambientGlow.style.setProperty('--mouse-x', `${xPercent}%`);
+        ambientGlow.style.setProperty('--mouse-y', `${yPercent}%`);
+      }
+
+      // 1. Render Architectural Monoliths with Parallax
+      archCtx.clearRect(0, 0, width, height);
+      const activePal = palettes[config.activePalette];
+      for (let mono of monoliths) {
+        mono.draw(archCtx, mouse.x, mouse.y, activePal);
+      }
+
+      // 2. Render Droplets, Shards, and Blossom Petals
+      mainCtx.clearRect(0, 0, width, height);
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+        particles[i].draw(mainCtx);
+      }
+
+      // 3. Render Cool Spark Trail
+      sparkCtx.clearRect(0, 0, width, height);
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const sp = sparks[i];
+        sp.x += sp.vx;
+        sp.y += sp.vy;
+        sp.life -= sp.decay;
+
+        if (sp.life <= 0) {
+          sparks.splice(i, 1);
+          continue;
+        }
+
+        sparkCtx.save();
+        sparkCtx.globalAlpha = sp.life * 0.9;
+        sparkCtx.fillStyle = sp.color;
+        sparkCtx.shadowColor = sp.color;
+        sparkCtx.shadowBlur = 12 * config.radianceFactor;
+        sparkCtx.beginPath();
+        sparkCtx.arc(sp.x, sp.y, sp.radius * sp.life, 0, Math.PI * 2);
+        sparkCtx.fill();
+        sparkCtx.restore();
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // ================= POINTER & COLD SHOCKWAVE =================
+    function handlePointer(e) {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      mouse.targetX = clientX;
+      mouse.targetY = clientY;
+
+      addSparks(clientX, clientY, 1);
+      if (mouse.isDown) addSparks(clientX, clientY, 2);
+    }
+
+    window.addEventListener('mousemove', handlePointer, { passive: true });
+    window.addEventListener('touchmove', handlePointer, { passive: true });
+
+    window.addEventListener('mousedown', (e) => {
+      if (e.target.closest('#ambientPopover, #toggleControlsBtn')) return;
+      mouse.isDown = true;
+      triggerColdBlast(e.clientX, e.clientY, 20);
+    });
+
+    window.addEventListener('mouseup', () => { mouse.isDown = false; });
+
+    // Cold Blast Shockwave
+    function triggerColdBlast(x, y, count = 22) {
+      addSparks(x, y, 28);
+      for (let i = 0; i < count; i++) {
+        const p = new Particle(false);
+        p.x = x + (Math.random() - 0.5) * 35;
+        p.y = y + (Math.random() - 0.5) * 35;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 3.2 + Math.random() * 7.5;
+        p.vx = Math.cos(angle) * speed;
+        p.vy = Math.sin(angle) * speed;
+        p.life = 1.0;
+        p.updateColor();
+        particles.push(p);
+      }
+
+      if (particles.length > config.particleCount + 35) {
+        particles.splice(0, count);
+      }
+    }
+
+    // ================= UI CONSOLE LOGIC =================
+    const toggleBtn = document.getElementById('toggleControlsBtn');
+    const popover = document.getElementById('ambientPopover');
+    const closeBtn = document.getElementById('closeControlsBtn');
+
+    const windSpeedInput = document.getElementById('windSpeed');
+    const particleDensityInput = document.getElementById('particleDensity');
+    const coolRadianceInput = document.getElementById('coolRadiance');
+    const monolithPresenceInput = document.getElementById('monolithPresence');
+    const toggleVortexBtn = document.getElementById('toggleVortexBtn');
+    const triggerBurstBtn = document.getElementById('triggerBurstBtn');
+    const paletteButtons = document.querySelectorAll('.palette-btn');
+
+    function toggleMenu(show) {
+      if (show) {
+        popover.classList.remove('hidden');
+        requestAnimationFrame(() => {
+          popover.classList.remove('scale-95', 'opacity-0');
+          popover.classList.add('scale-100', 'opacity-100');
+        });
+      } else {
+        popover.classList.remove('scale-100', 'opacity-100');
+        popover.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => popover.classList.add('hidden'), 250);
+      }
+    }
+
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isClosed = popover.classList.contains('hidden');
+      toggleMenu(isClosed);
+    });
+
+    closeBtn.addEventListener('click', () => toggleMenu(false));
+
+    // Sliders
+    windSpeedInput.addEventListener('input', (e) => {
+      config.windFactor = parseFloat(e.target.value);
+      document.getElementById('windVal').textContent = `${config.windFactor.toFixed(1)}x Crisp`;
+    });
+
+    particleDensityInput.addEventListener('input', (e) => {
+      config.particleCount = parseInt(e.target.value, 10);
+      document.getElementById('densityVal').textContent = `${config.particleCount > 110 ? 'Dense Ozone' : config.particleCount > 65 ? 'Balanced' : 'Minimal'} (${config.particleCount})`;
+      syncParticleCount();
+    });
+
+    coolRadianceInput.addEventListener('input', (e) => {
+      config.radianceFactor = parseFloat(e.target.value);
+      document.getElementById('radianceVal').textContent =
+        config.radianceFactor > 1.8 ? 'Hyper Neon' : config.radianceFactor > 1.0 ? 'Electric Cool' : 'Subtle Steel';
+    });
+
+    monolithPresenceInput.addEventListener('input', (e) => {
+      config.monolithFactor = parseFloat(e.target.value);
+      document.getElementById('monolithVal').textContent =
+        config.monolithFactor > 0.8 ? 'High Contrast' : config.monolithFactor > 0.45 ? 'Glossy Specular' : 'Misty Silhouette';
+    });
+
+    // Palette Switcher
+    paletteButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        paletteButtons.forEach(b => {
+          b.classList.remove('active', 'border-cyan-400/80', 'bg-cyan-950/40', 'text-cyan-200', 'shadow-[0_0_12px_rgba(56,189,248,0.25)]');
+          b.classList.add('border-slate-700', 'bg-slate-900/60', 'text-slate-400');
+        });
+        btn.classList.add('active', 'border-cyan-400/80', 'bg-cyan-950/40', 'text-cyan-200', 'shadow-[0_0_12px_rgba(56,189,248,0.25)]');
+        btn.classList.remove('border-slate-700', 'bg-slate-900/60', 'text-slate-400');
+
+        config.activePalette = btn.getAttribute('data-palette');
+        particles.forEach(p => p.updateColor());
+      });
+    });
+
+    // Wind Dynamics Toggle
+    toggleVortexBtn.addEventListener('click', () => {
+      config.isVortexActive = !config.isVortexActive;
+      toggleVortexBtn.textContent = config.isVortexActive ? 'Active Wake' : 'Free Gust';
+      toggleVortexBtn.classList.toggle('border-cyan-400/40');
+      toggleVortexBtn.classList.toggle('border-slate-500/40');
+    });
+
+    // Cold Blast Burst
+    triggerBurstBtn.addEventListener('click', () => {
+      triggerColdBlast(width * 0.5, height * 0.45, 32);
+      particles.forEach(p => {
+        p.vx = (Math.random() - 0.5) * 7.0;
+        p.vy = (Math.random() - 0.5) * 6.0 + 2.0;
+      });
+    });
+
+    // Close popover on outside click
+    document.addEventListener('click', (e) => {
+      if (!popover.contains(e.target) && !toggleBtn.contains(e.target)) {
+        toggleMenu(false);
+      }
+    });
+
+    window.addEventListener('resize', resize);
+
+    window.onload = function() {
+      resize();
+      render();
+    };
+  </script>
+</body>
+</html>

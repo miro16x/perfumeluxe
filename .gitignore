@@ -2,3 +2,8 @@
 node_modules/
 .wrangler/
 *.log
+
+# Original 3D models (20–45 MB each, from Meshy). Only the compressed copies
+# in models/web/ are committed and published; see models/README.md.
+/models/*.glb
+.preview-*.html

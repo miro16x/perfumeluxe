@@ -1167,7 +1167,7 @@ renderWishlist();
    need fixing. Force real rendering — full catalogue plus real layout on
    every skipped section on the page — before computing the jump, then let
    whichever end up off-screen go back to being skipped once painted. */
-const CV_SECTIONS = '.collections,.brands,.new-arrivals,.ai-finder,.bestsellers,.shop-browse,.story,.process,.testimonials,.newsletter,.footer';
+const CV_SECTIONS = '.collections,.brands,.new-arrivals,.ai-finder,.bestsellers,.shop-browse,.story,.testimonials,.newsletter,.footer';
 
 function scrollToTarget(target) {
   const shop = document.getElementById('shop');
@@ -1213,161 +1213,6 @@ document.querySelector('.shard-stage')?.addEventListener('click', (event) => {
   scrollToTarget(target);
   history.pushState(null, '', hash);
 });
-
-/* ── IMAGE STREAM HERO ──────────────────────────────── */
-(function initImageStreamHero() {
-  const corridor = document.getElementById('streamCorridor');
-  if (!corridor) return;
-
-  const images = [
-    ['images/pradaparadoxeintense2.jpg.webp', 'Prada Paradoxe Intense'],
-    ['images/jadoreedp2.jpg.webp', 'Dior J’adore'],
-    ['images/floragardenia2.jpg', 'Gucci Flora Gorgeous Gardenia'],
-    ['images/chanceeautendreedt2.jpg', 'Chanel Chance Eau Tendre'],
-    ['images/n5edp2.jpg', 'Chanel N°5'],
-    ['images/libreleparfum2.jpg', 'Yves Saint Laurent Libre'],
-    ['images/valentinouomobiredt2.jpg.webp', 'Valentino Uomo Born in Roma'],
-    ['images/muglerangelstellar2.webp', 'Mugler Angel Stellar'],
-    ['images/kenzofloweredp2.jpg', 'Kenzo Flower']
-  ];
-  const path = { perspective:30, cardWidth:18, cardHeight:25, birthHeight:2.6, exitHeight:46, railBirth:-11, railExit:44, fan:3.3, turnBirth:6, turnExit:28 };
-  const cards = 9;
-  const duration = 18000;
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const streamCards = [];
-  const imageReady = [];
-
-  [-1, 1].forEach((direction) => {
-    images.forEach(([src, alt], index) => {
-      const card = document.createElement('figure');
-      card.className = 'stream-card';
-      card.style.cssText = `width:${path.cardWidth}cqw;height:${path.cardHeight}cqw;margin-left:${-path.cardWidth / 2}cqw;margin-top:${-path.cardHeight / 2}cqw`;
-      card.innerHTML = `<img src="${src}" alt="${alt}" loading="eager" decoding="async">`;
-      const image = card.querySelector('img');
-      image.addEventListener('error', () => {
-        image.src = 'images/n5edp2.jpg';
-        image.alt = 'Chanel N°5';
-      }, { once:true });
-      imageReady.push(image.decode ? image.decode().catch(() => undefined) : Promise.resolve());
-      corridor.appendChild(card);
-
-      streamCards.push({ card, direction, index });
-    });
-  });
-
-  function renderStream(elapsed) {
-    streamCards.forEach(({ card, direction, index }) => {
-      const u = ((elapsed / duration) + (index / cards)) % 1;
-      const scale = (path.birthHeight / path.cardHeight) * Math.pow(path.exitHeight / path.birthHeight, u);
-      const z = path.perspective * (1 - 1 / scale);
-      const rail = path.railExit - (path.railExit - path.railBirth) * Math.pow(1 - u, path.fan);
-      const turn = path.turnBirth + (path.turnExit - path.turnBirth) * u;
-      card.style.transform = `translate3d(${direction * rail}cqw,0,${z}cqw) rotateY(${-direction * turn}deg)`;
-    });
-  }
-
-  Promise.all(imageReady).then(() => {
-    renderStream(0);
-    corridor.classList.add('stream-corridor-ready');
-    if (reducedMotion) return;
-
-    /* Every card is derived from this one clock, so spacing cannot drift or collapse. */
-    let origin;
-    function tick(now) {
-      if (origin === undefined) origin = now;
-      renderStream(now - origin);
-      requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  });
-})();
-
-/* ── BEST SELLERS CAROUSEL ─────────────────────────── */
-(function initBestSellersCarousel() {
-  const track = document.getElementById('productsGrid');
-  const prev = document.getElementById('bestPrev');
-  const next = document.getElementById('bestNext');
-  const dots = document.getElementById('bestDots');
-  if (!track || !prev || !next || !dots) return;
-
-  if (typeof PRODUCTS !== 'undefined' && typeof renderProductCard !== 'undefined') {
-    const bestSellers = PRODUCTS.filter((p) => p.badgeText === 'Best Seller');
-    if (bestSellers.length) {
-      track.innerHTML = bestSellers.map((p) => renderProductCard(p)).join('');
-      track.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'));
-      track.querySelectorAll('.product-wish').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const active = btn.classList.toggle('wished');
-          const path = btn.querySelector('svg path');
-          if (path) path.setAttribute('fill', active ? 'var(--gold)' : 'none');
-          btn.style.color = active ? 'var(--gold)' : '';
-          btn.style.borderColor = active ? 'var(--gold)' : '';
-          btn.setAttribute('aria-pressed', active);
-        });
-      });
-    }
-  }
-
-  const cards = Array.from(track.querySelectorAll('.product-card'));
-  if (!cards.length) return;
-
-  /* The shared coverflow controller below owns layout and navigation. */
-  return;
-
-  function cardsPerView() {
-    if (window.matchMedia('(max-width: 480px)').matches) return 1;
-    if (window.matchMedia('(max-width: 1100px)').matches) return 2;
-    return 3;
-  }
-
-  function pageCount() {
-    return Math.max(1, Math.ceil(cards.length / cardsPerView()));
-  }
-
-  function activePage() {
-    const first = cards[0];
-    const gap = parseFloat(getComputedStyle(track).columnGap || '0');
-    const step = first.offsetWidth + gap;
-    return Math.min(pageCount() - 1, Math.round(track.scrollLeft / (step * cardsPerView())));
-  }
-
-  function scrollToPage(page) {
-    const perView = cardsPerView();
-    const index = Math.min(cards.length - 1, page * perView);
-    track.scrollTo({ left: cards[index].offsetLeft - track.offsetLeft, behavior: 'smooth' });
-  }
-
-  function renderDots() {
-    dots.innerHTML = Array.from({ length: pageCount() }, (_, i) =>
-      `<button class="carousel-dot" type="button" aria-label="Show best sellers page ${i + 1}"></button>`
-    ).join('');
-    dots.querySelectorAll('.carousel-dot').forEach((dot, i) => {
-      dot.addEventListener('click', () => scrollToPage(i));
-    });
-  }
-
-  function updateControls() {
-    const page = activePage();
-    const pages = pageCount();
-    prev.disabled = page === 0;
-    next.disabled = page >= pages - 1;
-    dots.querySelectorAll('.carousel-dot').forEach((dot, i) => {
-      dot.classList.toggle('active', i === page);
-      dot.setAttribute('aria-current', i === page ? 'true' : 'false');
-    });
-  }
-
-  prev.addEventListener('click', () => scrollToPage(Math.max(0, activePage() - 1)));
-  next.addEventListener('click', () => scrollToPage(Math.min(pageCount() - 1, activePage() + 1)));
-  track.addEventListener('scroll', () => requestAnimationFrame(updateControls), { passive: true });
-  window.addEventListener('resize', () => {
-    renderDots();
-    updateControls();
-  });
-
-  renderDots();
-  updateControls();
-})();
 
 /* ── MULTI-LAYER PARALLAX ───────────────────────────── */
 const heroBottlesBg       = document.getElementById('heroBottlesBg');
@@ -1754,7 +1599,13 @@ const PRICE_LABELS = {
     return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(i => i.value);
   }
 
+  /* "Best Sellers" is the products carrying the Best Seller badge in products-data.js. */
+  const FEATURED = {
+    'best-sellers': { label: 'Best Sellers', test: (p) => p.badgeText === 'Best Seller' }
+  };
+
   function applyFilters() {
+    const featured = getChecked('featured');
     const categories = getChecked('category');
     const brands  = getChecked('brand');
     const prices  = getChecked('price');
@@ -1765,6 +1616,7 @@ const PRICE_LABELS = {
 
     const filtered = PRODUCTS.filter(p => {
       if (searchTerm && searchMatchScore(p, searchTerm) === -1)                  return false;
+      if (featured.length && !featured.some(f => FEATURED[f]?.test(p)))          return false;
       if (categories.length && !categories.includes(p.category))                 return false;
       if (brands.length  && !brands.includes(p.brandKey))                        return false;
       if (prices.length  && !prices.some(r => p.sizes.some(s => priceInRange(s.price, r)))) return false;
@@ -1786,6 +1638,7 @@ const PRICE_LABELS = {
     /* Active filter chips */
     const allActive = [
       ...(searchTerm ? [{ cat:'search', val:searchTerm, label:`Search: “${escapeHTML(searchRaw)}”` }] : []),
+      ...featured.map(v => ({ cat:'featured', val:v, label:FEATURED[v]?.label || v })),
       ...categories.map(v => ({ cat:'category', val:v, label:CATEGORY_LABELS[v] || v })),
       ...brands.map(v  => ({ cat:'brand',  val:v, label:v.charAt(0).toUpperCase()+v.slice(1) })),
       ...prices.map(v  => ({ cat:'price',  val:v, label:PRICE_LABELS[v] || v })),
@@ -1826,6 +1679,33 @@ const PRICE_LABELS = {
     return copy;
   }
 
+  /* On phones and tablets the toolbar pins under the header (styles.css);
+     mark it while pinned so it gets a dividing line. */
+  const toolbar = document.querySelector('.shop-toolbar');
+  if (toolbar && 'IntersectionObserver' in window) {
+    const marker = document.createElement('div');
+    marker.className = 'shop-toolbar-marker';
+    marker.setAttribute('aria-hidden', 'true');
+    toolbar.before(marker);
+    new IntersectionObserver(([entry]) => {
+      const headerHeight = parseFloat(getComputedStyle(toolbar).top) || 0;
+      toolbar.classList.toggle('is-stuck', !entry.isIntersecting && entry.boundingClientRect.top < headerHeight + 1);
+    }, { rootMargin: '-80px 0px 0px 0px' }).observe(marker);
+  }
+
+  /* Cards per row (the view switch). Remembered on this device only. */
+  const VIEW_KEY = 'ul-shop-density';
+  const viewButtons = document.querySelectorAll('.shop-view-btn');
+  function setDensity(density) {
+    grid.dataset.density = density;
+    viewButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.density === density)));
+  }
+  viewButtons.forEach((btn) => btn.addEventListener('click', () => {
+    setDensity(btn.dataset.density);
+    try { localStorage.setItem(VIEW_KEY, btn.dataset.density); } catch { /* private mode */ }
+  }));
+  try { if (localStorage.getItem(VIEW_KEY) === 'compact') setDensity('compact'); } catch { /* private mode */ }
+
   /* Removing the search chip also drops ?q= so a refresh doesn't bring it back. */
   function clearSearchTerm() {
     searchRaw = '';
@@ -1834,6 +1714,14 @@ const PRICE_LABELS = {
     url.searchParams.delete('q');
     history.replaceState(null, '', url);
   }
+
+  /* The footer's Best Sellers link arrives as ?featured=best-sellers. */
+  const requestedFeatured = params.get('featured');
+  const featuredInput = requestedFeatured && document.querySelector(`input[name="featured"][value="${CSS.escape(requestedFeatured)}"]`);
+  if (featuredInput) featuredInput.checked = true;
+  document.querySelectorAll('[data-featured-count]').forEach((el) => {
+    el.textContent = PRODUCTS.filter((p) => FEATURED[el.dataset.featuredCount]?.test(p)).length;
+  });
 
   /* A product detail page can link directly to a brand's complete catalog. */
   const requestedBrand = params.get('brand');
@@ -2026,6 +1914,9 @@ const PRICE_LABELS = {
         });
       });
     }
+
+    /* The quiz's men's or women's answer also picks the hero's featured set. */
+    window.ulSpotlight?.choose({ masculine: 'men', feminine: 'women' }[answers.gender]);
 
     /* Offer to save these answers as the account's scent profile (auth.js). */
     window.ulOfferQuizProfile?.({
@@ -2421,82 +2312,10 @@ document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
   });
 })();
 
-/* ── NEW ARRIVALS: gender filter, sort, see more ─────── */
-(function initNewArrivalsControls() {
-  const grid       = document.getElementById('newArrivalsGrid');
-  const filterBtns = document.querySelectorAll('#newArrivalsFilters .gender-pill');
-  const sortSelect = document.getElementById('newArrivalsSort');
-  if (!grid) return;
-
-  /* Use the same shared card renderer as Best Sellers so both sections stay
-     structurally and visually identical as the catalog evolves. */
-  if (typeof PRODUCTS !== 'undefined' && typeof renderProductCard === 'function') {
-    const arrivals = PRODUCTS.filter((product) => product.badgeText === 'New');
-    if (arrivals.length) {
-      grid.innerHTML = arrivals.map((product) => renderProductCard(product)).join('');
-      grid.querySelectorAll('.reveal').forEach((element) => element.classList.add('visible'));
-      grid.querySelectorAll('.product-wish').forEach((button) => {
-        button.addEventListener('click', () => {
-          const active = button.classList.toggle('wished');
-          const path = button.querySelector('svg path');
-          if (path) path.setAttribute('fill', active ? 'var(--gold)' : 'none');
-          button.style.color = active ? 'var(--gold)' : '';
-          button.style.borderColor = active ? 'var(--gold)' : '';
-          button.setAttribute('aria-pressed', active);
-        });
-      });
-    }
-  }
-
-  const INITIAL_VISIBLE = 12;
-  const cards = Array.from(grid.querySelectorAll('.product-card'));
-  cards.forEach((card, i) => { card.dataset.order = i; });
-
-  let currentGender = 'all';
-  let currentSort   = 'featured';
-
-  function apply() {
-    let matching = cards.filter((c) => currentGender === 'all' || c.dataset.gender === currentGender);
-
-    matching = matching.slice().sort((a, b) => currentSort === 'newest'
-      ? parseInt(b.dataset.id, 10) - parseInt(a.dataset.id, 10)
-      : parseInt(a.dataset.order, 10) - parseInt(b.dataset.order, 10));
-
-    cards.forEach((card) => {
-      const idx = matching.indexOf(card);
-      if (idx === -1 || idx >= INITIAL_VISIBLE) {
-        card.classList.add('na-hidden');
-      } else {
-        card.classList.remove('na-hidden');
-        card.style.order = idx;
-      }
-    });
-
-    grid.dispatchEvent(new CustomEvent('coverflow:refresh'));
-  }
-
-  filterBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      filterBtns.forEach((b) => b.classList.remove('gender-pill-active'));
-      btn.classList.add('gender-pill-active');
-      currentGender = btn.dataset.filterGender;
-      apply();
-    });
-  });
-
-  sortSelect?.addEventListener('change', () => {
-    currentSort = sortSelect.value;
-    apply();
-  });
-
-  apply();
-})();
-
 /* ── SHARED 3D COVERFLOW ─────────────────────────────── */
 (function initProductCoverflows() {
   function setup(track, prev, next, dots) {
     if (!track) return;
-    const useAlignedSideCards = track.id === 'newArrivalsGrid';
     let cards = [];
     let position = 0;
     let target = 0;
@@ -2517,14 +2336,7 @@ document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
         const distance = Math.abs(offset);
         const ramp = Math.pow(distance, .58);
         const tilt = Math.min(46 * ramp, 78) * Math.sign(offset);
-        if (useAlignedSideCards) {
-          const scale = Math.max(.82, 1 - distance * .08);
-          card.style.transformOrigin = 'center top';
-          card.style.transform = `translateX(calc(-50% + ${offset * pitch}px)) translateZ(${-cardWidth * .3 * ramp}px) scale(${scale})`;
-        } else {
-          card.style.transformOrigin = '';
-          card.style.transform = `translateX(calc(-50% + ${offset * pitch}px)) translateZ(${-cardWidth * .56 * ramp}px) rotateY(${-tilt}deg)`;
-        }
+        card.style.transform = `translateX(calc(-50% + ${offset * pitch}px)) translateZ(${-cardWidth * .56 * ramp}px) rotateY(${-tilt}deg)`;
         card.style.opacity = String(distance > 4 ? 0 : Math.max(.12, 1 - distance * .16));
         card.style.zIndex = String(100 - Math.round(distance * 10));
         card.style.visibility = distance > 4 ? 'hidden' : 'visible';
@@ -2621,8 +2433,6 @@ document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
     refresh();
   }
 
-  setup(document.getElementById('newArrivalsGrid'), document.getElementById('newArrivalsPrev'), document.getElementById('newArrivalsNext'), document.getElementById('newArrivalsDots'));
-  setup(document.getElementById('productsGrid'), document.getElementById('bestPrev'), document.getElementById('bestNext'), document.getElementById('bestDots'));
   /* Filled later by auth.js (renderRecommendations), which fires coverflow:refresh. */
   setup(document.getElementById('recommendedGrid'), document.getElementById('recommendedPrev'), document.getElementById('recommendedNext'), document.getElementById('recommendedDots'));
 })();
@@ -2633,9 +2443,17 @@ document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
    shop grid renders or any content-visibility section unskips, so it lands
    short exactly like an in-page click once did. Redo it with scrollToTarget
    now that the page's own init above has run. */
+/* Sections that moved off the homepage to their own pages: old links and
+   bookmarks to them follow. */
+const MOVED_SECTIONS = {
+  '#new-arrivals': 'new-arrivals.html',
+  '#collections': 'collections.html',
+  '#bestsellers': 'shop.html?featured=best-sellers'
+};
 if (location.hash && location.hash !== '#') {
   const hashTarget = document.querySelector(location.hash);
   if (hashTarget) scrollToTarget(hashTarget);
+  else if (document.getElementById('hero') && MOVED_SECTIONS[location.hash]) location.replace(MOVED_SECTIONS[location.hash]);
 }
 
 /* ── RETURN FROM PAYPAL CHECKOUT ─────────────────────── */

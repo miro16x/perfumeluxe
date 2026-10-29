@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rabanne 1 Million Black - Starstruck Gold Atmosphere</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Cinzel & Montserrat for high-end luxury typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Montserrat:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            pitch: '#030304',
+            onyx: '#08080a',
+            obsidian: '#0f0f13',
+            carbon: '#18181c',
+            gold24k: '#ffd700',
+            moltengold: '#e5a919',
+            amberpure: '#ff9400',
+            champagne: '#fff1c5'
+          },
+          fontFamily: {
+            display: ['"Cinzel"', 'serif'],
+            sans: ['"Montserrat"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: #030304;
+      color: #f1f5f9;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Radiant Molten 24K Gold Cursor Ambient Halo */
+    .ambient-gold-glow {
+      background: radial-gradient(circle 850px at var(--mouse-x, 50%) var(--mouse-y, 45%), 
+        rgba(255, 200, 35, 0.16) 0%, 
+        rgba(212, 155, 20, 0.09) 35%, 
+        rgba(15, 15, 19, 0.04) 65%, 
+        transparent 80%);
+      transition: background 0.15s ease-out;
+    }
+
+    /* Metallic Black Vignette */
+    .black-vignette {
+      background: radial-gradient(circle at center, transparent 30%, rgba(3, 3, 4, 0.6) 75%, #030304 100%);
+    }
+
+    /* Frosted Onyx Glassmorphism with 24K Gold Edge */
+    .glass-onyx-gold {
+      background: rgba(10, 10, 13, 0.84);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(229, 169, 25, 0.3);
+      box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.95), 
+                  inset 0 1px 1px rgba(255, 225, 120, 0.15),
+                  0 0 25px rgba(229, 169, 25, 0.12);
+    }
+
+    /* Ultra-luxurious Gold Range Slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: rgba(30, 30, 36, 0.9);
+      border-radius: 9999px;
+      height: 3px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fff2cc, #ffd700, #b8860b);
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.75);
+      border: 1.5px solid #08080a;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+      box-shadow: 0 0 16px rgba(255, 220, 40, 0.95);
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen font-sans bg-pitch">
+
+  <!-- ================= CANVAS & AMBIENT LAYERS ================= -->
+  <!-- Layer 0: Multi-shade Black & Metallic Charcoal Horizon Base -->
+  <div class="fixed inset-0 bg-gradient-to-b from-[#020203] via-[#08080b] to-[#040405] z-0"></div>
+
+  <!-- Layer 1: Cursor-Reactive Molten Gold Radiant Bloom -->
+  <div id="ambientGlow" class="fixed inset-0 pointer-events-none z-0 ambient-gold-glow"></div>
+
+  <!-- Layer 2: Deep Dark Vignette for Cinematic Black Contrast -->
+  <div class="fixed inset-0 z-0 black-vignette pointer-events-none"></div>
+
+  <!-- Layer 3: Starstruck Celestial Field (Stars, Constellations & Nebula Dust) -->
+  <canvas id="starCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-10"></canvas>
+
+  <!-- Layer 4: Main 3D Gold Shards, Bullion Flakes & Molten Embers Simulation -->
+  <canvas id="mainCanvas" class="fixed inset-0 w-full h-full pointer-events-auto z-20 cursor-crosshair"></canvas>
+
+  <!-- Layer 5: Fast Stardust Sparks Trail Canvas -->
+  <canvas id="sparkCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-30"></canvas>
+
+  <!-- ================= TOP-RIGHT MINIMAL CONTROL TRIGGER ================= -->
+  <div class="fixed top-6 right-6 z-40">
+    <button id="toggleControlsBtn" aria-label="1 Million Black Atmosphere" class="glass-onyx-gold px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs text-amber-200/90 hover:text-white hover:border-amber-400/60 transition-all duration-300 shadow-2xl group">
+      <i data-lucide="sparkles" class="w-3.5 h-3.5 text-gold24k group-hover:scale-125 transition-transform duration-300"></i>
+      <span class="text-[9.5px] font-display tracking-[0.28em] uppercase font-bold text-amber-100">Atmosphere</span>
+    </button>
+  </div>
+
+  <!-- ================= BOTTOM LUXURY INTERACTION HINT ================= -->
+  <div class="fixed bottom-6 left-6 z-40 pointer-events-none flex items-center gap-2.5 text-amber-200/50 text-[9px] font-display tracking-[0.28em] uppercase font-light">
+    <span class="w-2 h-2 rounded-full bg-gold24k animate-ping"></span>
+    <span>Drag to swirl 24K gold orbit &bull; Click to unleash supernova burst</span>
+  </div>
+
+  <!-- ================= FROSTED ONYX & 24K GOLD ATMOSPHERE DRAWER ================= -->
+  <div id="ambientPopover" class="hidden fixed top-20 right-6 z-50 w-84 max-w-[92vw] glass-onyx-gold rounded-2xl p-5 text-slate-200 transition-all duration-300 transform scale-95 opacity-0">
+    <div class="flex justify-between items-center pb-3 border-b border-amber-500/20">
+      <div class="flex items-center gap-2">
+        <i data-lucide="crown" class="w-3.5 h-3.5 text-gold24k"></i>
+        <h3 class="text-[10px] font-display font-bold tracking-[0.26em] uppercase text-amber-100">1 Million Black</h3>
+      </div>
+      <button id="closeControlsBtn" class="text-amber-200/60 hover:text-white transition-colors p-1">
+        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+
+    <!-- Controls Container -->
+    <div class="mt-4 space-y-4 text-xs font-light">
+      
+      <!-- Palette Harmonies -->
+      <div>
+        <label class="block text-[9px] font-display tracking-[0.2em] uppercase text-amber-400/90 mb-2 font-medium">Gold & Onyx Profile</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button class="palette-btn active py-2.5 px-2.5 text-[9px] font-display tracking-wider uppercase font-semibold rounded-xl border border-amber-400/80 bg-amber-950/30 text-amber-200 text-left flex items-center gap-2 shadow-[0_0_12px_rgba(255,215,0,0.15)]" data-palette="gold24kObsidian">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-amber-600 via-gold24k to-champagne shadow-[0_0_8px_#ffd700]"></span>
+            <span>24K Obsidian</span>
+          </button>
+          <button class="palette-btn py-2.5 px-2.5 text-[9px] font-display tracking-wider uppercase font-semibold rounded-xl border border-carbon/70 bg-onyx/60 hover:bg-carbon/50 text-slate-400 text-left flex items-center gap-2" data-palette="goldenSupernova">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-yellow-300 via-champagne to-white shadow-[0_0_8px_#fff1c5]"></span>
+            <span>Supernova</span>
+          </button>
+          <button class="palette-btn py-2.5 px-2.5 text-[9px] font-display tracking-wider uppercase font-semibold rounded-xl border border-carbon/70 bg-onyx/60 hover:bg-carbon/50 text-slate-400 text-left flex items-center gap-2" data-palette="smokedOnyx">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-amber-800 via-amber-600 to-amber-400 shadow-[0_0_8px_#d97706]"></span>
+            <span>Smoked Onyx</span>
+          </button>
+          <button class="palette-btn py-2.5 px-2.5 text-[9px] font-display tracking-wider uppercase font-semibold rounded-xl border border-carbon/70 bg-onyx/60 hover:bg-carbon/50 text-slate-400 text-left flex items-center gap-2" data-palette="midnightIngot">
+            <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-slate-900 via-blue-900 to-amber-300 shadow-[0_0_8px_#38bdf8]"></span>
+            <span>Midnight Ingot</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Orbit Wind Velocity -->
+      <div>
+        <div class="flex justify-between text-[9.5px] font-display tracking-[0.16em] uppercase text-amber-200/70 mb-1.5">
+          <span>Gold Orbit Velocity</span>
+          <span id="windVal" class="text-gold24k font-mono font-medium">1.0x Flow</span>
+        </div>
+        <input id="windSpeed" type="range" min="0.4" max="2.8" step="0.1" value="1.0" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Gold Shards & Flakes Density -->
+      <div>
+        <div class="flex justify-between text-[9.5px] font-display tracking-[0.16em] uppercase text-amber-200/70 mb-1.5">
+          <span>Gold Flake Density</span>
+          <span id="densityVal" class="text-gold24k font-mono font-medium">Rich (95)</span>
+        </div>
+        <input id="shardDensity" type="range" min="40" max="180" step="10" value="95" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Starstruck Radiance -->
+      <div>
+        <div class="flex justify-between text-[9.5px] font-display tracking-[0.16em] uppercase text-amber-200/70 mb-1.5">
+          <span>Starstruck Radiance</span>
+          <span id="radianceVal" class="text-gold24k font-mono font-medium">Luminous</span>
+        </div>
+        <input id="starRadiance" type="range" min="0.4" max="2.6" step="0.1" value="1.3" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Vortex Magnetic Pull Mode -->
+      <div class="pt-2 border-t border-amber-500/20 flex items-center justify-between">
+        <span class="text-[9.5px] font-display tracking-[0.16em] uppercase text-amber-200/70">Gold Dynamics</span>
+        <button id="toggleVortexBtn" class="px-3 py-1 rounded-full text-[9px] font-display tracking-wider uppercase font-bold border border-amber-400/40 bg-amber-950/40 text-amber-200 hover:bg-amber-900/50 transition-all">
+          Magnetic Orbit
+        </button>
+      </div>
+
+      <!-- Supernova Explosion Trigger -->
+      <div class="pt-1">
+        <button id="triggerSupernovaBtn" class="w-full py-2.5 bg-gradient-to-r from-amber-600 via-gold24k to-amber-500 hover:from-amber-500 hover:to-gold24k text-black rounded-xl text-[9px] font-display tracking-[0.25em] uppercase font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,215,0,0.35)]">
+          <i data-lucide="zap" class="w-3.5 h-3.5 text-black"></i>
+          <span>Supernova Burst</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= CANVAS ANIMATION & PARTICLE PHYSICS ================= -->
+  <script>
+    lucide.createIcons();
+
+    const starCanvas = document.getElementById('starCanvas');
+    const starCtx = starCanvas.getContext('2d');
+
+    const mainCanvas = document.getElementById('mainCanvas');
+    const mainCtx = mainCanvas.getContext('2d');
+
+    const sparkCanvas = document.getElementById('sparkCanvas');
+    const sparkCtx = sparkCanvas.getContext('2d');
+
+    const ambientGlow = document.getElementById('ambientGlow');
+
+    let width = 0;
+    let height = 0;
+
+    // Simulation Config
+    const config = {
+      shardCount: 95,
+      starCount: 220,
+      windFactor: 1.0,
+      radianceFactor: 1.3,
+      isVortexActive: true,
+      activePalette: 'gold24kObsidian',
+      pullRadius: 240
+    };
+
+    // Palettes: Pitch black undertones with rich 24K gold & champagne accents
+    const palettes = {
+      gold24kObsidian: {
+        glow: 'rgba(255, 215, 0, 0.22)',
+        shards: ['#ffd700', '#ffc107', '#ffae19', '#fff1c5', '#daa520', '#ffe484'],
+        dust: ['#ffd700', '#ffe8a3', '#ffb300', '#ffffff'],
+        stars: ['#ffd700', '#fff4cc', '#ffffff', '#ffdf80'],
+        sparks: ['#ffd700', '#fff3b0', '#ffab00', '#ffffff']
+      },
+      goldenSupernova: {
+        glow: 'rgba(255, 240, 180, 0.28)',
+        shards: ['#fff7d6', '#ffe8a3', '#ffd700', '#ffffff', '#fae17d'],
+        dust: ['#ffffff', '#fff8dc', '#ffecb3'],
+        stars: ['#ffffff', '#fff9e6', '#ffe082'],
+        sparks: ['#ffffff', '#fff2b2', '#ffd54f']
+      },
+      smokedOnyx: {
+        glow: 'rgba(217, 119, 6, 0.2)',
+        shards: ['#d97706', '#b45309', '#f59e0b', '#78350f', '#fbbf24'],
+        dust: ['#f59e0b', '#d97706', '#fed7aa'],
+        stars: ['#fef3c7', '#fde68a', '#d97706'],
+        sparks: ['#d97706', '#f59e0b', '#b45309']
+      },
+      midnightIngot: {
+        glow: 'rgba(56, 189, 248, 0.16)',
+        shards: ['#ffd700', '#38bdf8', '#0284c7', '#ffc107', '#cbd5e1'],
+        dust: ['#38bdf8', '#ffd700', '#e0f2fe'],
+        stars: ['#93c5fd', '#ffffff', '#ffd700'],
+        sparks: ['#38bdf8', '#ffd700', '#e0f2fe']
+      }
+    };
+
+    const mouse = {
+      x: window.innerWidth * 0.5,
+      y: window.innerHeight * 0.45,
+      targetX: window.innerWidth * 0.5,
+      targetY: window.innerHeight * 0.45,
+      isDown: false
+    };
+
+    // ================= LAYER 1: STARSTRUCK CELESTIAL CANVAS =================
+    let stars = [];
+    class Star {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.size = 0.5 + Math.random() * 1.8;
+        this.twinkleSpeed = 0.012 + Math.random() * 0.035;
+        this.phase = Math.random() * Math.PI * 2;
+        this.baseAlpha = 0.25 + Math.random() * 0.75;
+        this.isCross = Math.random() > 0.88; // Starstruck sparkle diffraction spike
+      }
+      update() {
+        this.phase += this.twinkleSpeed;
+      }
+      draw(c) {
+        const pal = palettes[config.activePalette];
+        const alpha = Math.max(0.08, (Math.sin(this.phase) * 0.45 + 0.55) * this.baseAlpha * config.radianceFactor);
+        const color = pal.stars[Math.floor(this.phase * 2) % pal.stars.length];
+
+        c.save();
+        c.globalAlpha = Math.min(1.0, alpha);
+        c.fillStyle = color;
+        c.shadowColor = color;
+        c.shadowBlur = this.isCross ? 8 : 4;
+
+        c.beginPath();
+        c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        c.fill();
+
+        // 4-point starstruck diffraction spikes for hero celestial stars
+        if (this.isCross && alpha > 0.4) {
+          c.strokeStyle = color;
+          c.lineWidth = 0.7;
+          const spikeLen = this.size * 5 * (Math.sin(this.phase) * 0.3 + 0.7);
+
+          c.beginPath();
+          c.moveTo(this.x - spikeLen, this.y);
+          c.lineTo(this.x + spikeLen, this.y);
+          c.moveTo(this.x, this.y - spikeLen);
+          c.lineTo(this.x, this.y + spikeLen);
+          c.stroke();
+        }
+
+        c.restore();
+      }
+    }
+
+    // ================= LAYER 2: 3D GOLD BULLION SHARDS & FLAKES =================
+    class GoldElement {
+      constructor(isInitial = false) {
+        this.reset(isInitial);
+      }
+
+      reset(isInitial = false) {
+        // Types: 0 = 24K Gold Geometric Ingot Shard, 1 = Tumbling Gold Leaf Flake, 2 = Suspended Metallic Dust / Ember
+        const rand = Math.random();
+        this.type = rand > 0.5 ? 0 : (rand > 0.22 ? 1 : 2);
+
+        this.x = isInitial ? Math.random() * width : Math.random() * width * 1.2 - width * 0.1;
+        this.y = isInitial ? Math.random() * height : height + 30 + Math.random() * 60;
+
+        this.depth = 0.5 + Math.random() * 0.9;
+        this.angle = Math.random() * Math.PI * 2;
+        this.angularSpeed = (Math.random() - 0.5) * 0.04;
+
+        if (this.type === 0) {
+          // Angular 24K Gold Ingot / Bullion Shard
+          this.size = (7 + Math.random() * 12) * this.depth;
+          this.vx = (Math.random() - 0.5) * 0.6;
+          this.vy = -(0.8 + Math.random() * 1.5) * this.depth; // Upward buoyant luxury drift
+          this.flip = Math.random() * Math.PI;
+          this.flipSpeed = 0.015 + Math.random() * 0.035;
+          this.life = 1.0;
+          this.decay = 0.0018 + Math.random() * 0.003;
+          this.aspect = 0.45 + Math.random() * 0.5;
+        } else if (this.type === 1) {
+          // Organic Tumbling Gold Leaf Flake
+          this.size = (5 + Math.random() * 8) * this.depth;
+          this.vx = (Math.random() - 0.5) * 0.9;
+          this.vy = -(1.0 + Math.random() * 1.8) * this.depth;
+          this.flip = Math.random() * Math.PI;
+          this.flipSpeed = 0.02 + Math.random() * 0.045;
+          this.life = 1.0;
+          this.decay = 0.002 + Math.random() * 0.0035;
+        } else {
+          // Molten Gold Micro-Ember / Metallic Sparkle
+          this.size = (1.5 + Math.random() * 2.8) * this.depth;
+          this.vx = (Math.random() - 0.5) * 0.8;
+          this.vy = -(1.2 + Math.random() * 2.4) * this.depth;
+          this.pulse = Math.random() * Math.PI * 2;
+          this.life = 1.0;
+          this.decay = 0.003 + Math.random() * 0.006;
+        }
+
+        this.updateColor();
+      }
+
+      updateColor() {
+        const pal = palettes[config.activePalette];
+        if (this.type === 0) {
+          this.color = pal.shards[Math.floor(Math.random() * pal.shards.length)];
+          this.edgeColor = '#ffffff';
+        } else if (this.type === 1) {
+          this.color = pal.shards[Math.floor(Math.random() * pal.shards.length)];
+          this.edgeColor = '#fff9e6';
+        } else {
+          this.color = pal.dust[Math.floor(Math.random() * pal.dust.length)];
+        }
+      }
+
+      update() {
+        this.life -= this.decay;
+        this.angle += this.angularSpeed * config.windFactor;
+
+        this.x += this.vx * config.windFactor;
+        this.y += this.vy * config.windFactor;
+
+        if (this.type === 0 || this.type === 1) {
+          this.flip += this.flipSpeed * config.windFactor;
+        } else {
+          this.pulse += 0.08;
+          this.x += Math.sin(this.pulse) * 0.6;
+        }
+
+        // Magnetic Vortex Interaction
+        const dx = this.x - mouse.x;
+        const dy = this.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < config.pullRadius) {
+          const norm = 1 - dist / config.pullRadius;
+          const angle = Math.atan2(dy, dx);
+
+          if (config.isVortexActive) {
+            // Swirl around pointer in golden orbit
+            const tangent = angle + Math.PI / 2;
+            const swirlStrength = norm * 4.8 * this.depth;
+            const attraction = norm * 2.2 * this.depth;
+
+            this.x += Math.cos(tangent) * swirlStrength - Math.cos(angle) * attraction;
+            this.y += Math.sin(tangent) * swirlStrength - Math.sin(angle) * attraction;
+          } else {
+            // Direct repulsion
+            const push = norm * 6.0 * this.depth;
+            this.x += Math.cos(angle) * push;
+            this.y += Math.sin(angle) * push;
+          }
+        }
+
+        // Reset when leaving frame
+        if (this.life <= 0 || this.y < -40 || this.x > width + 60 || this.x < -60) {
+          this.reset(false);
+        }
+      }
+
+      draw(c) {
+        c.save();
+        c.translate(this.x, this.y);
+        c.rotate(this.angle);
+
+        if (this.type === 0) {
+          // 24K Gold Ingot / Shard with 3D bevel and specular metallic reflection
+          const flipScale = Math.sin(this.flip);
+          c.scale(1, Math.abs(flipScale) < 0.12 ? 0.12 : flipScale);
+          c.globalAlpha = Math.max(0.1, this.life * 0.95);
+
+          const w = this.size;
+          const h = this.size * this.aspect;
+
+          c.shadowColor = this.color;
+          c.shadowBlur = 10 * config.radianceFactor;
+
+          // Golden gradient body
+          const grad = c.createLinearGradient(-w/2, -h/2, w/2, h/2);
+          grad.addColorStop(0, '#fff5cc');
+          grad.addColorStop(0.3, this.color);
+          grad.addColorStop(0.7, '#b8860b');
+          grad.addColorStop(1, '#664a04');
+
+          c.fillStyle = grad;
+          c.beginPath();
+          c.moveTo(-w/2, -h/2);
+          c.lineTo(w/2, -h/2 * 0.7);
+          c.lineTo(w/2 * 0.8, h/2);
+          c.lineTo(-w/2, h/2 * 0.8);
+          c.closePath();
+          c.fill();
+
+          // Beveled metallic highlight rim
+          c.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+          c.lineWidth = 0.8;
+          c.stroke();
+
+        } else if (this.type === 1) {
+          // Gold Leaf Flake (Organic curved foil)
+          const flipScale = Math.cos(this.flip);
+          c.scale(Math.abs(flipScale) < 0.15 ? 0.15 : flipScale, 1);
+          c.globalAlpha = Math.max(0.1, this.life * 0.88);
+
+          c.shadowColor = this.color;
+          c.shadowBlur = 8 * config.radianceFactor;
+
+          c.fillStyle = this.color;
+          c.beginPath();
+          c.moveTo(0, -this.size * 0.7);
+          c.bezierCurveTo(this.size * 0.6, -this.size * 0.4, this.size * 0.5, this.size * 0.6, 0, this.size * 0.7);
+          c.bezierCurveTo(-this.size * 0.5, this.size * 0.4, -this.size * 0.6, -this.size * 0.3, 0, -this.size * 0.7);
+          c.fill();
+
+        } else {
+          // Molten Gold Sparkle / Suspended Nectar Ember
+          const emberAlpha = Math.max(0, this.life * (Math.sin(this.pulse) * 0.3 + 0.7));
+          c.globalAlpha = emberAlpha;
+          c.shadowColor = this.color;
+          c.shadowBlur = 14 * config.radianceFactor;
+
+          c.fillStyle = this.color;
+          c.beginPath();
+          c.arc(0, 0, this.size, 0, Math.PI * 2);
+          c.fill();
+
+          // Incandescent white core
+          c.fillStyle = '#ffffff';
+          c.beginPath();
+          c.arc(0, 0, this.size * 0.38, 0, Math.PI * 2);
+          c.fill();
+        }
+
+        c.restore();
+      }
+    }
+
+    // ================= LAYER 3: INTERACTIVE FAST GOLD SPARK TRAIL =================
+    const sparks = [];
+    function addSparks(x, y, count = 1) {
+      const pal = palettes[config.activePalette];
+      for (let i = 0; i < count; i++) {
+        if (sparks.length > 80) sparks.shift();
+        sparks.push({
+          x: x + (Math.random() - 0.5) * 18,
+          y: y + (Math.random() - 0.5) * 18,
+          vx: (Math.random() - 0.5) * 2.4,
+          vy: (Math.random() - 0.5) * 2.4 - 1.0,
+          radius: 1.2 + Math.random() * 2.6,
+          color: pal.sparks[Math.floor(Math.random() * pal.sparks.length)],
+          life: 1.0,
+          decay: 0.024 + Math.random() * 0.03
+        });
+      }
+    }
+
+    let elements = [];
+
+    function syncShardCount() {
+      if (elements.length < config.shardCount) {
+        while (elements.length < config.shardCount) {
+          elements.push(new GoldElement(false));
+        }
+      } else if (elements.length > config.shardCount) {
+        elements.splice(config.shardCount);
+      }
+    }
+
+    function resize() {
+      width = starCanvas.width = mainCanvas.width = sparkCanvas.width = window.innerWidth;
+      height = starCanvas.height = mainCanvas.height = sparkCanvas.height = window.innerHeight;
+
+      stars = Array.from({ length: config.starCount }, () => new Star());
+      elements = Array.from({ length: config.shardCount }, () => new GoldElement(true));
+    }
+
+    // ================= MAIN ANIMATION LOOP =================
+    function render() {
+      mouse.x += (mouse.targetX - mouse.x) * 0.08;
+      mouse.y += (mouse.targetY - mouse.y) * 0.08;
+
+      // Update Cursor Molten Gold Ambient Halo
+      if (ambientGlow) {
+        const xPercent = (mouse.x / width) * 100;
+        const yPercent = (mouse.y / height) * 100;
+        ambientGlow.style.setProperty('--mouse-x', `${xPercent}%`);
+        ambientGlow.style.setProperty('--mouse-y', `${yPercent}%`);
+      }
+
+      // 1. Draw Starstruck Field
+      starCtx.clearRect(0, 0, width, height);
+      for (let s of stars) {
+        s.update();
+        s.draw(starCtx);
+      }
+
+      // 2. Draw 3D Floating Gold Shards & Flakes
+      mainCtx.clearRect(0, 0, width, height);
+      for (let i = 0; i < elements.length; i++) {
+        elements[i].update();
+        elements[i].draw(mainCtx);
+      }
+
+      // 3. Draw Stardust Trail Sparks
+      sparkCtx.clearRect(0, 0, width, height);
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const sp = sparks[i];
+        sp.x += sp.vx;
+        sp.y += sp.vy;
+        sp.life -= sp.decay;
+
+        if (sp.life <= 0) {
+          sparks.splice(i, 1);
+          continue;
+        }
+
+        sparkCtx.save();
+        sparkCtx.globalAlpha = sp.life * 0.95;
+        sparkCtx.fillStyle = sp.color;
+        sparkCtx.shadowColor = sp.color;
+        sparkCtx.shadowBlur = 12;
+        sparkCtx.beginPath();
+        sparkCtx.arc(sp.x, sp.y, sp.radius * sp.life, 0, Math.PI * 2);
+        sparkCtx.fill();
+        sparkCtx.restore();
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // ================= POINTER & EXPLOSION INTERACTIONS =================
+    function handlePointer(e) {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      mouse.targetX = clientX;
+      mouse.targetY = clientY;
+
+      addSparks(clientX, clientY, 1);
+      if (mouse.isDown) addSparks(clientX, clientY, 2);
+    }
+
+    window.addEventListener('mousemove', handlePointer, { passive: true });
+    window.addEventListener('touchmove', handlePointer, { passive: true });
+
+    window.addEventListener('mousedown', (e) => {
+      if (e.target.closest('#ambientPopover, #toggleControlsBtn')) return;
+      mouse.isDown = true;
+      triggerSupernova(e.clientX, e.clientY, 18);
+    });
+
+    window.addEventListener('mouseup', () => { mouse.isDown = false; });
+
+    // Supernova Burst Effect
+    function triggerSupernova(x, y, count = 22) {
+      addSparks(x, y, 30);
+      for (let i = 0; i < count; i++) {
+        const el = new GoldElement(false);
+        el.x = x + (Math.random() - 0.5) * 35;
+        el.y = y + (Math.random() - 0.5) * 35;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 3.5 + Math.random() * 7.5;
+        el.vx = Math.cos(angle) * speed;
+        el.vy = Math.sin(angle) * speed - 1.2;
+        el.life = 1.0;
+        el.size = (el.type === 2 ? 2.5 : 9) + Math.random() * 4;
+        el.updateColor();
+        elements.push(el);
+      }
+
+      if (elements.length > config.shardCount + 40) {
+        elements.splice(0, count);
+      }
+    }
+
+    // ================= UI CONSOLE LOGIC =================
+    const toggleBtn = document.getElementById('toggleControlsBtn');
+    const popover = document.getElementById('ambientPopover');
+    const closeBtn = document.getElementById('closeControlsBtn');
+
+    const windSpeedInput = document.getElementById('windSpeed');
+    const shardDensityInput = document.getElementById('shardDensity');
+    const starRadianceInput = document.getElementById('starRadiance');
+    const toggleVortexBtn = document.getElementById('toggleVortexBtn');
+    const triggerSupernovaBtn = document.getElementById('triggerSupernovaBtn');
+    const paletteButtons = document.querySelectorAll('.palette-btn');
+
+    function toggleMenu(show) {
+      if (show) {
+        popover.classList.remove('hidden');
+        requestAnimationFrame(() => {
+          popover.classList.remove('scale-95', 'opacity-0');
+          popover.classList.add('scale-100', 'opacity-100');
+        });
+      } else {
+        popover.classList.remove('scale-100', 'opacity-100');
+        popover.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => popover.classList.add('hidden'), 250);
+      }
+    }
+
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isClosed = popover.classList.contains('hidden');
+      toggleMenu(isClosed);
+    });
+
+    closeBtn.addEventListener('click', () => toggleMenu(false));
+
+    // Sliders
+    windSpeedInput.addEventListener('input', (e) => {
+      config.windFactor = parseFloat(e.target.value);
+      document.getElementById('windVal').textContent = `${config.windFactor.toFixed(1)}x Flow`;
+    });
+
+    shardDensityInput.addEventListener('input', (e) => {
+      config.shardCount = parseInt(e.target.value, 10);
+      document.getElementById('densityVal').textContent = `${config.shardCount > 135 ? 'Max Bullion' : config.shardCount > 80 ? 'Rich' : 'Minimal'} (${config.shardCount})`;
+      syncShardCount();
+    });
+
+    starRadianceInput.addEventListener('input', (e) => {
+      config.radianceFactor = parseFloat(e.target.value);
+      document.getElementById('radianceVal').textContent =
+        config.radianceFactor > 2.0 ? 'Supernova' : config.radianceFactor > 1.1 ? 'Luminous' : 'Subtle Starfield';
+    });
+
+    // Palette Switcher
+    paletteButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        paletteButtons.forEach(b => {
+          b.classList.remove('active', 'border-amber-400/80', 'bg-amber-950/30', 'text-amber-200', 'shadow-[0_0_12px_rgba(255,215,0,0.15)]');
+          b.classList.add('border-carbon/70', 'bg-onyx/60', 'text-slate-400');
+        });
+        btn.classList.add('active', 'border-amber-400/80', 'bg-amber-950/30', 'text-amber-200', 'shadow-[0_0_12px_rgba(255,215,0,0.15)]');
+        btn.classList.remove('border-carbon/70', 'bg-onyx/60', 'text-slate-400');
+
+        config.activePalette = btn.getAttribute('data-palette');
+        elements.forEach(el => el.updateColor());
+      });
+    });
+
+    // Dynamics Mode Toggle
+    toggleVortexBtn.addEventListener('click', () => {
+      config.isVortexActive = !config.isVortexActive;
+      toggleVortexBtn.textContent = config.isVortexActive ? 'Magnetic Orbit' : 'Free Repulsion';
+      toggleVortexBtn.classList.toggle('border-amber-400/40');
+      toggleVortexBtn.classList.toggle('border-yellow-200/40');
+    });
+
+    // Supernova Trigger Button
+    triggerSupernovaBtn.addEventListener('click', () => {
+      triggerSupernova(width * 0.5, height * 0.5, 36);
+      elements.forEach(el => {
+        el.vy = -3.0 - Math.random() * 6.0;
+        el.vx = (Math.random() - 0.5) * 8.0;
+      });
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!popover.contains(e.target) && !toggleBtn.contains(e.target)) {
+        toggleMenu(false);
+      }
+    });
+
+    window.addEventListener('resize', resize);
+
+    window.onload = function() {
+      resize();
+      render();
+    };
+  </script>
+</body>
+</html>

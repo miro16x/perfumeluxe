@@ -13,3 +13,8 @@ styles 2.css
 supabase/
 lib/
 tests/
+/models/*.glb
+models/README.md
+.preview-*.html
+components/
+tools/

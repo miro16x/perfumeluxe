@@ -172,6 +172,7 @@ function ulPickRecommendations(scored, prefs, key) {
 
 function renderRecommendations() {
   renderPersonalizeInvite();
+  window.ulSpotlight?.refresh();   /* the hero follows the account's men's/women's preference */
   const section = document.getElementById('recommendedSection');
   const grid = document.getElementById('recommendedGrid');
   if (!section || !grid || typeof PRODUCTS === 'undefined' || typeof renderProductCard === 'undefined') return;
