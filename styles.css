@@ -2725,8 +2725,22 @@ a:focus:not(:focus-visible){outline:none}
 
 /* Text follows the scene, not the site theme: light on dark scenes, dark on
    light ones. The header uses the same colours while it sits over the hero. */
-.spotlight[data-tone="dark"],body.nav-over-hero[data-hero-tone="dark"] .nav-inner{--ivory:#f5f0e8;--ivory-dim:#cfc3b6;--ivory-muted:#9a8c7f}
-.spotlight[data-tone="light"],body.nav-over-hero[data-hero-tone="light"] .nav-inner{--ivory:#1e1a13;--ivory-dim:#3d3424;--ivory-muted:#6f604b}
+.spotlight[data-tone="dark"],body.nav-over-hero[data-hero-tone="dark"] .nav-inner,body.nav-over-hero[data-hero-tone="dark"] .search-panel{--ivory:#f5f0e8;--ivory-dim:#cfc3b6;--ivory-muted:#9a8c7f}
+.spotlight[data-tone="light"],body.nav-over-hero[data-hero-tone="light"] .nav-inner,body.nav-over-hero[data-hero-tone="light"] .search-panel{--ivory:#1e1a13;--ivory-dim:#3d3424;--ivory-muted:#6f604b}
+
+/* Search opened over the hero takes on the scene too: its base and deep
+   colours for the panel and hovered rows, its accent in place of gold. */
+body.nav-over-hero .search-panel{
+  --bg-1:color-mix(in srgb, var(--m-base) 88%, var(--m-deep));
+  --bg-3:color-mix(in srgb, var(--m-deep) 70%, var(--m-base));
+  --gold:var(--m-accent);
+  --gold-light:var(--m-accent);
+  --gold-glow:color-mix(in srgb, var(--m-accent) 16%, transparent);
+  --border:color-mix(in srgb, var(--m-accent) 22%, transparent);
+  --border-hover:color-mix(in srgb, var(--m-accent) 45%, transparent);
+  -webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);
+}
+body.nav-over-hero .search-overlay{background:color-mix(in srgb, var(--m-base) 55%, transparent)}
 
 /* While the header sits over the hero it takes on the scene: a translucent
    tint of its base colour, its accent for the active link and logo line.
