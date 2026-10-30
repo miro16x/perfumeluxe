@@ -2743,14 +2743,25 @@ body.nav-over-hero .search-panel{
 body.nav-over-hero .search-overlay{background:color-mix(in srgb, var(--m-base) 55%, transparent)}
 
 /* While the header sits over the hero it takes on the scene: a translucent
-   tint of its base colour, its accent for the active link and logo line.
-   (The phone menu keeps its own background and colours.) */
+   tint of its base colour, its accent for the links and logo line. The links
+   are a softer blend of the accent, and full accent when hovered or active. */
 body.nav-over-hero .nav,body.nav-over-hero .nav.scrolled{
   background:color-mix(in srgb, var(--m-base) 42%, transparent);
   -webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);
   border-bottom-color:color-mix(in srgb, var(--m-accent) 20%, transparent);
 }
-body.nav-over-hero .logo-sub,body.nav-over-hero .nav-links a.nav-active{color:var(--m-accent)}
+body.nav-over-hero .nav-links a,body.nav-over-hero .mobile-menu a{color:color-mix(in srgb, var(--m-accent) 60%, var(--ivory-dim))}
+body.nav-over-hero .logo-sub,body.nav-over-hero .nav-links a.nav-active,body.nav-over-hero .nav-links a:hover,body.nav-over-hero .mobile-menu a:hover{color:var(--m-accent)}
+/* The phone menu: the scene's base colour, with its accent in place of gold. */
+body.nav-over-hero .mobile-menu{
+  --gold:var(--m-accent);
+  --gold-glow:color-mix(in srgb, var(--m-accent) 16%, transparent);
+  --border:color-mix(in srgb, var(--m-accent) 22%, transparent);
+  background:color-mix(in srgb, var(--m-base) 94%, var(--m-deep));
+}
+body.nav-over-hero[data-hero-tone="dark"] .mobile-menu{--ivory:#f5f0e8;--ivory-dim:#cfc3b6;--ivory-muted:#9a8c7f}
+body.nav-over-hero[data-hero-tone="light"] .mobile-menu{--ivory:#1e1a13;--ivory-dim:#3d3424;--ivory-muted:#6f604b}
+body.nav-over-hero .mobile-menu-icons .nav-icon{color:var(--m-accent)}
 body.nav-over-hero .nav-links a::after{background:var(--m-accent)}
 /* The header icons, their badges and the menu button take the scene's accent. */
 body.nav-over-hero .nav-inner .nav-icon{color:var(--m-accent)}
