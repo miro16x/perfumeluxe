@@ -159,5 +159,18 @@
     render();
   });
 
+  /* Cards per row (the view switch), shared with the Shop's on this device. */
+  const VIEW_KEY = 'ul-shop-density';
+  const viewButtons = document.querySelectorAll('.shop-view-btn');
+  function setDensity(density) {
+    grid.dataset.density = density;
+    viewButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.density === density)));
+  }
+  viewButtons.forEach((btn) => btn.addEventListener('click', () => {
+    setDensity(btn.dataset.density);
+    try { localStorage.setItem(VIEW_KEY, btn.dataset.density); } catch { /* private mode */ }
+  }));
+  try { if (localStorage.getItem(VIEW_KEY) === 'compact') setDensity('compact'); } catch { /* private mode */ }
+
   render();
 })();
